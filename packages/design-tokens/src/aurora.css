@@ -1,0 +1,78 @@
+/*
+ * Aurora 背景 + Dot Matrix + Glass utility — spec §1.1 / §2 / §3 / §5
+ * 禁止純白、純灰、飽和藍紫、cyberpunk neon（§1.1 / §99）
+ */
+
+.aurora-canvas {
+  background:
+    radial-gradient(circle at 18% 22%, rgba(116, 185, 255, 0.3), transparent 34%),
+    radial-gradient(circle at 40% 12%, rgba(125, 231, 197, 0.22), transparent 30%),
+    radial-gradient(circle at 76% 14%, rgba(190, 198, 255, 0.25), transparent 34%),
+    radial-gradient(circle at 50% 80%, rgba(209, 219, 255, 0.22), transparent 44%),
+    linear-gradient(135deg, #f3f7ff 0%, #f8faff 42%, #f4f5ff 100%);
+  background-attachment: fixed;
+}
+
+[data-theme='dark'] .aurora-canvas {
+  background:
+    radial-gradient(circle at 16% 18%, rgba(55, 118, 201, 0.2), transparent 33%),
+    radial-gradient(circle at 38% 8%, rgba(48, 164, 139, 0.13), transparent 30%),
+    radial-gradient(circle at 79% 14%, rgba(104, 87, 193, 0.2), transparent 35%),
+    linear-gradient(135deg, #07101e 0%, #0b1424 48%, #0c1020 100%);
+  background-attachment: fixed;
+}
+
+/* 只用在左上背景 / Hero / 空狀態 / processing，禁止整頁鋪滿（§2） */
+.dot-matrix {
+  background-image: radial-gradient(circle, rgba(99, 154, 221, 0.16) 3px, transparent 3.5px);
+  background-size: 25px 25px;
+  -webkit-mask-image: linear-gradient(to bottom right, black, transparent 68%);
+  mask-image: linear-gradient(to bottom right, black, transparent 68%);
+}
+
+[data-theme='dark'] .dot-matrix {
+  background-image: radial-gradient(circle, rgba(146, 183, 232, 0.1) 3px, transparent 3.5px);
+}
+
+/* §3.1 外層玻璃大框 */
+.glass-shell {
+  background: var(--glass-shell);
+  backdrop-filter: blur(var(--blur-shell)) saturate(var(--saturate-shell));
+  -webkit-backdrop-filter: blur(var(--blur-shell)) saturate(var(--saturate-shell));
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-shell);
+  box-shadow: var(--shadow-shell), var(--shadow-inset-hi);
+}
+
+/* §3.2 內層玻璃卡 */
+.glass-card {
+  background: var(--glass-card);
+  backdrop-filter: blur(var(--blur-card));
+  -webkit-backdrop-filter: blur(var(--blur-card));
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+}
+
+/* §3.3 Strong surface：transcript / 表單 / 設定頁（要保證文字可讀） */
+.glass-strong {
+  background: var(--glass-card-strong);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-card);
+}
+
+/* §86 小面積漸層狀態 pill — 不做大面積漸層 */
+.gradient-pill {
+  border-radius: var(--radius-pill);
+  background: linear-gradient(120deg, var(--accent-blue), var(--accent-cyan) 48%, var(--accent-mint));
+  color: #fff;
+}
+
+/* Theme 切換要柔和，禁止整頁 flash（§6） */
+.theme-transition,
+.theme-transition * {
+  transition:
+    background-color var(--dur-theme) var(--ease-out-soft),
+    border-color var(--dur-theme) var(--ease-out-soft),
+    color var(--dur-theme) var(--ease-out-soft);
+}

@@ -1,0 +1,134 @@
+/*
+ * Soft Aurora Enterprise AI Workspace — Design Tokens
+ * spec §3 Glassmorphism / §4 Light / §5 Dark / §7 Typography / §8 Spacing / §9 Radius
+ *
+ * 規則：元件只能引用這裡的變數。禁止在元件內 hardcode 顏色（§99）。
+ */
+
+:root {
+  /* ---- Canvas ---- */
+  --bg-canvas: #f4f7fd;
+  --bg-canvas-soft: #f8faff;
+
+  /* ---- Glass surfaces (§3) ---- */
+  --glass-shell: rgba(244, 249, 255, 0.44);
+  --glass-card: rgba(255, 255, 255, 0.68);
+  --glass-card-strong: rgba(255, 255, 255, 0.84);
+
+  --border-glass: rgba(255, 255, 255, 0.82);
+  --border-soft: rgba(184, 199, 225, 0.25);
+
+  --blur-shell: 28px;
+  --blur-card: 22px;
+  --saturate-shell: 135%;
+
+  /* ---- Text — 深海軍藍，不使用純黑（§7） ---- */
+  --text-primary: #18233c;
+  --text-secondary: #566177;
+  --text-tertiary: #8791a5;
+
+  /* ---- Accents ---- */
+  --accent-indigo: #6f63f6;
+  --accent-blue: #47a9ed;
+  --accent-cyan: #42c6d9;
+  --accent-mint: #57d1b0;
+  --accent-violet: #a98cf8;
+
+  --success: #43cba8;
+  --warning: #f1b44a;
+  --danger: #e96a79;
+  --info: #54a9ea;
+
+  /* ---- Elevation ---- */
+  --shadow-soft: 0 18px 50px rgba(55, 77, 124, 0.1);
+  --shadow-floating: 0 28px 64px rgba(55, 77, 124, 0.14);
+  --shadow-shell: 0 30px 70px rgba(53, 78, 129, 0.1);
+  --shadow-inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+
+  /* ---- Radius (§9) — 任何主要資訊卡禁止直角 ---- */
+  --radius-shell: 30px;
+  --radius-panel: 24px;
+  --radius-card: 22px;
+  --radius-card-sm: 20px;
+  --radius-input: 16px;
+  --radius-button: 12px;
+  --radius-avatar: 14px;
+  --radius-pill: 999px;
+
+  /* ---- Spacing (§8) 8px base ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---- Layout (§10 / §11) ---- */
+  --shell-safe-area: 24px;
+  --shell-max-width: 1800px;
+  --rail-width: 64px;
+  --rail-width-expanded: 232px;
+
+  /* ---- Typography (§7) ---- */
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --text-display: 42px/48px;
+  --text-page-title: 32px/40px;
+  --text-section: 22px/30px;
+  --text-card-title: 16px/24px;
+  --text-body: 14px/22px;
+  --text-body-sm: 13px/19px;
+  --text-meta: 12px/17px;
+  --text-tiny: 11px/15px;
+  --tracking-display: -0.02em;
+  --tracking-heading: -0.015em;
+
+  /* ---- Motion (§6 / §43) ---- */
+  --dur-theme: 200ms;
+  --dur-hover: 140ms;
+  --dur-card-enter: 320ms;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+
+  color-scheme: light;
+}
+
+/* Dark mode 不是把白換成黑，要保留玻璃 + Aurora 感（§5） */
+[data-theme='dark'] {
+  --bg-canvas: #07101e;
+  --bg-canvas-soft: #0b1424;
+
+  --glass-shell: rgba(17, 28, 48, 0.62);
+  --glass-card: rgba(20, 31, 52, 0.72);
+  --glass-card-strong: rgba(25, 37, 61, 0.86);
+
+  --border-glass: rgba(255, 255, 255, 0.11);
+  --border-soft: rgba(166, 183, 216, 0.12);
+
+  --text-primary: #f2f5fc;
+  --text-secondary: #b8c2d4;
+  --text-tertiary: #8390a7;
+
+  --accent-indigo: #877bff;
+  --accent-blue: #5db8f4;
+  --accent-cyan: #4cd3df;
+  --accent-mint: #63d7b8;
+  --accent-violet: #b59aff;
+
+  --shadow-soft: 0 18px 55px rgba(0, 0, 0, 0.28);
+  --shadow-floating: 0 28px 72px rgba(0, 0, 0, 0.38);
+  --shadow-shell: 0 30px 70px rgba(0, 0, 0, 0.42);
+  --shadow-inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-theme: 1ms;
+    --dur-hover: 1ms;
+    --dur-card-enter: 1ms;
+  }
+}
