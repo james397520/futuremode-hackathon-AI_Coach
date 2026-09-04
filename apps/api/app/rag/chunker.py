@@ -102,6 +102,29 @@ _SENTENCE_SPLIT = re.compile(r"(?<=[。！？!?；;])\s*|\n+")
 _WORD = re.compile(r"[A-Za-z0-9_']+")
 _QUESTION_PREFIX = re.compile(r"^\s*(Q\d*[:：.、]|問\s*[:：.、]?|Question\s*\d*[:：])\s*", re.IGNORECASE)
 _ANSWER_PREFIX = re.compile(r"^\s*(A\d*[:：.、]|答\s*[:：.、]?|Answer\s*\d*[:：])\s*", re.IGNORECASE)
+#: An answer marker appearing *mid-block* rather than at the start of one.
+#: `blocks_from_text` merges consecutive non-blank lines into a single paragraph, so an
+#: FAQ export written the normal way —
+#:     Q: 保費可以年繳嗎？
+#:     A: 可以，年繳另有折扣。
+#: — arrives as one block with the answer inline, not as a question block followed by an
+#: answer block. A colon is required here (unlike `_ANSWER_PREFIX`, which is anchored and
+#: can afford to be loose) so ordinary prose containing 答 is not split apart.
+_INLINE_ANSWER = re.compile(r"[\s　]+(?:A\d*[:：]|答[:：]|Answer\s*\d*[:：])\s*", re.IGNORECASE)
+
+
+def _split_inline_answer(question_text: str) -> tuple[str, str]:
+    """Split ``"問題？ A: 答案"`` into ``("問題？", "答案")``.
+
+    Returns the text unchanged with an empty answer when there is no inline marker.
+    """
+    match = _INLINE_ANSWER.search(question_text)
+    if not match:
+        return question_text, ""
+    answer = question_text[match.end() :].strip()
+    if not answer:
+        return question_text, ""
+    return question_text[: match.start()].strip(), answer
 
 
 def estimate_tokens(text: str) -> int:
@@ -201,8 +224,19 @@ class Chunker:
     @staticmethod
     def _count_faq_pairs(blocks: Sequence[Block]) -> int:
         count = 0
-        for index, block in enumerate(blocks[:-1]):
-            if _QUESTION_PREFIX.match(block.text) or block.text.rstrip().endswith(("?", "？")):
+        for index, block in enumerate(blocks):
+            if not (
+                _QUESTION_PREFIX.match(block.text) or block.text.rstrip().endswith(("?", "？"))
+            ):
+                continue
+            # A Q/A pair written on consecutive lines arrives as a single merged block,
+            # so the answer is inline and there is no following block to inspect. Without
+            # this branch an all-FAQ document counts (N - 1) pairs at best and `auto`
+            # never reaches its FAQ_AWARE threshold.
+            if _split_inline_answer(block.text)[1]:
+                count += 1
+                continue
+            if index + 1 < len(blocks):
                 nxt = blocks[index + 1]
                 if _ANSWER_PREFIX.match(nxt.text) or nxt.kind is BlockKind.PARAGRAPH:
                     count += 1
@@ -363,9 +397,16 @@ class Chunker:
                         break
                     answer_blocks.append(candidate)
                     cursor += 1
-                question = _QUESTION_PREFIX.sub("", block.text).strip()
+                question, inline_answer = _split_inline_answer(
+                    _QUESTION_PREFIX.sub("", block.text).strip()
+                )
                 answer = " ".join(
-                    _ANSWER_PREFIX.sub("", b.text).strip() for b in answer_blocks
+                    part
+                    for part in (
+                        inline_answer,
+                        *(_ANSWER_PREFIX.sub("", b.text).strip() for b in answer_blocks),
+                    )
+                    if part
                 ).strip()
                 chunks.append(
                     self._make(

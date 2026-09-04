@@ -208,7 +208,12 @@ _FAMILY_CUE = tuple(
 _QUESTION_CUE = tuple(
     re.compile(p)
     for p in (
-        r"請問", r"想(先)?了解", r"你(目前|現在)", r"你(有沒有|會不會)", r"方便(問|說)",
+        r"請問", r"想(先)?了解",
+        # `你目前/你現在` alone is too loose: it fires on hard-sell imperatives like
+        # 「你現在就要買」 or 「你現在就簽這裡」, which are the opposite of needs
+        # discovery. Require an actual interrogative continuation.
+        r"你(目前|現在)(有沒有|有無|是否|會不會|需不需要|最|大概|多少|怎麼|如何)",
+        r"你(有沒有|會不會)", r"方便(問|說)",
         r"最(在意|擔心)", r"可以(跟我)?說說", r"怎麼(想|考慮)", r"what|how|why|could you tell",
     )
 )
@@ -702,11 +707,16 @@ class ScenarioDirector:
         objection_event: str | None,
     ) -> InjectedEvent | None:
         """At most one event per turn, priority-ordered so behaviour is predictable."""
-        kind: str | None = objection_event
+        # Exit intent outranks a queued objection: the customer is walking away and the
+        # phase is already `ended`, so raising a further price objection would contradict
+        # the state the trainee is being shown. The queue is preserved on the director and
+        # simply never fires for this session.
+        if director.exit_intent:
+            kind: str | None = "exit_intent"
+        else:
+            kind = objection_event
         if kind is None:
-            if director.exit_intent:
-                kind = "exit_intent"
-            elif TurnSignal.COMPLIANCE_RISK in signals:
+            if TurnSignal.COMPLIANCE_RISK in signals:
                 kind = "compliance_probe"
             elif (
                 director.hidden_need_unlocked

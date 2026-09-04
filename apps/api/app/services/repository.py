@@ -90,6 +90,44 @@ class Models:
         )
 
 
+#: Where the ORM column name differs from the wire/contract field name the services
+#: use. Keeping the impedance mismatch in one table beats spreading `getattr` guesses
+#: through eight services (and each entry is a one-line fix if the schema moves).
+COLUMN_ALIASES: dict[str, dict[str, str]] = {
+    # `metadata` is reserved by SQLAlchemy's declarative API, so the attribute is
+    # `chunk_metadata` while the column and the wire field are both `metadata`.
+    "Chunk": {"metadata": "chunk_metadata"},
+    "Document": {
+        "content_sha256": "checksum_sha256",
+        "url": "source_url",
+        "mime_type": "content_type",
+    },
+    "KnowledgeDocument": {
+        "content_sha256": "checksum_sha256",
+        "url": "source_url",
+        "mime_type": "content_type",
+    },
+    # `TrainingSession` has no separate `session_id` column — the primary key *is* the
+    # session id, and the services already pass `id` as well.
+    "TrainingSession": {"session_id": "id"},
+}
+
+
+def translate(model: str, values: Mapping[str, Any]) -> dict[str, Any]:
+    """Rename contract field names onto ORM attribute names."""
+    aliases = COLUMN_ALIASES.get(model)
+    if not aliases:
+        return dict(values)
+    out: dict[str, Any] = {}
+    for key, value in values.items():
+        target = aliases.get(key, key)
+        # An explicit value for the target wins over an aliased one.
+        if target in out and key in aliases:
+            continue
+        out[target] = value
+    return out
+
+
 @runtime_checkable
 class RepositoryPort(Protocol):
     async def get(self, model: str, entity_id: str) -> Any | None: ...
@@ -152,7 +190,8 @@ class Repository:
 
         cls = Models.get(model)
         statement = select(cls)
-        for key, value in {**self._tenant_filters(cls), **dict(filters or {})}.items():
+        resolved = translate(model, {**self._tenant_filters(cls), **dict(filters or {})})
+        for key, value in resolved.items():
             if not hasattr(cls, key):
                 continue
             column = getattr(cls, key)
@@ -173,7 +212,7 @@ class Repository:
 
     async def add(self, model: str, values: Mapping[str, Any]) -> Any:
         cls = Models.get(model)
-        payload = {**self._tenant_filters(cls), **dict(values)}
+        payload = translate(model, {**self._tenant_filters(cls), **dict(values)})
         entity = cls(**{k: v for k, v in payload.items() if hasattr(cls, k)})
         self.db.add(entity)
         await self.db.flush()
@@ -183,7 +222,7 @@ class Repository:
         entity = await self.get(model, entity_id)
         if entity is None:
             return None
-        for key, value in values.items():
+        for key, value in translate(model, values).items():
             if hasattr(entity, key):
                 setattr(entity, key, value)
         await self.db.flush()
@@ -310,6 +349,7 @@ def fields(entity: Any, names: Sequence[str]) -> dict[str, Any]:
 
 
 __all__ = [
+    "COLUMN_ALIASES",
     "InMemoryRepository",
     "ModelNotAvailableError",
     "Models",
@@ -318,4 +358,5 @@ __all__ = [
     "Row",
     "field",
     "fields",
+    "translate",
 ]

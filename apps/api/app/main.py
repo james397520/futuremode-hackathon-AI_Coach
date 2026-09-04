@@ -220,6 +220,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         otel_enabled=settings.otel_enabled,
         # Secrets are intentionally reported as booleans only.
         openai_key_present=settings.openai_api_key is not None,
+        minimax_key_present=settings.minimax_api_key is not None,
         elevenlabs_key_present=settings.elevenlabs_api_key is not None,
     )
     get_engine(settings)

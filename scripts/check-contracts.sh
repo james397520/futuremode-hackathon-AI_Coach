@@ -28,7 +28,7 @@
 # =============================================================================
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TS_EVENTS="${REPO_ROOT}/packages/shared/src/events.ts"
 PY_EVENTS="${REPO_ROOT}/apps/api/app/domain/events.py"
 

@@ -2,9 +2,9 @@
 
 * ``GET /healthz`` — liveness. Answers from process state only; it must never touch a
   dependency, otherwise a Redis blip would make Kubernetes kill healthy pods.
-* ``GET /readyz`` — readiness. Probes Postgres, Redis, Qdrant and object storage in
-  parallel with a hard timeout and reports 503 when any is down, so a starting or
-  degraded replica is pulled out of the load balancer instead of failing requests.
+* ``GET /readyz`` — readiness. Probes the enabled dependencies in parallel with a hard
+  timeout and reports 503 when any is down. Local development can use the in-memory
+  vector store and disable object storage, so it never needs a container runtime.
 
 Both routes are unauthenticated (a probe has no session) and therefore expose no
 tenant data: only dependency names, booleans and latencies (§49.5).
@@ -95,17 +95,20 @@ async def liveness() -> HealthResponse:
 @router.get(
     "/readyz",
     response_model=ReadinessResponse,
-    summary="Readiness probe: Postgres, Redis, Qdrant, object storage",
+    summary="Readiness probe for enabled dependencies",
 )
 async def readiness(response: Response) -> ReadinessResponse:
     """503 when any dependency is unavailable; the body always lists every probe."""
     settings = get_settings()
-    dependencies = await asyncio.gather(
+    probes = [
         _timed("postgres", lambda: ping_database(settings)),
         _timed("redis", lambda: ping_redis(settings)),
-        _timed("qdrant", lambda: _probe_qdrant(settings)),
-        _timed("object_storage", lambda: _probe_object_storage(settings)),
-    )
+    ]
+    if settings.vector_backend == "qdrant":
+        probes.append(_timed("qdrant", lambda: _probe_qdrant(settings)))
+    if settings.object_storage_enabled:
+        probes.append(_timed("object_storage", lambda: _probe_object_storage(settings)))
+    dependencies = await asyncio.gather(*probes)
     healthy = all(dependency.ok for dependency in dependencies)
     if not healthy:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE

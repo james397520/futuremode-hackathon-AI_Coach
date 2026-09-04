@@ -2,7 +2,8 @@
 
 Layering
 --------
-    Agent -> LlmPort (protocol) -> RoutedLlmClient -+-> OpenAiClient
+    Agent -> LlmPort (protocol) -> RoutedLlmClient -+-> MiniMaxClient
+                                                    +-> OpenAiClient
                                                     +-> PrivateLlmClient (AMD AUP)
 
 `RoutedLlmClient` owns the cross-cutting concerns spec §70 demands of *every*
@@ -510,6 +511,210 @@ class PrivateLlmClient(_OpenAiCompatibleClient):
         )
 
 
+class MiniMaxClient:
+    """MiniMax's Anthropic-compatible Messages API.
+
+    MiniMax is deliberately a first-class adapter rather than an OpenAI-compatible
+    URL setting.  Its streaming events and structured-output capabilities use the
+    Anthropic Messages wire format, while agents continue to see the same ``LlmPort``
+    interface as every other provider.  Credentials remain server-only.
+    """
+
+    provider = "minimax"
+
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        api_key: str,
+        default_model: str,
+        client: httpx.AsyncClient | None = None,
+    ) -> None:
+        self._base_url = base_url.rstrip("/")
+        self._api_key = api_key
+        self._default_model = default_model
+        self._client = client
+
+    @classmethod
+    def from_settings(cls, client: httpx.AsyncClient | None = None) -> MiniMaxClient:
+        from app.core.config import get_settings
+
+        settings = get_settings()
+        return cls(
+            base_url=getattr(settings, "minimax_base_url", "https://api.minimax.io/anthropic/v1"),
+            api_key=_secret(getattr(settings, "minimax_api_key", "")),
+            default_model=getattr(settings, "minimax_model", "MiniMax-M2.5"),
+            client=client,
+        )
+
+    def _http(self) -> httpx.AsyncClient:
+        if self._client is None:
+            self._client = httpx.AsyncClient(
+                base_url=f"{self._base_url}/", timeout=DEFAULT_TIMEOUT_S
+            )
+        return self._client
+
+    async def aclose(self) -> None:
+        if self._client is not None:
+            await self._client.aclose()
+            self._client = None
+
+    def _headers(self) -> dict[str, str]:
+        return {
+            "Content-Type": "application/json",
+            "X-Api-Key": self._api_key,
+            "anthropic-version": "2023-06-01",
+        }
+
+    @staticmethod
+    def _messages_body(messages: Sequence[LlmMessage]) -> tuple[str, list[dict[str, str]]]:
+        system = [message.content for message in messages if message.role is LlmRole.SYSTEM]
+        turns = [
+            {
+                "role": "assistant" if message.role is LlmRole.ASSISTANT else "user",
+                "content": message.content,
+            }
+            for message in messages
+            if message.role is not LlmRole.SYSTEM
+        ]
+        # The Anthropic Messages API requires at least one user/assistant turn.
+        if not turns:
+            turns.append({"role": "user", "content": "請依照系統指示回覆。"})
+        return "\n\n".join(system), turns
+
+    def _body(
+        self,
+        messages: Sequence[LlmMessage],
+        *,
+        temperature: float,
+        max_tokens: int | None,
+        schema: Mapping[str, Any] | None,
+        stream: bool,
+    ) -> dict[str, Any]:
+        system, turns = self._messages_body(messages)
+        if schema is not None:
+            schema_json = json.dumps(
+                to_strict_schema(schema), ensure_ascii=False, separators=(",", ":")
+            )
+            instruction = (
+                "回覆必須是可直接解析的 JSON，"
+                "不得使用 Markdown 或加入其他文字。"
+                f"請符合此 JSON Schema：{schema_json}"
+            )
+            system = f"{system}\n\n{instruction}" if system else instruction
+        body: dict[str, Any] = {
+            "model": self._default_model,
+            "max_tokens": max_tokens or 2048,
+            "messages": turns,
+            "temperature": temperature,
+            "stream": stream,
+        }
+        if system:
+            body["system"] = system
+        return body
+
+    @staticmethod
+    def _text_from_content(content: Any) -> str:
+        if not isinstance(content, list):
+            return ""
+        return "".join(
+            str(block.get("text", ""))
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "text"
+        )
+
+    async def complete(
+        self,
+        messages: Sequence[LlmMessage],
+        *,
+        purpose: ModelPurpose,
+        schema: Mapping[str, Any] | None = None,
+        schema_name: str = "Output",
+        temperature: float = 0.7,
+        max_tokens: int | None = None,
+        timeout_s: float = DEFAULT_TIMEOUT_S,
+    ) -> LlmCompletion:
+        _ = purpose, schema_name
+        started = time.perf_counter()
+        try:
+            response = await self._http().post(
+                "messages",
+                json=self._body(
+                    messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    schema=schema,
+                    stream=False,
+                ),
+                headers=self._headers(),
+                timeout=timeout_s,
+            )
+        except httpx.TimeoutException as exc:
+            raise LlmTimeoutError(f"{self.provider} timeout after {timeout_s}s") from exc
+        except httpx.HTTPError as exc:
+            raise LlmTransportError(f"{self.provider} transport error: {exc}") from exc
+        _OpenAiCompatibleClient._raise_for_status(response)
+        payload = response.json()
+        usage = payload.get("usage") or {}
+        return LlmCompletion(
+            text=self._text_from_content(payload.get("content")),
+            model=str(payload.get("model") or self._default_model),
+            provider=self.provider,
+            usage=TokenUsage(
+                prompt_tokens=int(usage.get("input_tokens", 0)),
+                completion_tokens=int(usage.get("output_tokens", 0)),
+            ),
+            latency_ms=int((time.perf_counter() - started) * 1000),
+            finish_reason=str(payload.get("stop_reason") or "stop"),
+            request_id=str(payload.get("id") or response.headers.get("request-id") or ""),
+        )
+
+    async def stream(
+        self,
+        messages: Sequence[LlmMessage],
+        *,
+        purpose: ModelPurpose,
+        temperature: float = 0.7,
+        max_tokens: int | None = None,
+        timeout_s: float = DEFAULT_TIMEOUT_S,
+    ) -> AsyncIterator[str]:
+        _ = purpose
+        try:
+            async with self._http().stream(
+                "POST",
+                "messages",
+                json=self._body(
+                    messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    schema=None,
+                    stream=True,
+                ),
+                headers=self._headers(),
+                timeout=timeout_s,
+            ) as response:
+                _OpenAiCompatibleClient._raise_for_status(response)
+                async for line in response.aiter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    try:
+                        event = json.loads(line[5:].strip())
+                    except json.JSONDecodeError:
+                        continue
+                    delta = event.get("delta") or {}
+                    if (
+                        event.get("type") == "content_block_delta"
+                        and delta.get("type") == "text_delta"
+                    ):
+                        text = delta.get("text")
+                        if isinstance(text, str) and text:
+                            yield text
+        except httpx.TimeoutException as exc:
+            raise LlmTimeoutError(f"{self.provider} stream timeout after {timeout_s}s") from exc
+        except httpx.HTTPError as exc:
+            raise LlmTransportError(f"{self.provider} stream transport error: {exc}") from exc
+
+
 def _secret(value: Any) -> str:
     """Accept `SecretStr` or `str` from settings without importing pydantic here."""
     getter = getattr(value, "get_secret_value", None)
@@ -707,6 +912,7 @@ __all__ = [
     "LlmMessage",
     "LlmPort",
     "LlmRole",
+    "MiniMaxClient",
     "ModelPurpose",
     "ModelRoute",
     "NullQuotaGuard",

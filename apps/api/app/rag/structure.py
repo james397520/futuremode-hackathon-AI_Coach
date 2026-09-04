@@ -81,6 +81,14 @@ _ROMAN = re.compile(r"^\s*([IVXLC]+)[.)]\s+(\S.*)$")
 _APPENDIX = re.compile(r"^\s*(附錄|附件|Appendix|Annex)\s*([A-Z0-9一二三四五六七八九十]*)\s*[:：、.]?\s*(.*)$",
                        re.IGNORECASE)
 _LIST_ITEM = re.compile(r"^\s*(?:[-*•·‧]|\(\d+\)|\d+[.)]\s)\s*(\S.*)$")
+#: A line opening an FAQ question or answer. FAQ exports and 客服規範 are routinely
+#: written without a blank line between entries, so paragraph merging alone would
+#: collapse an entire Q&A document into one block and destroy the pair structure that
+#: `faq_aware` chunking (§11.4) depends on. Treat the marker itself as a block boundary.
+_QA_MARKER = re.compile(
+    r"^\s*(?:Q\d*[:：]|A\d*[:：]|問[:：]|答[:：]|Question\s*\d*[:：]|Answer\s*\d*[:：])",
+    re.IGNORECASE,
+)
 _PAGE_FOOTER = re.compile(
     r"^\s*(?:第\s*\d+\s*頁(?:\s*/\s*共?\s*\d+\s*頁)?|page\s+\d+(?:\s*of\s*\d+)?|[-–—]?\s*\d{1,4}\s*[-–—]?)\s*$",
     re.IGNORECASE,
@@ -319,6 +327,10 @@ def blocks_from_text(
                 )
             )
             order += 1
+            continue
+        if _QA_MARKER.match(line):
+            flush_paragraph()
+            paragraph.append(line)
             continue
         item = _LIST_ITEM.match(line)
         if item is not None:

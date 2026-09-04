@@ -38,14 +38,21 @@ async def test_seq_starts_at_one_and_increments(emitter):
     assert emitter.last_seq == 3
 
 
-async def test_seq_is_monotonic_under_concurrent_emitters(emitter):
+async def test_seq_is_monotonic_under_concurrent_emitters():
     """Independent agent legs emit concurrently; `seq` must still be a total order."""
+    # Deliberately not the shared fixture: this emits len(AGENT_NAMES) + 2 events, which
+    # overflows the fixture's 8-slot buffer and would evict seq 1 — correct ring-buffer
+    # behaviour (see test_buffer_is_bounded), but it hides the gap-free property under
+    # test. Size the buffer to the event count so every seq is still observable.
+    total = len(AGENT_NAMES) + 2
+    emitter = EventEmitter("ses1", buffer_size=total, tenant_id="t1", workspace_id="w1")
     await asyncio.gather(
         *[emitter.agent_thinking(name) for name in AGENT_NAMES],
         emitter.score_updated("empathy", 70, 0.8),
         emitter.compliance_warning({"type": "false_promise"}),
     )
     seqs = [event["seq"] for event in emitter.buffered()]
+    assert len(seqs) == total
     assert seqs == sorted(seqs)
     assert len(set(seqs)) == len(seqs)
     assert seqs == list(range(1, len(seqs) + 1))

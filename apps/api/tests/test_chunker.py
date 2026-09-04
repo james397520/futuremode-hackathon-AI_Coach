@@ -52,6 +52,12 @@ def blocks() -> list[Block]:
 
 
 def _config(**kwargs) -> ChunkConfig:
+    # These tests exercise chunking *strategy*, so they set a deliberately tiny
+    # chunk_size to keep fixtures readable. ChunkConfig's default overlap (64) is
+    # larger than that and would trip the `overlap < chunk_size` validator, so
+    # derive a proportional overlap unless the test is specifically about overlap.
+    if "overlap" not in kwargs and "chunk_size" in kwargs:
+        kwargs["overlap"] = min(ChunkConfig.model_fields["overlap"].default, kwargs["chunk_size"] // 4)
     return ChunkConfig(**kwargs)
 
 
@@ -322,7 +328,7 @@ def test_page_numbers_are_preserved_for_citations():
         Block(kind=BlockKind.PARAGRAPH, text="第二頁的內容說明。", page=2, order=1),
     ]
     chunks = chunk_document(
-        blocks, config=_config(strategy=ChunkStrategy.PARAGRAPH, chunk_size=16, min_length=1)
+        blocks, config=_config(strategy=ChunkStrategy.PARAGRAPH, chunk_size=32, min_length=1)
     )
     pages = {c.page for c in chunks}
     assert pages <= {1, 2}
@@ -348,7 +354,7 @@ def test_tiny_fragments_are_merged_backwards():
     ]
     chunks = chunk_document(
         blocks,
-        config=_config(strategy=ChunkStrategy.PARAGRAPH, chunk_size=24, min_length=10),
+        config=_config(strategy=ChunkStrategy.PARAGRAPH, chunk_size=32, min_length=10),
     )
     assert all(c.token_count >= 3 for c in chunks)
     assert "好。" in " ".join(c.text for c in chunks)

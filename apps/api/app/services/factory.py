@@ -26,6 +26,9 @@ from app.agents.intent import IntentPipeline, SafetyPort
 from app.agents.knowledge_agent import KnowledgeAgent
 from app.agents.llm_client import (
     LlmPort,
+    MiniMaxClient,
+    ModelPurpose,
+    ModelRoute,
     OpenAiClient,
     PrivateLlmClient,
     RoutedLlmClient,
@@ -53,18 +56,33 @@ def build_llm(ctx: Any) -> LlmPort:
     providers: dict[str, LlmPort] = {}
     if getattr(settings, "openai_api_key", None):
         providers["openai"] = OpenAiClient.from_settings()
+    if getattr(settings, "minimax_api_key", None):
+        providers["minimax"] = MiniMaxClient.from_settings()
     if getattr(settings, "private_llm_base_url", None):
         providers["private"] = PrivateLlmClient.from_settings()
     if not providers:
         raise RuntimeError(
-            "no LLM provider configured: set openai_api_key or private_llm_base_url "
+            "no LLM provider configured: set MINIMAX_API_KEY, OPENAI_API_KEY, "
+            "or PRIVATE_LLM_BASE_URL "
             "(spec §44 Model Settings)"
         )
+    configured = str(getattr(settings, "llm_provider", "openai")).lower()
+    # ``aup`` is the deployment name used in settings; internally it is the
+    # private OpenAI-compatible provider.
+    primary = "private" if configured == "aup" else configured
+    if primary not in providers:
+        primary = next(iter(providers))
+    fallbacks = tuple(name for name in providers if name != primary)
+    routes = {
+        purpose: ModelRoute(purpose=purpose, primary=primary, fallbacks=fallbacks)
+        for purpose in ModelPurpose
+    }
     return RoutedLlmClient(
         providers,
         tenant_id=str(getattr(ctx, "tenant_id", "")),
         workspace_id=str(getattr(ctx, "workspace_id", "")),
         request_id=str(getattr(ctx, "request_id", "")),
+        routes=routes,
         audit=StructlogAuditSink(),
     )
 

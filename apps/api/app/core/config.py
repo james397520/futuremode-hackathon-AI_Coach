@@ -23,8 +23,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 AppEnv = Literal["local", "test", "staging", "production"]
 WebGpuMode = Literal["auto", "on", "off"]
-LlmProvider = Literal["openai", "azure_openai", "aup", "none"]
+LlmProvider = Literal["openai", "azure_openai", "aup", "minimax", "none"]
 TtsProvider = Literal["elevenlabs", "openai", "none"]
+VectorBackend = Literal["qdrant", "memory", "chroma", "faiss"]
 
 #: Placeholder shipped in ``.env.example``; must never reach a deployed environment.
 DEFAULT_JWT_SECRET = "change-me"
@@ -54,12 +55,13 @@ class Settings(BaseSettings):
 
     # ---- datastores (.env.example) -----------------------------------------
     database_url: str = Field(
-        default="postgresql+asyncpg://aicoach:aicoach@localhost:5432/aicoach",
+        default="postgresql+asyncpg://localhost:5432/aicoach",
         validation_alias="DATABASE_URL",
     )
     redis_url: str = Field(default="redis://localhost:6379/0", validation_alias="REDIS_URL")
     qdrant_url: str = Field(default="http://localhost:6333", validation_alias="QDRANT_URL")
     qdrant_api_key: SecretStr | None = Field(default=None, validation_alias="QDRANT_API_KEY")
+    vector_backend: VectorBackend = Field(default="memory", validation_alias="VECTOR_BACKEND")
 
     # ---- object storage (.env.example) -------------------------------------
     s3_endpoint: str = Field(default="http://localhost:9000", validation_alias="S3_ENDPOINT")
@@ -72,15 +74,23 @@ class Settings(BaseSettings):
     s3_signed_url_ttl_seconds: int = Field(
         default=900, validation_alias="S3_SIGNED_URL_TTL_SECONDS"
     )
+    object_storage_enabled: bool = Field(
+        default=False, validation_alias="OBJECT_STORAGE_ENABLED"
+    )
 
     # ---- provider secrets (.env.example) — never leave this process ---------
     openai_api_key: SecretStr | None = Field(default=None, validation_alias="OPENAI_API_KEY")
+    minimax_api_key: SecretStr | None = Field(default=None, validation_alias="MINIMAX_API_KEY")
     elevenlabs_api_key: SecretStr | None = Field(
         default=None, validation_alias="ELEVENLABS_API_KEY"
     )
     llm_provider: LlmProvider = Field(default="openai", validation_alias="LLM_PROVIDER")
     tts_provider: TtsProvider = Field(default="elevenlabs", validation_alias="TTS_PROVIDER")
     llm_model: str = Field(default="gpt-4o", validation_alias="LLM_MODEL")
+    minimax_base_url: str = Field(
+        default="https://api.minimax.io/anthropic/v1", validation_alias="MINIMAX_BASE_URL"
+    )
+    minimax_model: str = Field(default="MiniMax-M2.5", validation_alias="MINIMAX_MODEL")
     llm_timeout_seconds: float = Field(default=30.0, validation_alias="LLM_TIMEOUT_SECONDS")
     embedding_model: str = Field(
         default="text-embedding-3-large", validation_alias="EMBEDDING_MODEL"
@@ -164,6 +174,10 @@ class Settings(BaseSettings):
         return self.tts_provider == "elevenlabs"
 
     @property
+    def minimax_enabled(self) -> bool:
+        return self.llm_provider == "minimax"
+
+    @property
     def cookie_secure(self) -> bool:
         """Secure cookies everywhere except plain-HTTP local development (§73)."""
         return not self.is_local
@@ -229,6 +243,8 @@ class Settings(BaseSettings):
                 f"OPENAI_API_KEY is required when LLM_PROVIDER={self.llm_provider} / "
                 f"TTS_PROVIDER={self.tts_provider}"
             )
+        if self.minimax_enabled and not self.minimax_api_key:
+            problems.append("MINIMAX_API_KEY is required when LLM_PROVIDER=minimax")
         if self.elevenlabs_enabled and not self.elevenlabs_api_key:
             problems.append("ELEVENLABS_API_KEY is required when TTS_PROVIDER=elevenlabs")
         if not self.cors_allow_origins:
@@ -237,6 +253,10 @@ class Settings(BaseSettings):
             problems.append(
                 "ALLOW_SENSITIVE_DATA_CACHE must be false in production (spec §61/§97)"
             )
+        if self.is_production and self.vector_backend == "memory":
+            problems.append("VECTOR_BACKEND=memory is only allowed for local development")
+        if self.is_production and not self.object_storage_enabled:
+            problems.append("OBJECT_STORAGE_ENABLED must be true in production")
         if problems:
             raise ConfigurationError(
                 f"Unsafe configuration for APP_ENV={self.app_env}: " + "; ".join(problems)
