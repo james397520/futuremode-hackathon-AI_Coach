@@ -1,0 +1,221 @@
+'use client';
+
+/**
+ * Input composer — spec §18.
+ *
+ * One floating glass bar: microphone / push-to-talk, multiline text, turn +
+ * character hints, send. Enter sends, Shift+Enter makes a newline. There is no
+ * attachment control: a live simulation takes speech and text, nothing else
+ * (attach-free by design).
+ *
+ * While the persona is speaking or the session is paused the composer is
+ * genuinely disabled — and it says why, rather than silently swallowing keys
+ * (§94: explain, don't block mysteriously).
+ */
+import { useCallback, useEffect, useState } from 'react';
+import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
+import type { SessionState } from '@ai-coach/shared-types';
+
+import { INPUT_BLOCKED_STATES } from '../lib/session-transitions';
+import { insetSurface, tint, toneText } from '../lib/tone';
+import { LiveDot } from './atoms';
+import { LightbulbIcon, MicIcon, MicOffIcon, SendIcon } from './icons';
+import { cn, Textarea } from './kit';
+
+const MAX_CHARS = 1200;
+
+export interface ComposerProps {
+  status: SessionState;
+  onSend: (text: string) => void;
+  onPushToTalk: (pressed: boolean) => void;
+  /** Training Mode only. When undefined the hint control does not render (§8.4). */
+  onRequestHint?: () => void;
+  voiceEnabled: boolean;
+  micLive: boolean;
+  muted: boolean;
+  onToggleMic: () => void;
+  vadActive?: boolean;
+  turnCount: number;
+  maxTurns?: number;
+  className?: string;
+}
+
+const BLOCK_REASON: Partial<Record<SessionState, string>> = {
+  idle: 'Waiting for the session to start.',
+  connecting: 'Connecting to the session…',
+  persona_speaking: 'The customer is speaking — start talking to interrupt, or wait for them to finish.',
+  paused: 'Session paused. Resume to continue the conversation.',
+  reconnecting: 'Reconnecting — your last message will be sent once the connection is back.',
+  completed: 'This session has ended.',
+  error: 'The session hit an error. Resume or restart to continue.',
+};
+
+export function Composer({
+  status,
+  onSend,
+  onPushToTalk,
+  onRequestHint,
+  voiceEnabled,
+  micLive,
+  muted,
+  onToggleMic,
+  vadActive = false,
+  turnCount,
+  maxTurns,
+  className,
+}: ComposerProps) {
+  const [value, setValue] = useState('');
+  const [pttHeld, setPttHeld] = useState(false);
+
+  const blocked = INPUT_BLOCKED_STATES.includes(status);
+  const reason = blocked ? (BLOCK_REASON[status] ?? 'Input is unavailable right now.') : null;
+  const overLimit = value.length > MAX_CHARS;
+  const canSend = !blocked && value.trim().length > 0 && !overLimit;
+
+  const submit = useCallback(() => {
+    if (!canSend) return;
+    onSend(value.trim());
+    setValue('');
+  }, [canSend, onSend, value]);
+
+  const onKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+      if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+        event.preventDefault();
+        submit();
+      }
+    },
+    [submit],
+  );
+
+  // §18 — hold space for push-to-talk, but never while the caret is in a field.
+  useEffect(() => {
+    if (!voiceEnabled) return undefined;
+
+    const isTypingTarget = (target: EventTarget | null): boolean => {
+      if (!(target instanceof HTMLElement)) return false;
+      const tag = target.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable;
+    };
+
+    const down = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' || event.repeat) return;
+      if (isTypingTarget(event.target)) return;
+      event.preventDefault();
+      setPttHeld(true);
+      onPushToTalk(true);
+    };
+    const up = (event: KeyboardEvent) => {
+      if (event.code !== 'Space') return;
+      if (isTypingTarget(event.target)) return;
+      setPttHeld(false);
+      onPushToTalk(false);
+    };
+    const blur = () => {
+      setPttHeld(false);
+      onPushToTalk(false);
+    };
+
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    window.addEventListener('blur', blur);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+      window.removeEventListener('blur', blur);
+    };
+  }, [onPushToTalk, voiceEnabled]);
+
+  const turnHint = maxTurns ? `Turn ${turnCount} / ${maxTurns}` : `Turn ${turnCount}`;
+
+  return (
+    <div className={cn('shrink-0', className)}>
+      <div
+        className="glass-strong flex items-end gap-2 rounded-card border p-2.5 shadow-soft"
+        style={{ borderColor: tint('neutral', 18) }}
+      >
+        {voiceEnabled ? (
+          <button
+            type="button"
+            onClick={onToggleMic}
+            aria-pressed={micLive && !muted}
+            aria-label={micLive && !muted ? 'Mute microphone' : 'Unmute microphone'}
+            className="sim-focusable sim-lift flex h-10 w-10 shrink-0 items-center justify-center rounded-input border"
+            style={insetSurface(vadActive ? 'mint' : micLive && !muted ? 'blue' : 'neutral', 14)}
+          >
+            {micLive && !muted ? (
+              <MicIcon size={17} style={{ color: toneText(vadActive ? 'mint' : 'blue') }} />
+            ) : (
+              <MicOffIcon size={17} className="text-text-tertiary" />
+            )}
+          </button>
+        ) : null}
+
+        <div className="min-w-0 flex-1">
+          <Textarea
+            value={value}
+            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setValue(event.target.value)}
+            onKeyDown={onKeyDown}
+            disabled={blocked}
+            rows={1}
+            maxLength={MAX_CHARS + 200}
+            aria-label="Your reply"
+            aria-describedby="composer-hints"
+            placeholder={blocked ? (reason ?? '') : 'Ask or respond naturally…'}
+            className="sim-scroll max-h-32 min-h-[40px] w-full resize-none border-0 bg-transparent px-1 py-2 text-body text-text-primary placeholder:text-text-tertiary focus:outline-none disabled:cursor-not-allowed"
+          />
+        </div>
+
+        {onRequestHint ? (
+          <button
+            type="button"
+            onClick={onRequestHint}
+            disabled={blocked}
+            aria-label="Ask the coach for a hint"
+            className="sim-focusable sim-lift flex h-10 w-10 shrink-0 items-center justify-center rounded-input border disabled:opacity-50"
+            style={insetSurface('violet', 13)}
+          >
+            <LightbulbIcon size={17} style={{ color: toneText('violet') }} />
+          </button>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!canSend}
+          className="sim-focusable sim-lift flex h-10 shrink-0 items-center gap-2 rounded-input px-4 text-body font-medium disabled:cursor-not-allowed disabled:opacity-45"
+          style={{
+            background: 'linear-gradient(120deg, var(--accent-indigo), var(--accent-blue) 62%, var(--accent-cyan))',
+            color: 'var(--bg-canvas-soft)',
+          }}
+        >
+          <SendIcon size={16} />
+          Send
+        </button>
+      </div>
+
+      <div
+        id="composer-hints"
+        className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 px-1.5 text-tiny text-text-tertiary"
+      >
+        {pttHeld ? (
+          <span className="flex items-center gap-1.5" style={{ color: toneText('mint') }}>
+            <LiveDot tone="mint" pulsing />
+            Listening — release space to send
+          </span>
+        ) : (
+          <span>{voiceEnabled ? 'Hold space to talk · Enter to send · Shift+Enter for a new line' : 'Enter to send · Shift+Enter for a new line'}</span>
+        )}
+        <span className="tabular-nums">{turnHint}</span>
+        <span className={cn('tabular-nums', overLimit && 'font-semibold')} style={overLimit ? { color: toneText('danger') } : undefined}>
+          {value.length} / {MAX_CHARS}
+        </span>
+        {reason ? (
+          <span className="basis-full" style={{ color: toneText('warning') }} role="status">
+            {reason}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}

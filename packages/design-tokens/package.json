@@ -11,5 +11,11 @@
     "./aurora.css": "./src/aurora.css",
     "./tailwind-preset": "./src/tailwind-preset.ts"
   },
-  "scripts": { "typecheck": "tsc --noEmit" }
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.6.3"
+  }
 }

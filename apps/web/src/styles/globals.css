@@ -1,0 +1,249 @@
+/*
+ * apps/web global stylesheet.
+ *
+ * Order matters:
+ *   1. design-tokens  → the CSS variables every component reads (§4 / §5 / §7–§9)
+ *   2. aurora         → background, dot matrix, glass utility classes (§1–§3)
+ *   3. tailwind       → utilities generated from the token preset
+ *
+ * Rule: nothing in apps/web may hardcode a colour. Use the variables (§99).
+ */
+@import '@ai-coach/design-tokens/tokens.css';
+@import '@ai-coach/design-tokens/aurora.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* §7 Typography — Inter stack, deep navy text, never #000. */
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 22px;
+    font-feature-settings: 'cv05' 1, 'ss01' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: var(--text-primary);
+    background-color: var(--bg-canvas);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin: 0;
+    color: var(--text-primary);
+    letter-spacing: var(--tracking-heading);
+    font-weight: 600;
+  }
+
+  p { margin: 0; }
+
+  /* §47 — focus must always be visible, and must survive on glass. */
+  :focus-visible {
+    outline: 2px solid var(--accent-indigo);
+    outline-offset: 2px;
+    border-radius: var(--radius-button);
+  }
+
+  /* Never rely on the UA focus ring alone, but do not show it for mouse users. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--accent-indigo) 24%, transparent);
+    color: var(--text-primary);
+  }
+
+  /* §84 Scrollbar — extremely thin, no track chrome. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(94, 120, 170, 0.2) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(94, 120, 170, 0.2);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(94, 120, 170, 0.32);
+  }
+
+  [data-theme='dark'] * {
+    scrollbar-color: rgba(180, 195, 220, 0.18) transparent;
+  }
+
+  [data-theme='dark'] ::-webkit-scrollbar-thumb {
+    background: rgba(180, 195, 220, 0.18);
+  }
+
+  [data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(180, 195, 220, 0.3);
+  }
+}
+
+@layer components {
+  /*
+   * App-level structural helpers. Purely layout / token plumbing — anything with a
+   * visual identity of its own belongs in packages/ui.
+   */
+
+  /* §10 App Shell — floating, never full-bleed. */
+  .shell-frame {
+    width: calc(100vw - (var(--shell-safe-area) * 2));
+    height: calc(100vh - (var(--shell-safe-area) * 2));
+    max-width: var(--shell-max-width);
+    margin: var(--shell-safe-area) auto;
+  }
+
+  @media (max-width: 767px) {
+    .shell-frame {
+      /* < 768px: the safe area eats too much of the viewport (§46). */
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      border-radius: 0;
+    }
+  }
+
+  /* §11 Icon rail button — 44x44, radius 13. */
+  .rail-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    height: 44px;
+    min-width: 44px;
+    padding: 0 10px;
+    border-radius: 13px;
+    color: var(--text-secondary);
+    transition:
+      background-color var(--dur-hover) var(--ease-out-soft),
+      color var(--dur-hover) var(--ease-out-soft),
+      transform var(--dur-hover) var(--ease-out-soft);
+  }
+
+  .rail-item:hover {
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--glass-card-strong) 55%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .rail-item[data-active='true'] {
+    color: var(--text-primary);
+    background:
+      linear-gradient(
+        120deg,
+        color-mix(in srgb, var(--accent-indigo) 16%, transparent),
+        color-mix(in srgb, var(--accent-cyan) 14%, transparent)
+      ),
+      var(--glass-card-strong);
+    box-shadow: 0 6px 18px rgba(55, 77, 124, 0.08), var(--shadow-inset-hi);
+  }
+
+  /* Soft gradient active indicator on the rail edge. */
+  .rail-indicator {
+    position: absolute;
+    left: 0;
+    width: 3px;
+    height: 20px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--accent-indigo), var(--accent-cyan));
+  }
+
+  /* §25 Part I — meeting-transcript / document style. Never messenger bubbles (§99). */
+  .transcript-doc {
+    border-radius: var(--radius-card);
+    background: var(--glass-card-strong);
+    border: 1px solid var(--border-soft);
+  }
+
+  .transcript-turn {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    border-top: 1px solid var(--border-soft);
+  }
+
+  .transcript-turn:first-child {
+    border-top: none;
+  }
+
+  .transcript-turn[data-speaker='coach'],
+  .transcript-turn[data-speaker='compliance'],
+  .transcript-turn[data-speaker='knowledge'],
+  .transcript-turn[data-speaker='system'] {
+    /* Annotation rows are indented and quieter than dialogue rows. */
+    background: color-mix(in srgb, var(--accent-blue) 4%, transparent);
+  }
+
+  @media (max-width: 767px) {
+    .transcript-turn {
+      grid-template-columns: 1fr;
+      gap: var(--space-2);
+    }
+  }
+
+  /* Small helper for the KPI / meta labels used all over the app. */
+  .meta-label {
+    font-size: 11px;
+    line-height: 15px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+
+  /* Restrained inline charts — no filled material cards, no heavy borders. */
+  .chart-grid-line {
+    stroke: var(--border-soft);
+    stroke-width: 1;
+  }
+
+  /* §44 Loading — shimmer instead of spinners for content surfaces. */
+  .skeleton-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--glass-card-strong) 70%, transparent) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+  }
+}
+
+@layer utilities {
+  .scroll-area {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* §47 — visually hidden but announced. */
+  .sr-only-live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
