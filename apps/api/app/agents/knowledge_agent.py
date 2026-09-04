@@ -41,6 +41,8 @@ log = structlog.get_logger(__name__)
 DEFAULT_SIMILARITY_THRESHOLD = 0.35
 #: Fewer usable chunks than this and we treat the evidence as partial at best.
 MIN_SUFFICIENT_CHUNKS = 1
+#: Queries at or below this folded length are treated as under-specified (§8.1).
+VAGUE_QUERY_CHARS = 10
 
 
 class Sufficiency(StrEnum):
@@ -237,7 +239,10 @@ class KnowledgeAgent(Agent[KnowledgeRequest, KnowledgeVerdict]):
     # -- deterministic verdicts -------------------------------------------
     def _insufficient(self, request: KnowledgeRequest, *, note: str) -> KnowledgeVerdict:
         """§12.6: clarify, state uncertainty, or redirect — never invent policy."""
-        vague = len(fold(request.query)) <= 8 or request.query.strip().endswith(("嗎", "?", "？"))
+        # A *short* question is usually under-specified ("划算嗎？"), so clarifying is
+        # the useful move. A long, specific question is well formed — the honest answer
+        # there is "the knowledge base cannot confirm this", not another question.
+        vague = len(fold(request.query)) <= VAGUE_QUERY_CHARS
         if vague:
             return KnowledgeVerdict(
                 sufficiency=Sufficiency.INSUFFICIENT,
@@ -355,6 +360,7 @@ def _to_dict(entry: Any) -> dict[str, Any]:
 
 __all__ = [
     "DEFAULT_SIMILARITY_THRESHOLD",
+    "VAGUE_QUERY_CHARS",
     "EvidenceItem",
     "GroundedStatement",
     "KnowledgeAction",

@@ -313,9 +313,11 @@ class QdrantStore:
 
     @staticmethod
     def _to_qdrant_filter(built: Mapping[str, Any]) -> Any:
+        # The guard runs *before* the client import so an unscoped filter fails with
+        # `TenantIsolationError` even in an environment without qdrant-client.
+        assert_scoped(built)
         from qdrant_client import models as qm
 
-        assert_scoped(built)
         must: list[Any] = []
         for condition in built.get("must", []):
             key = condition["key"]

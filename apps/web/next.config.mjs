@@ -40,13 +40,24 @@ const csp = [
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
-  'upgrade-insecure-requests',
+  // Only in production: this tells the browser to silently rewrite every
+  // subresource fetch (CSS/JS/img/...) from http:// to https://. Chrome
+  // exempts `localhost`, but NOT a LAN IP like 192.168.x.x reached over
+  // plain http in dev — there every stylesheet request gets rewritten to
+  // an https:// origin that doesn't exist and fails with no visible error,
+  // so the page renders as unstyled text. §73 only requires this in
+  // production, where the deployment is actually behind TLS.
+  ...(isDev ? [] : ['upgrade-insecure-requests']),
 ].join('; ');
 
 const securityHeaders = [
   { key: 'Content-Security-Policy', value: csp },
-  // HTTPS only (§73).
-  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+  // HTTPS only (§73) — production only, for the same reason as
+  // `upgrade-insecure-requests` above: this header is meaningless (and, in
+  // Safari particularly, can be actively harmful) on a plain-http dev server.
+  ...(isDev
+    ? []
+    : [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' }]),
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'X-Frame-Options', value: 'DENY' },

@@ -6,19 +6,51 @@
 
 ## 1. 頂層佈局
 
+比照成熟開源專案（一次 `git clone` 拿到全部：文件、版本、Docker、前後端），
+不拆成多個 repo。
+
 ```text
 futuremode_rmrf2/
+├── README.md                 專案首頁（中文，3–5 分鐘看懂：是什麼／能做什麼／怎麼跑）
+├── CONTRIBUTING.md
+├── docker-compose.yml        docker compose up -d 就能跑起整套本地環境
+├── .env.example
+│
 ├── apps/
 │   ├── web/                  Next.js App Router 前端（唯一 user-facing app）
 │   └── api/                  Python FastAPI AI Orchestration API
-├── packages/
-│   ├── shared/         前後端共用契約：Entity / Streaming Event / Enum
-│   ├── design-tokens/        Soft Aurora 設計 token（CSS vars + Tailwind preset）
-│   ├── ui/                   Glassmorphism 元件庫（Radix primitives + 自訂 skin）
-│   └── ai-runtime/           WebGPU → WASM → Server 三級推論 abstraction
-├── infra/                    docker-compose / Dockerfile / 初始化腳本
-├── docs/                     規格、架構、ADR
-└── .github/workflows/        CI
+│
+├── services/
+│   └── inference/            私有 AI 推論服務（embedding / reranker，§72 AMD AUP）
+│
+├── packages/                 前後端共用的 JS/TS 套件（pnpm workspace）
+│   ├── shared/                前後端共用契約：Entity / Streaming Event / Enum
+│   ├── design-tokens/         Soft Aurora 設計 token（CSS vars + Tailwind preset）
+│   ├── ui/                    Glassmorphism 元件庫（Radix primitives + 自訂 skin）
+│   └── ai-runtime/            WebGPU → WASM → Server 三級推論 abstraction
+│
+├── database/
+│   ├── migrations/           Alembic migrations（由 apps/api/app/db/alembic.ini 指到這裡）
+│   ├── seeds/                 種子資料（seed.py，§59 demo persona/scenario）
+│   └── schema/
+│
+├── data/
+│   └── sample/                隨 repo 附的少量公開範例資料；企業真實語料絕不進版控
+│
+├── models/                    模型權重「不」放這裡；只放 manifest + README 說明怎麼下載
+│
+├── docs/                      規格、架構、部署、API、ADR、圖片
+├── scripts/                   bootstrap / seed / reset / check-contracts 等操作腳本
+├── infra/
+│   ├── docker/                各服務 Dockerfile + Postgres init
+│   ├── nginx/                 邊界代理設定（TLS、WebSocket upgrade、COOP/COEP）
+│   └── kubernetes/            之後要上 K8s 時放 Helm chart（目前空）
+│
+├── tests/
+│   ├── integration/
+│   └── e2e/
+├── examples/                  API 呼叫範例（curl / python / javascript）
+└── .github/                   CI、Issue/PR 範本
 ```
 
 理由（對應 spec §63/§64/§101）：前端 Next.js、AI API 用 Python FastAPI，

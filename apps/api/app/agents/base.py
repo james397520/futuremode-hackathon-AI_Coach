@@ -48,6 +48,7 @@ from app.agents.errors import (
     LlmTimeoutError,
     LlmTransportError,
     OutputValidationError,
+    SchemaViolation,
 )
 from app.agents.llm_client import (
     LlmMessage,
@@ -246,7 +247,7 @@ class Agent(ABC, Generic[InT, OutT]):
 
         try:
             return self._validate(out_model, raw_text)
-        except ValidationError as first_error:
+        except (ValidationError, SchemaViolation) as first_error:
             telemetry.repaired = True
             repaired = await self._repair(messages, out_model, raw_text, first_error)
             self.telemetry.record(telemetry)
@@ -256,17 +257,18 @@ class Agent(ABC, Generic[InT, OutT]):
                 self.telemetry.record(telemetry)
 
     def _validate(self, out_model: type[BaseModel], raw_text: str) -> Any:
+        """Parse + validate, raising `SchemaViolation` / `ValidationError` on failure."""
         body = strip_code_fence(raw_text)
         if not body:
-            raise ValidationError.from_exception_data(out_model.__name__, [])
+            raise SchemaViolation(f"{out_model.__name__}: model returned no output")
         try:
             payload = json.loads(body)
         except json.JSONDecodeError as exc:
             # A JSON syntax error is a schema violation as far as the caller is
             # concerned; surface it through the same repair path.
-            raise _as_validation_error(out_model, f"not valid JSON: {exc}") from exc
+            raise SchemaViolation(f"{out_model.__name__}: not valid JSON: {exc}") from exc
         if not isinstance(payload, dict):
-            raise _as_validation_error(out_model, "top level value must be an object")
+            raise SchemaViolation(f"{out_model.__name__}: top level value must be an object")
         return out_model.model_validate(payload)
 
     async def _repair(
@@ -305,7 +307,7 @@ class Agent(ABC, Generic[InT, OutT]):
             telemetry.model = completion.model
             telemetry.provider = completion.provider
             return self._validate(out_model, completion.text)
-        except (ValidationError, json.JSONDecodeError) as exc:
+        except (ValidationError, SchemaViolation) as exc:
             telemetry.ok = False
             telemetry.error = "schema_invalid"
             raise OutputValidationError(self.name, str(exc)[:400], raw=raw_text) from exc
@@ -385,7 +387,7 @@ class Agent(ABC, Generic[InT, OutT]):
                 await result
         try:
             state = self._validate(out_model, state_blob)
-        except (ValidationError, json.JSONDecodeError):
+        except (ValidationError, SchemaViolation):
             telemetry.repaired = True
             state = await self._recover_state(messages, out_model, visible)
         self.telemetry.record(telemetry)
@@ -429,20 +431,6 @@ class Agent(ABC, Generic[InT, OutT]):
         except Exception as exc:  # noqa: BLE001 - last line of defence around a model call
             log.warning("agent.unexpected", agent=self.name, error=repr(exc))
             return None
-
-
-def _as_validation_error(out_model: type[BaseModel], message: str) -> ValidationError:
-    return ValidationError.from_exception_data(
-        out_model.__name__,
-        [
-            {
-                "type": "value_error",
-                "loc": (),
-                "input": None,
-                "ctx": {"error": ValueError(message)},
-            }
-        ],
-    )
 
 
 async def gather_degrading(*aws: Any) -> list[Any]:

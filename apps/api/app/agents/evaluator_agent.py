@@ -27,7 +27,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.agents.base import Agent
 from app.agents.llm_client import ModelPurpose
-from app.agents.patterns import fold, normalize
+from app.agents.patterns import fold
 from app.agents.prompts.common import data_block, schema_block, untrusted_block
 from app.agents.prompts.evaluator import NO_EVIDENCE_NOTE, evaluator_system_prompt
 from app.agents.prompts.knowledge import localised
@@ -366,7 +366,10 @@ class EvaluatorAgent(Agent[EvaluationRequest, EvaluationDraft]):
         kept: list[EvidenceDraft] = []
         dropped = 0
         for item in evidence:
-            quote = normalize(item.quote)
+            # Match on the folded form, but keep the quote **verbatim**: §27 shows the
+            # quote to the reviewer, so normalising its punctuation would be a subtle
+            # falsification of the transcript.
+            quote = (item.quote or "").strip()
             folded_quote = fold(quote)
             if len(folded_quote) < MIN_QUOTE_CHARS:
                 dropped += 1

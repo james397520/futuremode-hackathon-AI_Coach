@@ -42,6 +42,15 @@ class NoModelAvailableError(AgentError):
     critical = True
 
 
+class SchemaViolation(ValueError):
+    """The raw model text is not a JSON object matching the schema.
+
+    Internal to `Agent`: it triggers the single bounded repair attempt. Deliberately a
+    plain `ValueError` rather than a Pydantic `ValidationError`, so `_validate` never
+    has to fabricate Pydantic error internals.
+    """
+
+
 class OutputValidationError(AgentError):
     """The model produced output that does not satisfy the agent's Pydantic schema.
 
