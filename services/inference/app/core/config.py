@@ -159,15 +159,28 @@ class Settings(BaseSettings):
     #: Empty in local dev. Non-empty is *required* outside `local` (validated below).
     shared_secret: SecretStr = SecretStr("")
     metrics_enabled: bool = True
-    #: Deliberately no CORS settings: no browser ever talks to this service. The
-    #: browser tier runs its own models (packages/ai-runtime) or goes through
-    #: apps/api. Adding CORS here would be a sign the topology went wrong.
+
+    #: **Empty by default, and that is the intended production value.** No browser
+    #: ever talks to this service: the browser tier runs its own models
+    #: (packages/ai-runtime) or goes through apps/api, and a non-empty value here
+    #: is a sign the topology went wrong. It exists only so that a deployment that
+    #: does front this service with a browser-reachable proxy can name *exactly*
+    #: the API service's origin rather than reaching for ``*``. When empty, no
+    #: CORS middleware is installed at all — not even a permissive preflight.
+    cors_allow_origins: tuple[str, ...] = ()
+
+    #: OpenTelemetry, mirroring ``apps/api``'s hook so a trace spans both services.
+    #: Off by default; the SDK is an optional extra (`pip install .[otel]`) and is
+    #: imported lazily, so a deployment without it still starts.
+    otel_enabled: bool = False
+    otel_service_name: str = "ai-coach-inference"
+    otel_exporter_otlp_endpoint: str = ""
 
     # ------------------------------------------------------------------ #
     # validators
     # ------------------------------------------------------------------ #
 
-    @field_validator("preload_models", "model_allowlist", mode="before")
+    @field_validator("preload_models", "model_allowlist", "cors_allow_origins", mode="before")
     @classmethod
     def _coerce_tuple(cls, value: Any) -> tuple[str, ...]:
         return _as_tuple(value)
@@ -203,6 +216,14 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------ #
     # derived
     # ------------------------------------------------------------------ #
+
+    @property
+    def is_local(self) -> bool:
+        return self.app_env is AppEnv.LOCAL
+
+    @property
+    def is_production(self) -> bool:
+        return self.app_env is AppEnv.PRODUCTION
 
     @property
     def manifest_path(self) -> Path:

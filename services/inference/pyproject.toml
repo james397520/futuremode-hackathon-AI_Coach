@@ -42,6 +42,14 @@ gpu = ["onnxruntime-gpu>=1.18.0"]
 # onnxruntime wheels outside PyPI, so this extra pins the same package name and
 # the deployment supplies `--extra-index-url`; see the Dockerfile.
 rocm = ["onnxruntime-gpu>=1.18.0"]
+# `pip install .[otel]` — distributed tracing across apps/api and this service.
+# Imported lazily in `app.main._configure_tracing` and gated on OTEL_ENABLED, so a
+# deployment without this extra starts normally and simply emits no spans.
+otel = [
+  "opentelemetry-sdk>=1.25.0",
+  "opentelemetry-instrumentation-fastapi>=0.46b0",
+  "opentelemetry-exporter-otlp-proto-http>=1.25.0",
+]
 dev = [
   "pytest>=8.2.0",
   "pytest-asyncio>=0.23.0",
@@ -132,7 +140,19 @@ warn_required_dynamic_aliases = true
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
+# So `pytest` works against a checkout that has not been `pip install -e .`'d:
+# both `app` and `tests` resolve from the project root.
+pythonpath = ["."]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 addopts = "-ra --strict-markers --strict-config"
-filterwarnings = ["error::DeprecationWarning"]
+filterwarnings = [
+  # Our own deprecations must fail the suite.
+  "error::DeprecationWarning",
+  # ...but not a third-party one we cannot fix. Importing fastapi.testclient pulls
+  # starlette, which still touches the `anyio.abc.BlockingPortal` alias; with anyio
+  # >= 4.11 that alias warns at import time, so the strict filter above turns test
+  # *collection* into an error and nothing runs at all. Scoped to that one alias so
+  # every other DeprecationWarning still fails.
+  "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning",
+]
