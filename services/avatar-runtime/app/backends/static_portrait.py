@@ -17,7 +17,9 @@ accurate lip sync. MuseTalk supplies real lip sync when it is installed.
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import ClassVar
 
 import numpy as np
 import structlog
@@ -48,25 +50,44 @@ class _Geometry:
     mouth_ry: int
     centre_x: int
 
+    #: Fractions of the framed stage, not of the source image, because the
+    #: backend animates after `_fit` has cropped and resized. Overridable per
+    #: avatar via `avatar.json -> geometry`, since "head and shoulders" (§71)
+    #: still leaves a lot of room for where the head actually sits.
+    DEFAULTS: ClassVar[dict[str, float]] = {
+        "eye_y": 0.425,
+        "eye_dx": 0.072,
+        "eye_rx": 0.038,
+        "eye_ry": 0.020,
+        "mouth_y": 0.605,
+        "mouth_rx": 0.052,
+        "mouth_ry": 0.017,
+        "centre_x": 0.500,
+    }
+
     @classmethod
-    def estimate(cls, height: int, width: int) -> _Geometry:
-        """Proportional placement for a §71-conformant head-and-shoulders portrait.
+    def estimate(
+        cls, height: int, width: int, overrides: Mapping[str, float] | None = None
+    ) -> _Geometry:
+        """Placement for a §71-conformant head-and-shoulders portrait.
 
         A real landmark detector would be better, but pulling one in would drag
         InsightFace — which §74 flags as non-commercial — into the one backend
-        that must always be available. Fixed proportions keep this path free of
-        that constraint.
+        that must always be available. Proportions keep this path free of that
+        constraint; `overrides` is how a portrait whose head sits higher or
+        lower than the default framing gets its mouth overlay in the right
+        place, without anyone editing this file.
         """
-        cx = width // 2
+        g = {**cls.DEFAULTS, **{k: float(v) for k, v in (overrides or {}).items() if k in cls.DEFAULTS}}
         return cls(
-            eye_y=int(height * 0.425),
-            eye_dx=int(width * 0.072),
-            eye_rx=max(3, int(width * 0.038)),
-            eye_ry=max(2, int(height * 0.020)),
-            mouth_y=int(height * 0.605),
-            mouth_rx=max(4, int(width * 0.052)),
-            mouth_ry=max(3, int(height * 0.017)),
-            centre_x=cx,
+            eye_y=int(height * g["eye_y"]),
+            eye_dx=int(width * g["eye_dx"]),
+            eye_rx=max(3, int(width * g["eye_rx"])),
+            eye_ry=max(2, int(height * g["eye_ry"])),
+            mouth_y=int(height * g["mouth_y"]),
+            mouth_rx=max(4, int(width * g["mouth_rx"])),
+            mouth_ry=max(3, int(height * g["mouth_ry"])),
+            centre_x=int(width * g["centre_x"]),
         )
 
 
@@ -81,12 +102,13 @@ class StaticPortraitBackend:
         *,
         width: int,
         height: int,
+        geometry: Mapping[str, float] | None = None,
     ) -> None:
         if portrait.ndim != 3 or portrait.shape[2] < 3:
             raise ValueError("portrait must be an HxWx3 RGB array")
         self._source = self._fit(portrait[:, :, :3].astype(np.float32), height, width)
         self._h, self._w = height, width
-        self._geom = _Geometry.estimate(height, width)
+        self._geom = _Geometry.estimate(height, width, geometry)
         self._mouth_open = 0.0
         self._yy, self._xx = np.mgrid[0:height, 0:width].astype(np.float32)
 

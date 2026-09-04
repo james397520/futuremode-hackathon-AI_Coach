@@ -123,7 +123,15 @@ class AvatarSession:
         static portrait rather than a dead session.
         """
         portrait = self._load_portrait()
-        return StaticPortraitBackend(portrait, width=self.width, height=self.height)
+        # Per-avatar framing (§71 leaves room for where the head sits), so a
+        # portrait whose face is higher or lower than the default still gets its
+        # mouth overlay in the right place. Missing or malformed -> defaults.
+        geometry = self.avatar.manifest.get("geometry")
+        if not isinstance(geometry, dict):
+            geometry = None
+        return StaticPortraitBackend(
+            portrait, width=self.width, height=self.height, geometry=geometry
+        )
 
     def _load_portrait(self) -> np.ndarray:
         path = self.avatar.portrait_path

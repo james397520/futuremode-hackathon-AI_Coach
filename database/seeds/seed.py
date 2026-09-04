@@ -342,8 +342,12 @@ SCENARIO: dict[str, Any] = {
     ),
     "industry": "保險 / 個人壽險",
     "training_type": "objection_handling",
+    # A scenario points at a persona; it does not pin the persona's version.
+    # Version pinning happens on TrainingSession at session-creation time, which
+    # is what makes a finished report reproducible (§54 / ADR-0008). Pinning it
+    # here would freeze every future session to whatever the persona looked like
+    # when the scenario was authored.
     "persona_id": PERSONA_ID,
-    "persona_version": 1,
     "knowledge_base_ids": [KB_ID],
     "difficulty": "medium",
     "mode": "training",
@@ -857,6 +861,12 @@ def persist_via_orm(payload: dict[str, Any], force: bool) -> bool:
     models = resolve("app.db.models", "generic ORM insert (fallback path)")
     factory = None
     for dotted in (
+        # What apps/api actually exposes. It is a *getter* returning the
+        # sessionmaker rather than a module-level singleton, so that the engine
+        # is built from settings at call time instead of at import time.
+        "app.db.session:get_sessionmaker",
+        # Older/other shapes, kept so a rename does not silently fall through to
+        # "nothing was inserted" the way it just did.
         "app.db.session:session_factory",
         "app.db.session:async_session_factory",
         "app.db.session:SessionLocal",
@@ -864,6 +874,10 @@ def persist_via_orm(payload: dict[str, Any], force: bool) -> bool:
     ):
         factory = resolve(dotted, "opening a database session")
         if factory is not None:
+            # `get_sessionmaker()` hands back the sessionmaker; the others are
+            # already one. Normalise so the caller below does not have to care.
+            if dotted.endswith(":get_sessionmaker"):
+                factory = factory()
             break
 
     if models is None or factory is None:

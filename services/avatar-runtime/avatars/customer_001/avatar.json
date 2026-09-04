@@ -9,9 +9,30 @@
     "height": 1024,
     "kind": "synthetic"
   },
-  "stage": { "width": 512, "height": 512, "fps": 25 },
-  "expressions": ["neutral", "listening", "skeptical", "concerned", "frustrated", "interested"],
+  "stage": {
+    "width": 512,
+    "height": 512,
+    "fps": 25
+  },
+  "expressions": [
+    "neutral",
+    "listening",
+    "skeptical",
+    "concerned",
+    "frustrated",
+    "interested"
+  ],
   "default_expression": "neutral",
-  "modes": { "state_bank": true, "continuous": false },
-  "notes": "motion/ 與 loops/ 需先安裝 LivePortrait 引擎並執行 build_expression_bank.py 才會產生；未產生時 runtime 走 static portrait backend（avatar spec §53）。"
+  "modes": {
+    "state_bank": true,
+    "continuous": false
+  },
+  "notes": "motion/ 與 loops/ 需先安裝 LivePortrait 引擎並執行 build_expression_bank.py 才會產生；未產生時 runtime 走 static portrait backend（avatar spec §53）。",
+  "geometry": {
+    "eye_y": 0.4259,
+    "mouth_y": 0.5562,
+    "eye_dx": 0.095,
+    "centre_x": 0.4948,
+    "mouth_rx": 0.0893
+  }
 }
