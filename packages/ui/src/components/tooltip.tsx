@@ -61,12 +61,24 @@ export function Tooltip({
 }: TooltipProps): React.ReactElement {
   if (content == null || content === '') return <>{children}</>;
 
+  // Radix 的 Tooltip.Root 需要祖先有 Provider，否則 render 直接丟
+  // `Tooltip must be used within TooltipProvider`（SSR prerender 也會炸）。
+  // 這裡自帶一個 Provider，讓這個元件在任何地方都能單獨使用；
+  // Provider 可安全嵌套，所以 app 若已在 root 掛了一個也不衝突
+  // （app 層那個仍值得掛，它讓多個 tooltip 共用 delay/skip 行為）。
   return (
-    <TooltipPrimitive.Root {...rootProps}>
-      <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
-      <TooltipContent side={side} align={align} sideOffset={sideOffset} className={contentClassName}>
-        {content}
-      </TooltipContent>
-    </TooltipPrimitive.Root>
+    <TooltipPrimitive.Provider delayDuration={rootProps.delayDuration ?? 200}>
+      <TooltipPrimitive.Root {...rootProps}>
+        <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
+        <TooltipContent
+          side={side}
+          align={align}
+          sideOffset={sideOffset}
+          className={contentClassName}
+        >
+          {content}
+        </TooltipContent>
+      </TooltipPrimitive.Root>
+    </TooltipPrimitive.Provider>
   );
 }

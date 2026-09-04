@@ -8,7 +8,9 @@
  * written by a different owner (see docs/PROJECT_STRUCTURE.md §5), so if a name
  * or prop shape lands differently, this is the *only* file that needs editing.
  *
- * Assumed API surface (all props optional unless noted):
+ * Assumed API surface (all props optional unless noted). EVERY component is also
+ * assumed to accept `className` and to forward unknown DOM props (aria-*, role,
+ * onClick) to its root element:
  *
  *   GlassShell        { children, className }                       §3.1 outer frame
  *   GlassCard         { children, className, tone?: 'card'|'strong', padding? }
@@ -26,16 +28,22 @@
  *   StepProgress      { steps: {id,label}[], current: number }       §33 / §17 stepper
  *   CommandPalette    { open, onOpenChange, groups, placeholder? }   §79
  *   Input/Textarea    native props + { invalid? }
- *   Select            { value, onValueChange, options: {value,label}[] }
- *   Switch            { checked, onCheckedChange, label? }
- *   Slider            { value, onValueChange, min?, max?, step?, label?, hint? }
+ *   Select            { value, onValueChange: (s: string) => void,
+ *                       options: {value,label}[], disabled? }
+ *   Switch            { checked, onCheckedChange: (b: boolean) => void, label?, disabled? }
+ *                       Pass `aria-label` when `label` is omitted.
+ *   Slider            { value: number, onValueChange: (n: number) => void,
+ *                       min?, max?, step?, label?, hint?, disabled? }  §35 gradient track
  *   Field             { label, hint?, error?, className?, children }
  *   Tabs              { value, onValueChange, items: {value,label,count?}[] }
- *   Modal             { open, onOpenChange, title, description?, footer?, size? }
- *   Drawer            { open, onOpenChange, side?: 'right'|'left', title }
+ *                       Renders the tab strip only — panels are rendered by the caller.
+ *   Modal             { open, onOpenChange, title, description?, footer?,
+ *                       size?: 'sm'|'md'|'lg', children }              §83 glass modal
+ *   Drawer            { open, onOpenChange, side?: 'right'|'left', title, children }
  *   Tooltip           { content, side?, children }
- *   Avatar            { name, src?, size? }
- *   ProgressBar       { value, max?, tone?, label? }                 §29 pipeline bar
+ *   Avatar            { name, src?, size?: 'sm'|'md'|'lg' } — initials fallback
+ *   ProgressBar       { value, max?, tone?: 'default'|'success'|'warning'|'danger',
+ *                       label? (a11y name, not visible) }              §29 pipeline bar
  *   EmptyState        { icon?, title, description?, action? }        §45
  *   SegmentedControl  { value, onValueChange, options: {value,label,icon?}[] }
  *   Skeleton          { className }

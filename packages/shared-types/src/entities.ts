@@ -4,10 +4,10 @@
  */
 import type {
   ContentStatus, Difficulty, DocumentState, Role, SessionMode, SessionState,
-} from './state-machines.js';
+} from './state-machines';
 import type {
   ComplianceRisk, PersonaHiddenState, PersonaSimulationState, PersonaTraits,
-} from './persona.js';
+} from './persona';
 
 export type ID = string;
 export type ISODateTime = string;

@@ -2,11 +2,11 @@
  * WebSocket Streaming Event Schema — spec §55 / §68.
  * 這是 realtime 契約：後端 emit、前端 reduce，兩邊都不得私自新增未定義事件。
  */
-import type { PersonaSimulationState } from './persona.js';
+import type { PersonaSimulationState } from './persona';
 import type {
   Citation, CoachInsight, ComplianceFinding, ID, SkillKey, TranscriptTurn,
-} from './entities.js';
-import type { RuntimeState, SessionState } from './state-machines.js';
+} from './entities';
+import type { RuntimeState, SessionState } from './state-machines';
 
 interface EventBase {
   /** 單調遞增，用於補洞與重連續傳 */

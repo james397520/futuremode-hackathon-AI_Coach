@@ -82,7 +82,14 @@ export const ToastViewport = React.forwardRef<
   React.ElementRef<typeof ToastPrimitive.Viewport>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitive.Viewport>
 >(function ToastViewport({ className, ...props }, ref) {
-  return (
+  // 正常路徑是 `<ToastProvider>` 自己渲染 viewport。但把 `<ToastViewport />`
+  // 單獨放進 layout 是很自然的寫法，而 Radix 的 Viewport 沒有 Provider 祖先
+  // 會直接丟 `ToastViewport must be used within ToastProvider`——SSR prerender
+  // 也一樣會炸。這裡用自家的 ToastContext 判斷是否在 Provider 內，
+  // 不在的話就自帶一個 Radix Provider，讓元件能獨立使用。
+  const insideProvider = React.useContext(ToastContext) !== null;
+
+  const viewport = (
     <ToastPrimitive.Viewport
       ref={ref}
       className={cn(
@@ -92,6 +99,9 @@ export const ToastViewport = React.forwardRef<
       {...props}
     />
   );
+
+  if (insideProvider) return viewport;
+  return <ToastPrimitive.Provider>{viewport}</ToastPrimitive.Provider>;
 });
 
 export const ToastAction = React.forwardRef<

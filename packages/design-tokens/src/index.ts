@@ -1,4 +1,4 @@
-export { aiCoachPreset, default as tailwindPreset } from './tailwind-preset.js';
+export { aiCoachPreset, default as tailwindPreset } from './tailwind-preset';
 
 /** §46 Responsive breakpoints — layout 決策集中在這裡，元件不要自己發明斷點 */
 export const BREAKPOINTS = {

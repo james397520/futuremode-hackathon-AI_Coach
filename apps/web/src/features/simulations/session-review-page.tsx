@@ -13,7 +13,6 @@ import {
   DEMO_EVALUATION,
   RUBRIC_LIFE_CORE,
   SCORE_TREND,
-  SKILL_LABEL,
   findingsForSession,
 } from '@/lib/fixtures/evaluations';
 import {

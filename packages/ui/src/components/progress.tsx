@@ -14,10 +14,20 @@ import { Check, Circle, X } from 'lucide-react';
 
 import { cn } from '../lib/cn';
 
-const toneFill: Record<'ai' | 'success' | 'neutral', string> = {
+/**
+ * §46 quota / usage bar 需要「接近上限」的警示色，所以 tone 除了進度用的
+ * ai / success 之外，也提供 warning / danger。`default` 是 `neutral` 的別名。
+ * 警示色一律單色不做漸層（§99：漸層只用在小面積強調）。
+ */
+export type ProgressTone = 'ai' | 'success' | 'neutral' | 'default' | 'warning' | 'danger';
+
+const toneFill: Record<ProgressTone, string> = {
   ai: '[background-image:linear-gradient(90deg,var(--accent-indigo),var(--accent-blue)_58%,var(--accent-mint))]',
   success: '[background-image:linear-gradient(90deg,var(--accent-mint),var(--accent-cyan))]',
   neutral: 'bg-[color:color-mix(in_srgb,var(--text-secondary)_55%,transparent)]',
+  default: 'bg-[color:color-mix(in_srgb,var(--text-secondary)_55%,transparent)]',
+  warning: 'bg-state-warning',
+  danger: 'bg-state-danger',
 };
 
 const trackClass = 'relative w-full overflow-hidden rounded-pill bg-[color:color-mix(in_srgb,var(--text-tertiary)_20%,transparent)]';
@@ -31,7 +41,7 @@ export interface ProgressProps
   label?: React.ReactNode;
   /** 右側數值，預設顯示百分比。 */
   valueLabel?: React.ReactNode;
-  tone?: 'ai' | 'success' | 'neutral';
+  tone?: ProgressTone;
   size?: 'sm' | 'md';
   /** 沒有可見 label 時必填（§47 screen reader labels）。 */
   'aria-label'?: string;
