@@ -123,7 +123,7 @@ independent subtrees.
 | `perf` | performance |
 | `docs` | documentation |
 | `test` | tests |
-| `build` | build, deps, Docker |
+| `build` | build, dependencies, service packaging |
 | `ci` | workflows |
 | `chore` | everything else |
 | `revert` | a revert |
@@ -319,8 +319,8 @@ router's authorisation, any serialiser.
       an empty value today is not a defence. CI fails on this.
 - [ ] A new secret is added to `.env.example` **with an empty value** and read
       through `app/core/config.py` as a `SecretStr`.
-- [ ] Nothing secret in a Docker build arg. Build args are visible in image
-      history.
+- [ ] Nothing secret in build-time variables or a service unit. Secrets belong
+      only in the server-side environment file or secrets manager.
 
 ---
 
@@ -353,12 +353,10 @@ these values needs a much better reason than a preference.
 
 ### Testing
 
-- **API:** pytest in `apps/api/tests/`. CI runs it against real Postgres, Redis
-  and Qdrant service containers — specifically so the tenant-isolation tests are
-  meaningful rather than mocked.
+- **API:** pytest in `apps/api/tests/`. CI installs native PostgreSQL and Redis;
+  Qdrant-dependent tests must explicitly provision a Qdrant endpoint.
 - **Contracts:** `scripts/check-contracts.sh`, in CI as its own job.
-- **Infra:** CI runs `bash -n`, shellcheck, `docker compose config` for all
-  three profiles, and `seed.py --dry-run`.
+- **Infra:** CI runs `bash -n`, shellcheck and `seed.py --dry-run`.
 
 ### The mock stream
 

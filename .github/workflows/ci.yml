@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 env:
-  # Keep in sync with .nvmrc, infra/docker/web.Dockerfile and the
+  # Keep in sync with .nvmrc and the
   # `packageManager` field in package.json.
   NODE_VERSION: "20.18.0"
   PYTHON_VERSION: "3.11"
@@ -108,9 +108,8 @@ jobs:
   # ===========================================================================
   # api — apps/api
   #
-  # Service containers mirror docker-compose.yml. They exist because the
-  # tests that matter here are the tenant-isolation ones (§74), and those are
-  # only meaningful against a real Postgres with real constraints.
+  # CI installs native PostgreSQL and Redis packages. This keeps the repository
+  # free of a container-runtime dependency while retaining real database tests.
   # ===========================================================================
   api:
     name: api (ruff · mypy · pytest)
@@ -118,50 +117,12 @@ jobs:
     timeout-minutes: 25
     continue-on-error: false
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: aicoach
-          POSTGRES_PASSWORD: aicoach
-          POSTGRES_DB: aicoach_test
-        ports: ["5432:5432"]
-        # GitHub's `options` are docker run flags; this is the same probe as
-        # the compose healthcheck.
-        options: >-
-          --health-cmd "pg_isready -U aicoach -d aicoach_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
-
-      redis:
-        image: redis:7-alpine
-        ports: ["6379:6379"]
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 20
-
-      qdrant:
-        image: qdrant/qdrant:v1.12.4
-        ports: ["6333:6333", "6334:6334"]
-        # The Qdrant image ships no curl/wget, so the probe is bash's /dev/tcp.
-        # Identical reasoning to docker-compose.yml — see the comment
-        # there before changing either.
-        options: >-
-          --health-cmd "timeout 2 bash -c '</dev/tcp/127.0.0.1/6333' || exit 1"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
-
     env:
       APP_ENV: test
       DATABASE_URL: postgresql+asyncpg://aicoach:aicoach@localhost:5432/aicoach_test
       REDIS_URL: redis://localhost:6379/0
-      QDRANT_URL: http://localhost:6333
-      # Object storage is not a service container: the tests that touch S3 use
-      # a stubbed client. Spinning MinIO up for every run buys little.
+      VECTOR_BACKEND: memory
+      OBJECT_STORAGE_ENABLED: "false"
       S3_ENDPOINT: http://localhost:9000
       S3_ACCESS_KEY: minioadmin
       S3_SECRET_KEY: minioadmin
@@ -176,6 +137,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install native data services
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql redis-server
+          sudo systemctl start postgresql redis-server
+          sudo -u postgres psql -c "CREATE USER aicoach WITH PASSWORD 'aicoach';"
+          sudo -u postgres createdb -O aicoach aicoach_test
+          pg_isready -h localhost -U aicoach -d aicoach_test
+          redis-cli ping
 
       - uses: actions/setup-python@v5
         with:
@@ -256,7 +227,7 @@ jobs:
   # is a broken onboarding for everyone.
   # ===========================================================================
   shell:
-    name: shell (shellcheck · compose validate)
+    name: shell (shellcheck)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     continue-on-error: false
@@ -265,7 +236,7 @@ jobs:
 
       - name: Bash syntax
         run: |
-          for f in scripts/*.sh infra/docker/postgres/init/*.sh; do
+          for f in scripts/*.sh; do
             bash -n "$f" && echo "ok  $f"
           done
 
@@ -273,17 +244,7 @@ jobs:
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
           shellcheck --severity=warning \
-            scripts/*.sh \
-            infra/docker/postgres/init/*.sh
-
-      # `config` fully resolves interpolation, profiles, anchors and
-      # depends_on, so this catches a typo that `up` would only find at 3am.
-      - name: Validate docker-compose
-        run: |
-          cp .env.example .env
-          docker compose --env-file .env -f docker-compose.yml config >/dev/null
-          docker compose --env-file .env -f docker-compose.yml --profile app --profile proxy config >/dev/null
-          echo "compose config valid (default, app, proxy profiles)"
+            scripts/*.sh
 
       - name: Seed script self-check
         run: python3 scripts/seed.py --dry-run

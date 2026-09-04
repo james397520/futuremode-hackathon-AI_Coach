@@ -114,10 +114,9 @@ Any of `app/core/security`, `app/core/deps`, `app/agents/compliance`,
 
 ### If this touches infra or CI
 
-- [ ] `docker compose config` succeeds for the
-      default, `app` and `proxy` profiles
+- [ ] `scripts/bootstrap.sh --check-services` succeeds against configured services
 - [ ] `scripts/bootstrap.sh` is still idempotent — I ran it twice
-- [ ] New service has a healthcheck and a named volume
+- [ ] New service has a healthcheck and a documented backup strategy
 - [ ] A new secret is documented in `.env.example` **with an empty value**
 
 ## Notes for the reviewer
