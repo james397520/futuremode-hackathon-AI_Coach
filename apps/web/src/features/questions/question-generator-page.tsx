@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import type { Difficulty, Question, QuestionType } from '@ai-coach/shared-types';
+import type { Difficulty, Question, QuestionType } from '@ai-coach/shared';
 import { ArrowLeft, ArrowRight, Check, Sparkles, X } from 'lucide-react';
 import { Button, Field, GlassCard, Input, Pill, Select, StepProgress, Switch } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';
@@ -69,6 +69,8 @@ export function QuestionGeneratorPage() {
 
       <GlassCard className="p-5">
         <StepProgress
+          orientation="horizontal"
+          aria-label="Question generation steps"
           steps={QUESTION_GENERATION_STEPS.map((entry) => ({ id: entry.id, label: entry.label }))}
           current={step}
         />

@@ -14,7 +14,7 @@ app/main.py                app factory, middleware, router mount, secret boundar
 app/core/                  config, logging, security, RBAC deps, errors, tenancy, audit
 app/api/v1/routers/        one module per §56 path — I/O adapters only
 app/api/v1/platform/       platform-layer services (identity, directory, settings)
-app/domain/                Pydantic mirror of packages/shared-types
+app/domain/                Pydantic mirror of packages/shared
 app/db/                    SQLAlchemy models, async session, alembic migrations
 --------------------------------------------------------------------------------
 app/services/              application services (§63)      ← Agents & RAG owner
@@ -33,7 +33,7 @@ Hard rules, in priority order:
    `app/rag/`, every application workflow in `app/services/`.
 3. **Every agent returns structured data** whose schema is defined in `app/domain/`
    (§66). Free-form model text never crosses a layer boundary untyped.
-4. **`app/domain/` mirrors `packages/shared-types` exactly** — same field names, same
+4. **`app/domain/` mirrors `packages/shared` exactly** — same field names, same
    enum literal values. A change to either side is a change to both, in one commit.
 5. **Provider credentials never leave this process.** `OPENAI_API_KEY` /
    `ELEVENLABS_API_KEY` are read only by `app.core.config`; no response body, header,

@@ -19,7 +19,7 @@
  *    notification with a human-readable reason (§62 + §93 admin detail) and is
  *    recorded in telemetry.
  */
-import type { ComputeBackend, LocalTask } from '@ai-coach/shared-types';
+import type { ComputeBackend, LocalTask } from '@ai-coach/shared';
 
 import { errorText } from './capability';
 import {

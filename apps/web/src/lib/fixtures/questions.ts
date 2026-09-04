@@ -1,4 +1,4 @@
-import type { Question, QuestionType } from '@ai-coach/shared-types';
+import type { Question, QuestionType } from '@ai-coach/shared';
 import { SCOPE, daysAgo, minutesAgo } from './constants';
 import { MOCK_CITATIONS } from './knowledge';
 

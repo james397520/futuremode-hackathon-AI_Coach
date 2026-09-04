@@ -25,7 +25,7 @@ import type {
   ID,
   SessionMode,
   StreamingEvent,
-} from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
 
 import { createSessionSocket, type SeqGap, type WsStatus } from '@/lib/ws-client';
 

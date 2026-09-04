@@ -1,4 +1,4 @@
-import type { Team, User, Workspace } from '@ai-coach/shared-types';
+import type { Team, User, Workspace } from '@ai-coach/shared';
 import { NOW_ISO, SCOPE, TENANT_ID, daysAgo } from './constants';
 
 export const MOCK_WORKSPACES: Workspace[] = [

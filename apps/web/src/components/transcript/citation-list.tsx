@@ -1,4 +1,4 @@
-import type { Citation } from '@ai-coach/shared-types';
+import type { Citation } from '@ai-coach/shared';
 import { FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

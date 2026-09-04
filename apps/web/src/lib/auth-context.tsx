@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { Role, User, Workspace } from '@ai-coach/shared-types';
+import type { Role, User, Workspace } from '@ai-coach/shared';
 import { MOCK_CURRENT_USER, MOCK_WORKSPACES } from '@/lib/fixtures/identity';
 import { permissionsForRoles, type Permission } from '@/lib/rbac';
 import { useTheme, type ThemeMode } from '@/components/theme/theme-provider';

@@ -14,8 +14,8 @@ import type {
   ComputeBackend,
   ComputeCapability,
   RuntimePolicy,
-} from '@ai-coach/shared-types';
-import { RUNTIME_STATES, type RuntimeState } from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
+import { RUNTIME_STATES, type RuntimeState } from '@ai-coach/shared';
 
 import type { MemoryClass } from './backends/types';
 
@@ -56,7 +56,7 @@ export type EnterpriseWebgpuOverride = 'on' | 'off' | 'automatic' | undefined;
 /**
  * The capability object with the extra diagnostic fields the admin Runtime page
  * (§93) wants. `ComputeCapability` itself is the frozen cross-language contract,
- * so the extras live in a superset type rather than in `shared-types`.
+ * so the extras live in a superset type rather than in `shared`.
  */
 export interface DetailedComputeCapability extends ComputeCapability {
   /** Cross-origin isolated → `SharedArrayBuffer` → multi-threaded WASM. */
@@ -580,7 +580,7 @@ export async function detectCapability(
   }
 }
 
-/** Narrow a detailed capability back down to the shared-types contract shape. */
+/** Narrow a detailed capability back down to the shared contract shape. */
 export function toComputeCapability(caps: DetailedComputeCapability): ComputeCapability {
   return {
     webgpu: caps.webgpu,
@@ -600,7 +600,7 @@ export function toComputeCapability(caps: DetailedComputeCapability): ComputeCap
  * §92 WebGPU state machine:
  *   unknown → detecting → supported → loading → ready → degraded → fallback
  *
- * `RuntimeState` comes from `shared-types` (the UI may only display these states).
+ * `RuntimeState` comes from `shared` (the UI may only display these states).
  * The events and the transition table are local.
  */
 export type RuntimeEvent =

@@ -3,12 +3,12 @@
 # Postgres first-boot initialisation.
 #
 # Runs once, via the official image's /docker-entrypoint-initdb.d hook, on an
-# empty data directory. `infra/scripts/reset.sh` removes the volume, which is
+# empty data directory. `scripts/reset.sh` removes the volume, which is
 # the only way to make edits here take effect again.
 #
 # Everything below is written to be idempotent anyway, so it is also safe to
 # run by hand:
-#   docker compose -f infra/docker-compose.yml exec -T postgres \
+#   docker compose exec -T postgres \
 #     bash /docker-entrypoint-initdb.d/01-init-db.sh
 #
 # Creates:
@@ -67,7 +67,7 @@ done
 # --- extensions ---------------------------------------------------------------
 for db in "${APP_DB_NAME}" "${APP_DB_TEST_NAME}"; do
   psql -v ON_ERROR_STOP=1 --username "${SUPERUSER}" --dbname "${db}" <<-SQL
-		-- gen_random_uuid() for entity ids (§53). Every id in shared-types is a
+		-- gen_random_uuid() for entity ids (§53). Every id in shared is a
 		-- string, so UUIDv4 text is the wire format.
 		CREATE EXTENSION IF NOT EXISTS pgcrypto;
 		-- Trigram indexes back keyword search and the hybrid-retrieval keyword

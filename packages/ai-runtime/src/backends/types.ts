@@ -13,7 +13,7 @@ import type {
   ComputeBackend,
   LocalModelManifest,
   LocalTask,
-} from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
 
 /* ------------------------------------------------------------------ *
  * Fallback reasons
@@ -130,7 +130,7 @@ export type ModelKind = 'embedder' | 'sequence_classifier' | 'cross_encoder';
 export type MemoryClass = 'low' | 'medium' | 'high';
 
 /**
- * Runtime hints for a model. `LocalModelManifest` in `@ai-coach/shared-types` is a
+ * Runtime hints for a model. `LocalModelManifest` in `@ai-coach/shared` is a
  * frozen cross-language contract, so we never modify it — we *extend* it here with
  * the browser-side execution detail (pooling, prefixes, label order, sequence
  * length) that only this package needs.

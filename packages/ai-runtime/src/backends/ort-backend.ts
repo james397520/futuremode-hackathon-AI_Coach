@@ -11,7 +11,7 @@
  */
 import type * as Ort from 'onnxruntime-web';
 
-import type { ComputeBackend, LocalTask } from '@ai-coach/shared-types';
+import type { ComputeBackend, LocalTask } from '@ai-coach/shared';
 
 import { errorText } from '../capability';
 import { WordPieceTokenizer } from '../tokenizer';

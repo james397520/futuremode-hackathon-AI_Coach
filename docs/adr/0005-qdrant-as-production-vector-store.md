@@ -64,7 +64,7 @@ Concrete reasons for Qdrant over the alternatives:
   supports sparse vectors alongside dense in one collection, so hybrid retrieval
   does not need a second system with its own consistency problem.
 - **Self-hostable, and it is what we already run.** It is a container in
-  `infra/docker-compose.yml` locally and can be deployed inside AUP unchanged.
+  `docker-compose.yml` locally and can be deployed inside AUP unchanged.
   No development-vs-production substitution.
 - **Horizontal scaling exists** — sharding and replication, satisfying §5.1
   without a rewrite.
@@ -90,7 +90,7 @@ Why the alternatives are POC-only:
 - **Tenant isolation is enforced at the store.** Combined with the
   `TenantScoped` shape in the relational layer, there is one consistent rule:
   filter on `tenant_id` *and* `workspace_id`, everywhere. See
-  [ARCHITECTURE §8.1](../ARCHITECTURE.md#81-tenant-isolation).
+  [ARCHITECTURE §8.1](../architecture.md#81-tenant-isolation).
 - **No dev/prod vector-store split.** The most reliable way to discover that
   your filters do not scale is to develop against a different store than you
   deploy; that path is closed.
@@ -115,10 +115,10 @@ Why the alternatives are POC-only:
   `DocumentVersion.embedding_version` exist so a knowledge base knows which
   model produced its vectors. This is also the migration path a private-AUP
   deployment must take when moving off the external-API embedding model — see
-  [ARCHITECTURE §5](../ARCHITECTURE.md#5-the-rag-pipeline).
+  [ARCHITECTURE §5](../architecture.md#5-the-rag-pipeline).
 - **The Qdrant image ships no `curl` or `wget`**, so its container healthcheck
   probes the HTTP port with bash's `/dev/tcp` instead of fetching `/readyz`.
-  This is documented at both call sites (`infra/docker-compose.yml` and the CI
+  This is documented at both call sites (`docker-compose.yml` and the CI
   service container) because it looks like a mistake and is not.
 - **Payload indexes must actually be created.** A filtered search against an
   unindexed payload key still returns correct results — slowly — so the missing

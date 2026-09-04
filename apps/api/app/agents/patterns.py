@@ -47,7 +47,7 @@ def fold(text: str) -> str:
 class RiskKind(StrEnum):
     """Internal detection kinds. Mapped to `ComplianceFindingType` by the caller.
 
-    NOTE: `shared-types` `ComplianceFindingType` has no `jailbreak` member, so
+    NOTE: `shared` `ComplianceFindingType` has no `jailbreak` member, so
     jailbreak detections are reported as `prompt_injection` with the policy rule
     `AI-SAFETY-JAILBREAK` to stay inside the published contract.
     """

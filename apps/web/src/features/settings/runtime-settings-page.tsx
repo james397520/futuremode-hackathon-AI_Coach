@@ -16,8 +16,22 @@ import { SettingsShell } from './settings-shell';
  */
 export function RuntimeSettingsPage() {
   const canView = useCan('runtime.view_telemetry');
-  const { capability, state, telemetry, backend, label, policy, consent, setConsent, usingFallbackDetector, refresh } =
-    useComputeCapability();
+  const {
+    capability,
+    capabilityDetail,
+    state,
+    telemetry,
+    telemetryDetail,
+    backend,
+    chain,
+    label,
+    policy,
+    workerStatus,
+    fallbackReason,
+    consent,
+    setConsent,
+    refresh,
+  } = useComputeCapability();
 
   if (!canView) {
     return (
@@ -60,9 +74,7 @@ export function RuntimeSettingsPage() {
         <>
           <RuntimeBadge />
           <Pill tone="neutral" size="sm">State: {titleize(state)}</Pill>
-          {usingFallbackDetector ? (
-            <Pill tone="warning" size="sm">Built-in detector</Pill>
-          ) : null}
+          <Pill tone="neutral" size="sm">Chain: {chain.map(titleize).join(' → ')}</Pill>
         </>
       }
       actions={
@@ -73,10 +85,19 @@ export function RuntimeSettingsPage() {
       }
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Backend" value={titleize(backend)} hint="selected for this device" />
-        <StatTile label="Worker" value={telemetry?.worker_alive ? 'Alive' : 'Not running'} hint="dedicated inference worker" />
-        <StatTile label="Model load" value={telemetry?.load_ms !== undefined ? `${telemetry.load_ms} ms` : '—'} hint="cold start" />
-        <StatTile label="Last inference" value={telemetry?.last_inference_ms !== undefined ? `${telemetry.last_inference_ms} ms` : '—'} hint="most recent local task" />
+        <StatTile surface="card" label="Backend" value={titleize(backend)} hint="selected for this device" />
+        <StatTile surface="card" label="Worker" value={titleize(workerStatus)} hint="dedicated inference worker" />
+        <StatTile surface="card" label="Model load" value={telemetry.load_ms !== undefined ? `${telemetry.load_ms} ms` : '—'} hint="cold start" />
+        <StatTile
+          surface="card"
+          label="Last inference"
+          value={telemetry.last_inference_ms !== undefined ? `${telemetry.last_inference_ms} ms` : '—'}
+          hint={
+            telemetryDetail?.avg_inference_ms !== undefined
+              ? `avg ${Math.round(telemetryDetail.avg_inference_ms)} ms this session`
+              : 'most recent local task'
+          }
+        />
       </div>
 
       <GlassCard className="p-5">
@@ -94,7 +115,24 @@ export function RuntimeSettingsPage() {
               ['GPU vendor', capability?.adapterInfo?.vendor ?? 'Not reported'],
               ['GPU architecture', capability?.adapterInfo?.architecture ?? 'Not reported'],
               ['Selected backend', capability ? titleize(capability.selectedBackend) : '—'],
-              ['Model', telemetry?.model_id ?? 'None loaded'],
+              ['Model', telemetry.model_id ?? 'None loaded'],
+              ['CPU cores', capabilityDetail ? String(capabilityDetail.cores) : '—'],
+              [
+                'Device memory',
+                capabilityDetail?.deviceMemoryGb !== undefined
+                  ? `${capabilityDetail.deviceMemoryGb} GB`
+                  : 'Not reported',
+              ],
+              [
+                'Cross-origin isolated',
+                capabilityDetail ? (capabilityDetail.crossOriginIsolated ? 'Yes' : 'No') : '—',
+              ],
+              ['WASM threads', capabilityDetail ? String(capabilityDetail.wasmThreads) : '—'],
+              [
+                'Software adapter',
+                capabilityDetail ? (capabilityDetail.softwareAdapter ? 'Yes' : 'No') : '—',
+              ],
+              ['Fallbacks this session', telemetryDetail ? String(telemetryDetail.fallback_count) : '—'],
             ] as const
           ).map(([term, value]) => (
             <div key={term} className="flex items-center justify-between gap-3 text-body-sm">
@@ -104,17 +142,22 @@ export function RuntimeSettingsPage() {
           ))}
         </dl>
 
-        {telemetry?.fallback_reason ? (
+        {fallbackReason ? (
           <p className="mt-4 rounded-card-sm border border-border-soft px-3.5 py-3 text-body-sm">
             <span className="meta-label mr-2 text-state-warning">Fallback reason</span>
-            <span className="text-text-secondary">{telemetry.fallback_reason}</span>
+            <span className="text-text-secondary">{fallbackReason}</span>
           </p>
         ) : null}
 
-        {usingFallbackDetector ? (
+        {capabilityDetail?.webgpuUnavailableReason ? (
           <p className="mt-3 text-tiny text-text-tertiary">
-            Capability was detected by the built-in probe rather than the ai-runtime package — either the
-            package is not installed yet or it did not expose a detector.
+            WebGPU was not selected: {capabilityDetail.webgpuUnavailableReason}
+          </p>
+        ) : null}
+
+        {capabilityDetail?.detectedAt ? (
+          <p className="mt-2 text-tiny text-text-tertiary">
+            Detected at {capabilityDetail.detectedAt}
           </p>
         ) : null}
       </GlassCard>
@@ -158,7 +201,7 @@ export function RuntimeSettingsPage() {
             <Select
               value={policy.webgpu}
               onValueChange={() => undefined}
-              aria-label="WebGPU policy"
+              ariaLabel="WebGPU policy"
               options={[
                 { value: 'auto', label: 'Automatic — use it where supported' },
                 { value: 'on', label: 'On — required' },

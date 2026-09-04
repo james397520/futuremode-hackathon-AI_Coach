@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import type { Question, QuestionType } from '@ai-coach/shared-types';
+import type { Question, QuestionType } from '@ai-coach/shared';
 import { AlertTriangle, Check, Save, Sparkles, X } from 'lucide-react';
 import { Button, Field, GlassCard, Input, Pill, Select, Textarea } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';

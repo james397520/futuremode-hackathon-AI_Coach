@@ -1,6 +1,6 @@
 """TrainingSession / TranscriptTurn / CoachInsight (spec §23 / §25 / §54).
 
-Mirrors the "Session" section of ``packages/shared-types/src/entities.ts``.
+Mirrors the "Session" section of ``packages/shared/src/entities.ts``.
 
 ``scenario_version`` and ``persona_version`` are *pinned* at session creation so a
 report stays reproducible after the underlying content is edited (§54).

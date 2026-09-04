@@ -11,7 +11,7 @@
  * reveal here — the lock is honest, not decorative. Insights explicitly marked
  * `allowed_in_assessment: true` (e.g. post-session notes) still show.
  */
-import type { CoachInsight, SessionMode } from '@ai-coach/shared-types';
+import type { CoachInsight, SessionMode } from '@ai-coach/shared';
 
 import { formatClock } from '../lib/format';
 import { COACH_KIND_LABEL, COACH_KIND_TONE } from '../lib/labels';

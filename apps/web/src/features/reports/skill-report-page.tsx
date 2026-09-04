@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { SKILL_KEYS, type SkillKey } from '@ai-coach/shared-types';
+import { SKILL_KEYS, type SkillKey } from '@ai-coach/shared';
 import { Download } from 'lucide-react';
 import { Button, GlassCard, Pill, StatTile } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';
@@ -46,10 +46,10 @@ export function SkillReportPage() {
       <ReportTabs current="skill" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Weakest dimension" value={SKILL_LABEL[weakest]} hint={`${workspaceAverage(weakest)} / 100 workspace average`} />
-        <StatTile label="Strongest dimension" value={SKILL_LABEL[strongest]} hint={`${workspaceAverage(strongest)} / 100`} />
-        <StatTile label="Below threshold" value={String(ranked.filter((skill) => workspaceAverage(skill) < RUBRIC_LIFE_CORE.pass_threshold).length)} hint={`of ${SKILL_KEYS.length} dimensions`} />
-        <StatTile label="Knowledge gaps" value={String(KNOWLEDGE_GAPS.length)} hint="topics driving the misses" />
+        <StatTile surface="card" label="Weakest dimension" value={SKILL_LABEL[weakest]} hint={`${workspaceAverage(weakest)} / 100 workspace average`} />
+        <StatTile surface="card" label="Strongest dimension" value={SKILL_LABEL[strongest]} hint={`${workspaceAverage(strongest)} / 100`} />
+        <StatTile surface="card" label="Below threshold" value={String(ranked.filter((skill) => workspaceAverage(skill) < RUBRIC_LIFE_CORE.pass_threshold).length)} hint={`of ${SKILL_KEYS.length} dimensions`} />
+        <StatTile surface="card" label="Knowledge gaps" value={String(KNOWLEDGE_GAPS.length)} hint="topics driving the misses" />
       </div>
 
       <GlassCard className="p-5">

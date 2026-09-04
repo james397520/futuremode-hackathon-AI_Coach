@@ -48,10 +48,10 @@ export function TeamPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Members" value={String(MOCK_USERS.length)} hint={`${MOCK_TEAMS.length} teams`} />
-        <StatTile label="Ready" value={String(TEAM_LEADERBOARD.filter((row) => row.readiness === 'ready').length)} hint="meeting every minimum score" />
-        <StatTile label="Developing" value={String(TEAM_LEADERBOARD.filter((row) => row.readiness === 'developing').length)} hint="on track" />
-        <StatTile label="At risk" value={String(TEAM_LEADERBOARD.filter((row) => row.readiness === 'at_risk').length)} hint="needs coach attention" />
+        <StatTile surface="card" label="Members" value={String(MOCK_USERS.length)} hint={`${MOCK_TEAMS.length} teams`} />
+        <StatTile surface="card" label="Ready" value={String(TEAM_LEADERBOARD.filter((row) => row.readiness === 'ready').length)} hint="meeting every minimum score" />
+        <StatTile surface="card" label="Developing" value={String(TEAM_LEADERBOARD.filter((row) => row.readiness === 'developing').length)} hint="on track" />
+        <StatTile surface="card" label="At risk" value={String(TEAM_LEADERBOARD.filter((row) => row.readiness === 'at_risk').length)} hint="needs coach attention" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -80,7 +80,7 @@ export function TeamPage() {
               <Select
                 value={teamFilter}
                 onValueChange={setTeamFilter}
-                aria-label="Filter by team"
+                ariaLabel="Filter by team"
                 options={[
                   { value: 'all', label: 'All teams' },
                   ...MOCK_TEAMS.map((team) => ({ value: team.id, label: team.name })),

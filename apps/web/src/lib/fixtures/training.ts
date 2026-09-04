@@ -1,4 +1,4 @@
-import type { Assignment, Difficulty, ID, SessionMode, SkillKey } from '@ai-coach/shared-types';
+import type { Assignment, Difficulty, ID, SessionMode, SkillKey } from '@ai-coach/shared';
 import { SCOPE, daysAgo, inDays } from './constants';
 
 /** §36 Part I — Training Assignment. */

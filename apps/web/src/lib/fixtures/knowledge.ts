@@ -3,7 +3,7 @@ import type {
   Citation,
   KnowledgeBase,
   KnowledgeDocument,
-} from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
 import { SCOPE, daysAgo, minutesAgo } from './constants';
 
 export const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
@@ -466,6 +466,17 @@ export const MOCK_MINING_CANDIDATES: MiningCandidate[] = [
     status: 'rejected',
   },
 ];
+
+/**
+ * §26 "Knowledge readiness" — a knowledge-base level figure the API will supply.
+ * It is deliberately NOT computed from whatever documents a page happens to have
+ * loaded, or a view showing five recent uploads would contradict the base total.
+ */
+export function knowledgeReadiness(kb: KnowledgeBase): number {
+  if (kb.status === 'published') return 96;
+  if (kb.status === 'review_required') return 72;
+  return 41;
+}
 
 export function knowledgeBaseById(id: string): KnowledgeBase | undefined {
   return MOCK_KNOWLEDGE_BASES.find((kb) => kb.id === id);

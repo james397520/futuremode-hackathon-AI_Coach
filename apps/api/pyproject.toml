@@ -66,7 +66,7 @@ packages = ["app"]
 target-version = "py311"
 line-length = 100
 src = ["app"]
-extend-exclude = ["app/db/migrations/versions"]
+extend-exclude = ["../../database/migrations/versions"]
 
 [tool.ruff.lint]
 select = [
@@ -97,7 +97,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"app/db/migrations/*" = ["ANN", "E501", "I001", "E402", "F401"]
+"../../database/migrations/*" = ["ANN", "E501", "I001", "E402", "F401"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
@@ -120,7 +120,7 @@ disallow_untyped_defs = true
 disallow_any_generics = true
 no_implicit_reexport = true
 show_error_codes = true
-exclude = "app/db/migrations/versions/"
+exclude = "../../database/migrations/versions/"
 
 [[tool.mypy.overrides]]
 # Third-party packages without bundled type information.

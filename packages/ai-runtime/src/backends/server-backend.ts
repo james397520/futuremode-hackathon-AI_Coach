@@ -13,7 +13,7 @@
  * `load()` is a no-op, `isReady()` is always true, and `release()` frees nothing.
  * That is the whole point: there is no state that can fail to initialise.
  */
-import type { ComputeBackend, LocalTask } from '@ai-coach/shared-types';
+import type { ComputeBackend, LocalTask } from '@ai-coach/shared';
 
 import { errorText } from '../capability';
 import { safetyPrecheckLocal } from '../tasks/safety-precheck';

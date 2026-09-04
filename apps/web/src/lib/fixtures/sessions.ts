@@ -3,7 +3,7 @@ import type {
   PersonaSimulationState,
   TranscriptTurn,
   TrainingSession,
-} from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
 import { SCOPE, daysAgo, minutesAgo } from './constants';
 import { MOCK_CITATIONS } from './knowledge';
 

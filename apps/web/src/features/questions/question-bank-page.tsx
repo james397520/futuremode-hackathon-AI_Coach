@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import type { QuestionType } from '@ai-coach/shared-types';
+import type { QuestionType } from '@ai-coach/shared';
 import { Plus, Search, Sparkles } from 'lucide-react';
 import { Button, EmptyState, GlassCard, Input, Pill, Tabs } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';

@@ -5,7 +5,7 @@
  * affordances a role cannot use (empty nav items, dead buttons, 403 round-trips).
  * Never treat a client-side check as a security boundary.
  */
-import type { Role } from '@ai-coach/shared-types';
+import type { Role } from '@ai-coach/shared';
 
 export const PERMISSIONS = [
   // trainee

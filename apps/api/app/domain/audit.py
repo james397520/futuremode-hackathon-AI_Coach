@@ -1,6 +1,6 @@
 """Audit log models (spec §42).
 
-Mirrors ``AuditEvent`` in ``packages/shared-types/src/entities.ts``.
+Mirrors ``AuditEvent`` in ``packages/shared/src/entities.ts``.
 ``AuditAction`` enumerates the §42 action list; ``record_audit`` in
 ``app.core.audit`` only accepts these values so the audit table stays queryable.
 """

@@ -49,7 +49,7 @@ class AssetKind(StrEnum):
 
 
 class ReviewStatus(StrEnum):
-    """Subset of `ContentStatus` (shared-types) that mining assets can hold."""
+    """Subset of `ContentStatus` (shared) that mining assets can hold."""
 
     GENERATED = "generated"
     REVIEW_REQUIRED = "review_required"

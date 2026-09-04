@@ -11,7 +11,7 @@
  * labelled as such. Neither is a score — scoring is the Evaluator agent's job.
  */
 import { useMemo } from 'react';
-import type { ScenarioPhase, TranscriptTurn } from '@ai-coach/shared-types';
+import type { ScenarioPhase, TranscriptTurn } from '@ai-coach/shared';
 
 import { formatTimer } from '../lib/format';
 import { PHASE_LABEL } from '../lib/labels';

@@ -43,8 +43,8 @@ The two halves are joined by three things and nothing else:
 
 - **One repository**, so a contract change can be one atomic commit.
 - **One environment file** at the root (`.env`), read by both.
-- **One drift guard**, `infra/scripts/check-contracts.sh`, which compares the
-  streaming-event literals in `packages/shared-types/src/events.ts` against
+- **One drift guard**, `scripts/check-contracts.sh`, which compares the
+  streaming-event literals in `packages/shared/src/events.ts` against
   those in `apps/api/app/domain/events.py` and fails CI if they diverge.
 
 Root `package.json` provides thin conveniences (`pnpm api:dev`, `pnpm infra:up`)

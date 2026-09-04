@@ -136,6 +136,7 @@ export function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {DASHBOARD_KPIS.map((kpi) => (
           <StatTile
+            surface="card"
             key={kpi.id}
             label={kpi.label}
             value={kpi.value}
@@ -214,7 +215,9 @@ export function DashboardPage() {
 
                 <ProgressBar
                   value={Math.round(item.completion_rate * 100)}
-                  label={`Team completion ${Math.round(item.completion_rate * 100)}% of ${item.assignee_count} assignees`}
+                  label="Team completion"
+                  valueLabel={`${Math.round(item.completion_rate * 100)}% of ${item.assignee_count}`}
+                  tone="ai"
                   className="mt-3"
                 />
               </li>

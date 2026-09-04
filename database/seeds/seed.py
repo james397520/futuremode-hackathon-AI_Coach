@@ -35,11 +35,11 @@ exact dotted path with what it was needed for.
 
 Usage
 -----
-    python infra/scripts/seed.py                # validate + persist
-    python infra/scripts/seed.py --dry-run      # validate only, never write
-    python infra/scripts/seed.py --json-only    # skip persistence, write fixture
-    python infra/scripts/seed.py --out PATH     # fixture destination
-    python infra/scripts/seed.py --force        # re-seed over existing demo rows
+    python database/seeds/seed.py                # validate + persist
+    python database/seeds/seed.py --dry-run      # validate only, never write
+    python database/seeds/seed.py --json-only    # skip persistence, write fixture
+    python database/seeds/seed.py --out PATH     # fixture destination
+    python database/seeds/seed.py --force        # re-seed over existing demo rows
 
 Run it from anywhere; paths are resolved from this file.
 """
@@ -677,7 +677,7 @@ COMPLIANCE_RULES: list[dict[str, Any]] = [
 def build_payload() -> dict[str, Any]:
     return {
         "_meta": {
-            "generator": "infra/scripts/seed.py",
+            "generator": "database/seeds/seed.py",
             "spec_section": "§59 核心 Demo 情境",
             "generated_at": NOW,
             "idempotent": True,
@@ -851,7 +851,7 @@ def persist_via_orm(payload: dict[str, Any], force: bool) -> bool:
 
     For each entity, the payload dict is narrowed to the columns the model
     actually declares. That is what lets this survive a schema that is close to
-    but not identical to shared-types — an extra column is fine, a renamed one
+    but not identical to shared — an extra column is fine, a renamed one
     is reported.
     """
     models = resolve("app.db.models", "generic ORM insert (fallback path)")

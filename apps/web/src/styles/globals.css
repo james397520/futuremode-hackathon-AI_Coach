@@ -104,23 +104,11 @@
    * visual identity of its own belongs in packages/ui.
    */
 
-  /* §10 App Shell — floating, never full-bleed. */
-  .shell-frame {
-    width: calc(100vw - (var(--shell-safe-area) * 2));
-    height: calc(100vh - (var(--shell-safe-area) * 2));
-    max-width: var(--shell-max-width);
-    margin: var(--shell-safe-area) auto;
-  }
-
-  @media (max-width: 767px) {
-    .shell-frame {
-      /* < 768px: the safe area eats too much of the viewport (§46). */
-      width: 100vw;
-      height: 100vh;
-      margin: 0;
-      border-radius: 0;
-    }
-  }
+  /*
+   * NOTE: the §10 shell box (calc(100vw - 48px) x calc(100vh - 48px), capped at
+   * 1800px, radius 30px) is owned by `GlassShell` in packages/ui — see
+   * `components/app-shell/app-shell.tsx` for the two overrides this app applies.
+   */
 
   /* §11 Icon rail button — 44x44, radius 13. */
   .rail-item {
@@ -214,17 +202,6 @@
   .chart-grid-line {
     stroke: var(--border-soft);
     stroke-width: 1;
-  }
-
-  /* §44 Loading — shimmer instead of spinners for content surfaces. */
-  .skeleton-shimmer {
-    background-image: linear-gradient(
-      90deg,
-      transparent 0%,
-      color-mix(in srgb, var(--glass-card-strong) 70%, transparent) 50%,
-      transparent 100%
-    );
-    background-size: 200% 100%;
   }
 }
 

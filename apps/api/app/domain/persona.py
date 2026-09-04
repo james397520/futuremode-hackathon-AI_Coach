@@ -1,6 +1,6 @@
 """Persona entity + simulation state (spec §16 / §20 / §67).
 
-Mirrors ``packages/shared-types/src/persona.ts`` and the ``Persona`` /
+Mirrors ``packages/shared/src/persona.ts`` and the ``Persona`` /
 ``PersonaVoiceConfig`` interfaces in ``entities.ts``.
 
 ``PersonaHiddenState`` is the persona's secret brief (§16.3). It must never be

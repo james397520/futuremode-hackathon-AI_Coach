@@ -61,7 +61,7 @@ unknown → detecting → supported → loading → ready ⇄ degraded → fallb
                                                 └── detect ────────┘
 ```
 
-`RuntimeState` comes from `@ai-coach/shared-types` — **the UI may only display
+`RuntimeState` comes from `@ai-coach/shared` — **the UI may only display
 these states**. Events and the transition table live in `capability.ts`
 (`nextRuntimeState`, `createRuntimeStateMachine`); unknown transitions are ignored
 rather than thrown.
@@ -163,7 +163,7 @@ Enterprise data policies still apply.
 
 ## 5. Enterprise switches (§61, §97)
 
-`RuntimePolicy` (from `@ai-coach/shared-types`) is honoured end to end.
+`RuntimePolicy` (from `@ai-coach/shared`) is honoured end to end.
 
 | switch | effect |
 |---|---|
@@ -369,6 +369,6 @@ src/
 └── types/onnxruntime-web.d.ts  narrow ambient decl for the optional lazy dependency
 ```
 
-`packages/shared-types` is **consumed, never modified**. Browser-side extras that
+`packages/shared` is **consumed, never modified**. Browser-side extras that
 the cross-language contract deliberately does not carry (`ModelRuntimeHints`,
 `DetailedComputeCapability`, `RuntimeTelemetryDetail`) live here as supersets.

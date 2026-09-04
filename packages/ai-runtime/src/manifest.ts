@@ -14,7 +14,7 @@
  *    based, runs in plain JS, and therefore works on every device with zero
  *    download. `resolveManifest('safety_precheck', …)` returns `null` on purpose.
  */
-import type { LocalModelManifest, LocalTask } from '@ai-coach/shared-types';
+import type { LocalModelManifest, LocalTask } from '@ai-coach/shared';
 
 import type { MemoryClass, ModelRuntimeHints, ResolvedManifest } from './backends/types';
 import { INTENT_LABELS } from './backends/types';

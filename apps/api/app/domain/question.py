@@ -1,6 +1,6 @@
 """Question Bank models (spec §14 / §15).
 
-Mirrors the "Question Bank" section of ``packages/shared-types/src/entities.ts``.
+Mirrors the "Question Bank" section of ``packages/shared/src/entities.ts``.
 AI-generated questions must carry their source model, citations and review record (§15).
 """
 

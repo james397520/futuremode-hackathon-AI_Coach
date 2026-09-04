@@ -7,7 +7,7 @@ import { Database, Plus, Upload } from 'lucide-react';
 import { Button, GlassCard, Pill } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';
 import { ContentStatusPill } from '@/components/status';
-import { MOCK_KNOWLEDGE_BASES } from '@/lib/fixtures/knowledge';
+import { MOCK_KNOWLEDGE_BASES, knowledgeReadiness } from '@/lib/fixtures/knowledge';
 import { useCan } from '@/lib/auth-context';
 import { formatCount, formatRelative } from '@/lib/utils';
 import { UploadModal } from './upload-modal';
@@ -46,9 +46,7 @@ export function KnowledgeListPage() {
 
       <ul className="grid gap-4 lg:grid-cols-2">
         {MOCK_KNOWLEDGE_BASES.map((kb) => {
-          const readiness = Math.round(
-            (kb.status === 'published' ? 96 : kb.status === 'review_required' ? 72 : 41),
-          );
+          const readiness = knowledgeReadiness(kb);
           return (
             <li key={kb.id}>
               <GlassCard className="flex h-full flex-col p-5">

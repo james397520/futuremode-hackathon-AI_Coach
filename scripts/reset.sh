@@ -3,10 +3,10 @@
 # DESTRUCTIVE. Tears the local stack down, deletes its volumes, and re-runs
 # bootstrap from scratch.
 #
-#   infra/scripts/reset.sh                 confirm interactively, then reset
-#   infra/scripts/reset.sh --yes           skip the prompt (for a Makefile/CI)
-#   infra/scripts/reset.sh --no-bootstrap  destroy only; do not rebuild
-#   infra/scripts/reset.sh --keep-env      do not touch .env (default anyway)
+#   scripts/reset.sh                 confirm interactively, then reset
+#   scripts/reset.sh --yes           skip the prompt (for a Makefile/CI)
+#   scripts/reset.sh --no-bootstrap  destroy only; do not rebuild
+#   scripts/reset.sh --keep-env      do not touch .env (default anyway)
 #
 # What is destroyed
 #   * every row in Postgres — organisations, users, sessions, transcripts,
@@ -24,7 +24,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-COMPOSE_FILE="${REPO_ROOT}/infra/docker-compose.yml"
+COMPOSE_FILE="${REPO_ROOT}/docker-compose.yml"
 ENV_FILE="${REPO_ROOT}/.env"
 
 ASSUME_YES=0
@@ -115,7 +115,7 @@ if [ "$RUN_BOOTSTRAP" = "1" ]; then
   # directory — which is exactly what we just created. This is the point of a
   # reset: it is how an edit to infra/docker/postgres/init/ takes effect.
   # ${arr[@]+...} keeps this safe under `set -u` on bash 3.2 (macOS /bin/bash).
-  exec "${REPO_ROOT}/infra/scripts/bootstrap.sh" ${BOOTSTRAP_ARGS[@]+"${BOOTSTRAP_ARGS[@]}"}
+  exec "${REPO_ROOT}/scripts/bootstrap.sh" ${BOOTSTRAP_ARGS[@]+"${BOOTSTRAP_ARGS[@]}"}
 fi
 
-printf '\n%s  ✓%s destroyed. Run infra/scripts/bootstrap.sh when you want it back.\n\n' "$GRN" "$OFF"
+printf '\n%s  ✓%s destroyed. Run scripts/bootstrap.sh when you want it back.\n\n' "$GRN" "$OFF"

@@ -4,7 +4,7 @@
 #
 # The realtime contract (spec §55 / §68) is declared twice, in two languages:
 #
-#   packages/shared-types/src/events.ts   TypeScript — the source of truth
+#   packages/shared/src/events.ts   TypeScript — the source of truth
 #   apps/api/app/domain/events.py         Pydantic  — the mirror
 #
 # Nothing in either toolchain can catch a mismatch: `tsc` never sees the Python
@@ -20,8 +20,8 @@
 # and fails if the sets differ in either direction.
 #
 # Usage:
-#   infra/scripts/check-contracts.sh            # both directions, exit 1 on drift
-#   infra/scripts/check-contracts.sh --list     # print what it found, exit 0
+#   scripts/check-contracts.sh            # both directions, exit 1 on drift
+#   scripts/check-contracts.sh --list     # print what it found, exit 0
 #
 # See docs/adr/0002-typescript-as-contract-source-of-truth.md and the
 # "Contract change protocol" section of CONTRIBUTING.md.
@@ -29,7 +29,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-TS_EVENTS="${REPO_ROOT}/packages/shared-types/src/events.ts"
+TS_EVENTS="${REPO_ROOT}/packages/shared/src/events.ts"
 PY_EVENTS="${REPO_ROOT}/apps/api/app/domain/events.py"
 
 LIST_ONLY=0

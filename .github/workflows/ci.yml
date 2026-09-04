@@ -79,7 +79,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # Typecheck first: it is the fastest way to surface a contract change that
-      # packages/shared-types made and apps/web has not absorbed.
+      # packages/shared made and apps/web has not absorbed.
       - name: Typecheck
         run: pnpm -r typecheck
 
@@ -108,7 +108,7 @@ jobs:
   # ===========================================================================
   # api — apps/api
   #
-  # Service containers mirror infra/docker-compose.yml. They exist because the
+  # Service containers mirror docker-compose.yml. They exist because the
   # tests that matter here are the tenant-isolation ones (§74), and those are
   # only meaningful against a real Postgres with real constraints.
   # ===========================================================================
@@ -147,7 +147,7 @@ jobs:
         image: qdrant/qdrant:v1.12.4
         ports: ["6333:6333", "6334:6334"]
         # The Qdrant image ships no curl/wget, so the probe is bash's /dev/tcp.
-        # Identical reasoning to infra/docker-compose.yml — see the comment
+        # Identical reasoning to docker-compose.yml — see the comment
         # there before changing either.
         options: >-
           --health-cmd "timeout 2 bash -c '</dev/tcp/127.0.0.1/6333' || exit 1"
@@ -239,7 +239,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Streaming-event contract drift
-        run: infra/scripts/check-contracts.sh
+        run: scripts/check-contracts.sh
 
       - name: Report
         if: always()
@@ -247,7 +247,7 @@ jobs:
           {
             echo "### Streaming-event contract"
             echo '```'
-            infra/scripts/check-contracts.sh --list 2>&1 || true
+            scripts/check-contracts.sh --list 2>&1 || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -265,7 +265,7 @@ jobs:
 
       - name: Bash syntax
         run: |
-          for f in infra/scripts/*.sh infra/docker/postgres/init/*.sh; do
+          for f in scripts/*.sh infra/docker/postgres/init/*.sh; do
             bash -n "$f" && echo "ok  $f"
           done
 
@@ -273,7 +273,7 @@ jobs:
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
           shellcheck --severity=warning \
-            infra/scripts/*.sh \
+            scripts/*.sh \
             infra/docker/postgres/init/*.sh
 
       # `config` fully resolves interpolation, profiles, anchors and
@@ -281,12 +281,12 @@ jobs:
       - name: Validate docker-compose
         run: |
           cp .env.example .env
-          docker compose --env-file .env -f infra/docker-compose.yml config >/dev/null
-          docker compose --env-file .env -f infra/docker-compose.yml --profile app --profile proxy config >/dev/null
+          docker compose --env-file .env -f docker-compose.yml config >/dev/null
+          docker compose --env-file .env -f docker-compose.yml --profile app --profile proxy config >/dev/null
           echo "compose config valid (default, app, proxy profiles)"
 
       - name: Seed script self-check
-        run: python3 infra/scripts/seed.py --dry-run
+        run: python3 scripts/seed.py --dry-run
 
   # ===========================================================================
   # A single required status check for branch protection. Protect this one job

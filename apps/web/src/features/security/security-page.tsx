@@ -55,10 +55,10 @@ export function SecurityPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Safe sessions" value={SECURITY_SUMMARY.safe_sessions.toLocaleString('en-US')} hint="no finding above low" />
-        <StatTile label="Warnings" value={String(SECURITY_SUMMARY.warnings)} hint="last 30 days" />
-        <StatTile label="Critical" value={String(SECURITY_SUMMARY.critical)} hint="fails the session outright" />
-        <StatTile label="Open findings" value={String(SECURITY_SUMMARY.open_findings)} hint={`${SECURITY_SUMMARY.sessions_reviewed} sessions reviewed`} />
+        <StatTile surface="card" label="Safe sessions" value={SECURITY_SUMMARY.safe_sessions.toLocaleString('en-US')} hint="no finding above low" />
+        <StatTile surface="card" label="Warnings" value={String(SECURITY_SUMMARY.warnings)} hint="last 30 days" />
+        <StatTile surface="card" label="Critical" value={String(SECURITY_SUMMARY.critical)} hint="fails the session outright" />
+        <StatTile surface="card" label="Open findings" value={String(SECURITY_SUMMARY.open_findings)} hint={`${SECURITY_SUMMARY.sessions_reviewed} sessions reviewed`} />
       </div>
 
       <GlassCard className="p-5">
@@ -125,7 +125,7 @@ export function SecurityPage() {
             <Select
               value={status}
               onValueChange={setStatus}
-              aria-label="Reviewer status"
+              ariaLabel="Reviewer status"
               options={[
                 { value: 'all', label: 'All statuses' },
                 { value: 'open', label: 'Open' },

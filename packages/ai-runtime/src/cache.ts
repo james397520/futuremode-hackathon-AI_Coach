@@ -21,7 +21,7 @@
  * `crypto.subtle` is missing or blocked, the cache silently degrades to
  * pass-through fetching.
  */
-import type { LocalTask, RuntimePolicy } from '@ai-coach/shared-types';
+import type { LocalTask, RuntimePolicy } from '@ai-coach/shared';
 
 import { errorText, hasNavigator } from './capability';
 import { BackendFailure, type ResolvedManifest } from './backends/types';

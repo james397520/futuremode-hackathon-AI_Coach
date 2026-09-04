@@ -1,4 +1,4 @@
-import type { DocumentState } from '@ai-coach/shared-types';
+import type { DocumentState } from '@ai-coach/shared';
 import { Check, CircleDashed, Loader2, XCircle } from 'lucide-react';
 import { DOCUMENT_PIPELINE_STEPS } from '@/lib/fixtures/knowledge';
 import { cn } from '@/lib/utils';

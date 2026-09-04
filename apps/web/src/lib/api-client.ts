@@ -33,8 +33,8 @@ import type {
   TranscriptTurn,
   User,
   Workspace,
-} from '@ai-coach/shared-types';
-import type { RuntimeTelemetry } from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
+import type { RuntimeTelemetry } from '@ai-coach/shared';
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 

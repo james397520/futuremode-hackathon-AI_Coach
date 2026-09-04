@@ -12,7 +12,7 @@
   "dependencies": {
     "@ai-coach/ai-runtime": "workspace:*",
     "@ai-coach/design-tokens": "workspace:*",
-    "@ai-coach/shared-types": "workspace:*",
+    "@ai-coach/shared": "workspace:*",
     "@ai-coach/ui": "workspace:*",
     "@tanstack/react-query": "^5.59.0",
     "class-variance-authority": "^0.7.0",

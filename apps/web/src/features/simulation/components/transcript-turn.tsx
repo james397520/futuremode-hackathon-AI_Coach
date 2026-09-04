@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { CoachInsight, ComplianceFinding, TranscriptTurn } from '@ai-coach/shared-types';
+import type { CoachInsight, ComplianceFinding, TranscriptTurn } from '@ai-coach/shared';
 
 import { formatClock, humaniseSlug } from '../lib/format';
 import {

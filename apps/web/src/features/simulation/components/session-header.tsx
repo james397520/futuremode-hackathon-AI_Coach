@@ -9,7 +9,7 @@
  * model (§15) — and a fallback reads as information, not an error (§94).
  */
 import type { ReactNode } from 'react';
-import type { Difficulty, SessionMode, SessionState } from '@ai-coach/shared-types';
+import type { Difficulty, SessionMode, SessionState } from '@ai-coach/shared';
 
 import { formatTimer } from '../lib/format';
 import {

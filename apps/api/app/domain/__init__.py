@@ -1,7 +1,7 @@
-"""Pydantic v2 mirror of ``packages/shared-types`` (spec §53–§56).
+"""Pydantic v2 mirror of ``packages/shared`` (spec §53–§56).
 
 Field names and enum literal values are byte-identical to the TypeScript contract.
-Any change here MUST be made in ``packages/shared-types/src/*.ts`` in the same commit.
+Any change here MUST be made in ``packages/shared/src/*.ts`` in the same commit.
 
 This package re-exports the whole contract surface so consumers can write
 ``from app.domain import PersonaSimulationState`` without knowing which cluster module

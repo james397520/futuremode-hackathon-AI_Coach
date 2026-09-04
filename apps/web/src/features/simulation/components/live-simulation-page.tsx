@@ -18,7 +18,7 @@
  *     events (§62 / §94).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Citation } from '@ai-coach/shared-types';
+import type { Citation } from '@ai-coach/shared';
 
 import { api, endpoints } from '@/lib/api-client';
 

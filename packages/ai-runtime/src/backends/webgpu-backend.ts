@@ -24,7 +24,7 @@
  * so nothing here touches `window`.
  */
 import { errorText, hasNavigator } from '../capability';
-import type { LocalTask } from '@ai-coach/shared-types';
+import type { LocalTask } from '@ai-coach/shared';
 
 import { OrtBackend, type OrtBackendOptions } from './ort-backend';
 import { BackendFailure } from './types';

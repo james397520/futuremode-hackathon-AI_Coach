@@ -129,7 +129,7 @@ class CollectingTelemetrySink:
 class Agent(ABC, Generic[InT, OutT]):
     """Base class for every agent in the §19 topology."""
 
-    #: One of `AGENT_NAMES` in packages/shared-types/src/events.ts — the value is
+    #: One of `AGENT_NAMES` in packages/shared/src/events.ts — the value is
     #: used verbatim in the `agent.thinking` streaming event.
     name: ClassVar[str] = "orchestrator"
     purpose: ClassVar[ModelPurpose] = ModelPurpose.KNOWLEDGE

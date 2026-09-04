@@ -48,17 +48,17 @@ because you are unsure — an unsure section is the one that needs the review.
 
 - [ ] `pnpm -r typecheck && pnpm -r lint` passes
 - [ ] `pytest` passes in `apps/api` (if the diff touches it)
-- [ ] `infra/scripts/check-contracts.sh` passes
+- [ ] `scripts/check-contracts.sh` passes
 - [ ] No new file lives somewhere `docs/PROJECT_STRUCTURE.md` does not sanction
 
 ### If this touches the cross-language contract
 
-`packages/shared-types/**` or `apps/api/app/domain/**`
+`packages/shared/**` or `apps/api/app/domain/**`
 
 - [ ] TypeScript changed **first** — it is the source of truth (`docs/adr/0002`)
 - [ ] Pydantic mirrored in the **same commit**, with byte-identical field names
       and enum literal values
-- [ ] `infra/scripts/check-contracts.sh` run locally and passing
+- [ ] `scripts/check-contracts.sh` run locally and passing
 - [ ] Every new streaming event is declared in `StreamingEvent`; nothing emits
       an undeclared event (Part II §55)
 
@@ -114,9 +114,9 @@ Any of `app/core/security`, `app/core/deps`, `app/agents/compliance`,
 
 ### If this touches infra or CI
 
-- [ ] `docker compose -f infra/docker-compose.yml config` succeeds for the
+- [ ] `docker compose config` succeeds for the
       default, `app` and `proxy` profiles
-- [ ] `infra/scripts/bootstrap.sh` is still idempotent — I ran it twice
+- [ ] `scripts/bootstrap.sh` is still idempotent — I ran it twice
 - [ ] New service has a healthcheck and a named volume
 - [ ] A new secret is documented in `.env.example` **with an empty value**
 

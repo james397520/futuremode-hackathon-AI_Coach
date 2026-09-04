@@ -5,7 +5,7 @@ Five rules carry most of the weight. If you read nothing else:
 1. **Check [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md) before adding
    a file.**
 2. **Contract changes go TypeScript first**, mirrored to Pydantic in the same
-   commit, verified by `infra/scripts/check-contracts.sh`.
+   commit, verified by `scripts/check-contracts.sh`.
 3. **No hex literals.** Colours come from design tokens.
 4. **Nothing on the Part II §99 forbidden list.**
 5. **Tenant isolation, RBAC and the safety layer get the extra review
@@ -41,7 +41,7 @@ The boundaries that get crossed most often:
 | `packages/ui` carries **no business semantics** | No `PersonaCard`, no `ScenarioPill`. Those are app-level, and they make the UI package accrete product knowledge |
 | `apps/web/src/app/` holds **routes and layout only** | Business logic lives in `features/`. A page component that fetches, transforms and renders is a page that cannot be reused or tested |
 | Routers do **I/O conversion only** | Business logic → `services/`. LLM behaviour → `agents/`. A router with a `for` loop over domain objects is in the wrong place |
-| `packages/shared-types` has **zero runtime dependencies** | No React, no imports with side effects. Every other package depends on it, so weight there is weight everywhere |
+| `packages/shared` has **zero runtime dependencies** | No React, no imports with side effects. Every other package depends on it, so weight there is weight everywhere |
 | `packages/ai-runtime` contains **no UI** | It is an inference abstraction. Rendering a badge from it couples the two |
 
 When work genuinely spans two owners: say so in the PR, and say who you
@@ -62,10 +62,10 @@ Nothing fails. Both test suites pass.
 [ADR-0002](docs/adr/0002-typescript-as-contract-source-of-truth.md).
 
 ```
-1. Change  packages/shared-types/src/*.ts          ← the source of truth
+1. Change  packages/shared/src/*.ts          ← the source of truth
 2. Mirror  apps/api/app/domain/*.py                ← identical field names,
                                                       identical enum literals
-3. Run     infra/scripts/check-contracts.sh        ← must pass
+3. Run     scripts/check-contracts.sh        ← must pass
 4. Commit  both changes in the SAME commit         ← never one without the other
 ```
 
@@ -87,14 +87,14 @@ Nothing fails. Both test suites pass.
 **What the drift guard does and does not catch.** It compares the `type:`
 discriminant literals in both directions and fails on any difference. It does
 **not** compare field shapes — a renamed field inside
-`PersonaSimulationState` passes. Two partial mitigations: `infra/scripts/seed.py`
+`PersonaSimulationState` passes. Two partial mitigations: `database/seeds/seed.py`
 round-trips its whole payload through the Pydantic models, and the PR checklist
 asks explicitly. A JSON-fixture round-trip test in both languages is the proper
 fix and is Phase 1 work. Until then, this one is on the reviewer.
 
 ```bash
-infra/scripts/check-contracts.sh          # fails on drift, either direction
-infra/scripts/check-contracts.sh --list   # print both sets side by side
+scripts/check-contracts.sh          # fails on drift, either direction
+scripts/check-contracts.sh --list   # print both sets side by side
 ```
 
 ---
@@ -245,7 +245,7 @@ Notes on the ones people argue about:
 
 Some changes get an ordinary review. These get a second reader and this
 checklist. The full version is in
-[`.github/pull_request_template.md`](.github/pull_request_template.md); this
+[`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md); this
 section is the reasoning.
 
 ### 6.1 Tenant isolation
@@ -329,7 +329,7 @@ router's authorisation, any serialiser.
 ### Setup
 
 ```bash
-infra/scripts/bootstrap.sh          # idempotent; see README for the manual path
+scripts/bootstrap.sh          # idempotent; see README for the manual path
 ```
 
 ### Before pushing
@@ -338,7 +338,7 @@ infra/scripts/bootstrap.sh          # idempotent; see README for the manual path
 pnpm -r typecheck
 pnpm -r lint
 cd apps/api && ruff check . && ruff format --check . && mypy && pytest; cd -
-infra/scripts/check-contracts.sh
+scripts/check-contracts.sh
 ```
 
 ### Formatting
@@ -356,7 +356,7 @@ these values needs a much better reason than a preference.
 - **API:** pytest in `apps/api/tests/`. CI runs it against real Postgres, Redis
   and Qdrant service containers — specifically so the tenant-isolation tests are
   meaningful rather than mocked.
-- **Contracts:** `infra/scripts/check-contracts.sh`, in CI as its own job.
+- **Contracts:** `scripts/check-contracts.sh`, in CI as its own job.
 - **Infra:** CI runs `bash -n`, shellcheck, `docker compose config` for all
   three profiles, and `seed.py --dry-run`.
 
@@ -371,14 +371,14 @@ backend. Two rules while it exists:
   the backend can do.
 - **Do not build a second one.** Fixtures in `apps/web/src/lib/fixtures/` cover
   the resource-shaped data; the mock covers the socket. That is the whole
-  inventory, and [`docs/ROADMAP.md`](docs/ROADMAP.md) lists it so the debt stays
+  inventory, and [`docs/roadmap.md`](docs/roadmap.md) lists it so the debt stays
   visible.
 
 ---
 
 ## 8. Pull requests
 
-Fill in [the template](.github/pull_request_template.md). Delete a checklist
+Fill in [the template](.github/PULL_REQUEST_TEMPLATE.md). Delete a checklist
 section only if it *genuinely* does not apply — an unsure section is the one that
 needs review.
 
@@ -400,11 +400,11 @@ right?" but "is there a test that proves the denial path?".
 |---|---|
 | What must the product do? | [`docs/spec/AI_Coach_Spec_v3.md`](docs/spec/AI_Coach_Spec_v3.md) — authoritative |
 | Where does this file go? | [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md) — authoritative |
-| How does it fit together? | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
-| What is actually built? | [`docs/ROADMAP.md`](docs/ROADMAP.md) — honest |
+| How does it fit together? | [`docs/architecture.md`](docs/architecture.md) |
+| What is actually built? | [`docs/roadmap.md`](docs/roadmap.md) — honest |
 | Why is it like this? | [`docs/adr/`](docs/adr/) |
-| How do I run it? | [`README.md`](README.md), [`infra/scripts/bootstrap.sh`](infra/scripts/bootstrap.sh) |
+| How do I run it? | [`README.md`](README.md), [`scripts/bootstrap.sh`](scripts/bootstrap.sh) |
 
-`docs/ARCHITECTURE.md` ends with a table mapping every spec section to the
+`docs/architecture.md` ends with a table mapping every spec section to the
 directory that implements it. That is the fastest way from "§65 says X" to the
 code.

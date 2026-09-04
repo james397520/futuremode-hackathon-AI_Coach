@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import type { ComplianceFindingType } from '@ai-coach/shared-types';
+import type { ComplianceFindingType } from '@ai-coach/shared';
 import { Download, ShieldAlert } from 'lucide-react';
 import { Button, GlassCard, Pill, Select, StatTile } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';
@@ -76,10 +76,10 @@ export function ComplianceReportPage() {
       <ReportTabs current="compliance" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Safe session rate" value={`${safeRate}%`} hint="no high or critical finding" />
-        <StatTile label="Total findings" value={String(MOCK_FINDINGS.length)} hint="last 30 days" />
-        <StatTile label="Open" value={String(open)} hint="awaiting reviewer action" />
-        <StatTile label="Critical" value={String(critical)} hint="fails the session outright" />
+        <StatTile surface="card" label="Safe session rate" value={`${safeRate}%`} hint="no high or critical finding" />
+        <StatTile surface="card" label="Total findings" value={String(MOCK_FINDINGS.length)} hint="last 30 days" />
+        <StatTile surface="card" label="Open" value={String(open)} hint="awaiting reviewer action" />
+        <StatTile surface="card" label="Critical" value={String(critical)} hint="fails the session outright" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
@@ -112,7 +112,7 @@ export function ComplianceReportPage() {
               <Select
                 value={severity}
                 onValueChange={setSeverity}
-                aria-label="Severity"
+                ariaLabel="Severity"
                 options={[
                   { value: 'all', label: 'All severities' },
                   { value: 'low', label: 'Low' },
@@ -126,7 +126,7 @@ export function ComplianceReportPage() {
               <Select
                 value={status}
                 onValueChange={setStatus}
-                aria-label="Reviewer status"
+                ariaLabel="Reviewer status"
                 options={[
                   { value: 'all', label: 'All statuses' },
                   { value: 'open', label: 'Open' },

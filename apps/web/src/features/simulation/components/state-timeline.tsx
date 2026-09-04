@@ -12,7 +12,7 @@
  * emotions from their face or voice, and the card says so on screen.
  */
 import { useMemo } from 'react';
-import type { PersonaEmotion, PersonaSimulationState } from '@ai-coach/shared-types';
+import type { PersonaEmotion, PersonaSimulationState } from '@ai-coach/shared';
 
 import { formatClock } from '../lib/format';
 import { EMOTION_LABEL, EMOTION_TONE } from '../lib/labels';

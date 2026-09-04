@@ -43,7 +43,7 @@ from app.services.repository import Repository, RepositoryPort, field
 
 log = structlog.get_logger(__name__)
 
-#: §16.2 sliders — all 0–100 (`PersonaTraits` in shared-types)
+#: §16.2 sliders — all 0–100 (`PersonaTraits` in shared)
 TRAIT_KEYS = (
     "trust",
     "patience",

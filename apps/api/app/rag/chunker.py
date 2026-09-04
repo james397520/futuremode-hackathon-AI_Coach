@@ -1,6 +1,6 @@
 """Chunking — every §11.4 strategy, with parent-child and metadata inheritance.
 
-Strategies (`ChunkStrategy` in packages/shared-types/src/entities.ts):
+Strategies (`ChunkStrategy` in packages/shared/src/entities.ts):
 
 ===============  ====================================================================
 `heading`        split at heading boundaries; section path becomes chunk metadata
@@ -35,7 +35,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.rag.structure import Block, BlockKind
 
-#: Mirrors `ChunkStrategy` in packages/shared-types/src/entities.ts
+#: Mirrors `ChunkStrategy` in packages/shared/src/entities.ts
 class ChunkStrategy(StrEnum):
     AUTO = "auto"
     SEMANTIC = "semantic"

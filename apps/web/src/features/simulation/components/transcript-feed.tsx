@@ -18,7 +18,7 @@ import type {
   ID,
   SessionState,
   TranscriptTurn,
-} from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
 
 import { useAutoScroll } from '../hooks/use-auto-scroll';
 import { tint, toneText } from '../lib/tone';

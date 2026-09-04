@@ -14,7 +14,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import type { ChangeEvent, KeyboardEvent as ReactKeyboardEvent } from 'react';
-import type { SessionState } from '@ai-coach/shared-types';
+import type { SessionState } from '@ai-coach/shared';
 
 import { INPUT_BLOCKED_STATES } from '../lib/session-transitions';
 import { insetSurface, tint, toneText } from '../lib/tone';

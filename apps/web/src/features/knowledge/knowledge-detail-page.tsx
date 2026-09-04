@@ -6,7 +6,7 @@ import { Database, FileText, Lock, RefreshCw, Sparkles, Upload } from 'lucide-re
 import { Button, GlassCard, Pill, Tooltip } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';
 import { ContentStatusPill, DocumentPipeline, DocumentStatePill } from '@/components/status';
-import { documentsForKb, knowledgeBaseById } from '@/lib/fixtures/knowledge';
+import { documentsForKb, knowledgeBaseById, knowledgeReadiness } from '@/lib/fixtures/knowledge';
 import { useCan } from '@/lib/auth-context';
 import { formatBytes, formatCount, formatRelative } from '@/lib/utils';
 import { UploadModal } from './upload-modal';
@@ -40,7 +40,7 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
   }
 
   const processing = documents.filter((doc) => !['ready', 'failed'].includes(doc.state));
-  const readiness = Math.round((documents.filter((doc) => doc.state === 'ready').length / Math.max(1, documents.length)) * 100);
+  const readiness = knowledgeReadiness(kb);
 
   return (
     <div className="space-y-5 pb-4">
@@ -86,7 +86,8 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
             {formatRelative(kb.updated_at)}
           </p>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <p className="mt-6 meta-label">Most recent batch</p>
+          <div className="mt-2 grid gap-4 sm:grid-cols-3">
             <div>
               <p className="meta-label">Ready</p>
               <p className="mt-1 text-section tabular-nums">

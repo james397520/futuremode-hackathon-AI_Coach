@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-coach/shared-types": "workspace:*",
+    "@ai-coach/shared": "workspace:*",
     "@webgpu/types": "^0.1.49",
     "onnxruntime-web": "^1.20.1"
   },

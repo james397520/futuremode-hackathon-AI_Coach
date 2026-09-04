@@ -5,7 +5,7 @@ import type {
   Rubric,
   SkillKey,
   SkillProfile,
-} from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
 import { SCOPE, daysAgo, minutesAgo } from './constants';
 import { DEMO_SESSION_ID } from './sessions';
 

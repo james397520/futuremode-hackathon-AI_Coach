@@ -38,7 +38,7 @@ from app.rag.structure import (
 
 log = structlog.get_logger(__name__)
 
-#: Mirrors `DocumentSourceKind` in packages/shared-types/src/entities.ts
+#: Mirrors `DocumentSourceKind` in packages/shared/src/entities.ts
 class SourceKind(StrEnum):
     PDF = "pdf"
     DOCX = "docx"

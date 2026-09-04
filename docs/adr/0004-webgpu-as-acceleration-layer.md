@@ -109,8 +109,8 @@ cross-origin isolated, which needs `COOP: same-origin` + `COEP: require-corp`.
 The edge sets both. Note the inversion this creates: the headers matter *most*
 for the WASM tier, i.e. on exactly the machines that have no GPU path. The cost
 and the per-route opt-outs are documented in
-[`infra/docker/nginx.conf`](../../infra/docker/nginx.conf) and
-[ARCHITECTURE §7](../ARCHITECTURE.md#7-cross-origin-isolation-why-the-edge-sets-coop--coep).
+[`infra/nginx/nginx.conf`](../../infra/nginx/nginx.conf) and
+[ARCHITECTURE §7](../architecture.md#7-cross-origin-isolation-why-the-edge-sets-coop--coep).
 
 ## Consequences
 
@@ -144,7 +144,7 @@ and the per-route opt-outs are documented in
   manifests with URLs, byte sizes and sha256 digests do not. Until they land,
   the WebGPU and WASM tiers have nothing to load and the chain falls to the
   server backend — which is the correct behaviour, and it is why the fallback
-  had to be built first. Tracked in [ROADMAP Phase 1](../ROADMAP.md).
+  had to be built first. Tracked in [ROADMAP Phase 1](../roadmap.md).
 - **COEP breaks third-party subresources.** A real and ongoing constraint on
   every future integration that wants to embed an iframe or a CDN asset. The
   per-route opt-out recipes are written down so the answer exists before the

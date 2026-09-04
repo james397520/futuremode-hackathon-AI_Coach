@@ -61,7 +61,7 @@ COPY --from=fetch /pnpm/store /pnpm/store
 # Manifests first, so a source-only edit does not re-resolve the graph.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/web/package.json               apps/web/package.json
-COPY packages/shared-types/package.json  packages/shared-types/package.json
+COPY packages/shared/package.json  packages/shared/package.json
 COPY packages/design-tokens/package.json packages/design-tokens/package.json
 COPY packages/ui/package.json            packages/ui/package.json
 COPY packages/ai-runtime/package.json    packages/ai-runtime/package.json

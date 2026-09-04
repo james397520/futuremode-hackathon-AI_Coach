@@ -1,4 +1,4 @@
-import type { AuditEvent, ComplianceRisk } from '@ai-coach/shared-types';
+import type { AuditEvent, ComplianceRisk } from '@ai-coach/shared';
 import { TENANT_ID, WORKSPACE_ID, daysAgo, minutesAgo } from './constants';
 
 /** §41 Security & Audit summary tiles. */

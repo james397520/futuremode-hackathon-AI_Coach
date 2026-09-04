@@ -1,4 +1,4 @@
-import type { Persona } from '@ai-coach/shared-types';
+import type { Persona } from '@ai-coach/shared';
 import { NOW_ISO, SCOPE, daysAgo } from './constants';
 
 /**

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { EyeOff, FlaskConical, Lock, Plus, Save, Trash2, Volume2 } from 'lucide-react';
-import type { Persona, PersonaTraits } from '@ai-coach/shared-types';
+import type { Persona, PersonaTraits } from '@ai-coach/shared';
 import { Button, Field, GlassCard, Input, Pill, Select, Slider, Switch, Tabs, Textarea } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';
 import { ContentStatusPill } from '@/components/status';

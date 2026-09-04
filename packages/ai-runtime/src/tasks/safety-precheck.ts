@@ -23,7 +23,7 @@
  * Privacy: nothing here leaves the browser. Findings carry stable rule ids and
  * character offsets, plus a redacted excerpt — never the raw match.
  */
-import type { ComputeBackend } from '@ai-coach/shared-types';
+import type { ComputeBackend } from '@ai-coach/shared';
 
 import type {
   AuthorityLevel,

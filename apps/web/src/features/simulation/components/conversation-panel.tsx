@@ -18,7 +18,7 @@ import type {
   SessionMode,
   SessionState,
   TranscriptTurn,
-} from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
 
 import { COACH_KIND_LABEL, COACH_KIND_TONE } from '../lib/labels';
 import { isLive } from '../lib/session-transitions';

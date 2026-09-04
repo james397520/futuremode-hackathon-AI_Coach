@@ -10,12 +10,12 @@
 [ADR-0001](0001-pnpm-workspace-plus-separate-python-app.md) leaves the same
 data shapes declared in two languages. Concretely:
 
-- `packages/shared-types/src/entities.ts` and `apps/api/app/domain/*.py` both
+- `packages/shared/src/entities.ts` and `apps/api/app/domain/*.py` both
   describe every entity in Part I §53.
-- `packages/shared-types/src/events.ts` and `apps/api/app/domain/events.py`
+- `packages/shared/src/events.ts` and `apps/api/app/domain/events.py`
   both describe the `StreamingEvent` union of Part I §55 — the realtime wire
   format, where the backend emits and the frontend reduces.
-- `packages/shared-types/src/state-machines.ts` and
+- `packages/shared/src/state-machines.ts` and
   `apps/api/app/domain/enums.py` both describe the Part II §92 state machines.
 
 Nothing in either toolchain can detect a mismatch. The realistic failure is not
@@ -42,7 +42,7 @@ enforces agreement.**
 
 Three parts:
 
-**1. Direction.** `packages/shared-types/src/**` is authoritative. Any contract
+**1. Direction.** `packages/shared/src/**` is authoritative. Any contract
 change starts there.
 
 **2. Mirroring rule.** `apps/api/app/domain/**` mirrors it with **byte-identical
@@ -52,7 +52,7 @@ conventions do not apply to wire fields: the field is `hidden_need`, not
 a wire field collides with a Python keyword (`runtime.fallback` carries a field
 named `from`), it is aliased, and the alias preserves the wire name.
 
-**3. Enforcement.** `infra/scripts/check-contracts.sh` extracts the `type:`
+**3. Enforcement.** `scripts/check-contracts.sh` extracts the `type:`
 discriminant literals from both files and fails if the sets differ **in either
 direction**. It runs as its own CI job (`contracts`) so it still reports when
 the `web` or `api` job is red for an unrelated reason, and it is called from
@@ -80,7 +80,7 @@ inventing an undeclared event.
   and the iterable the UI renders. Python needs a `StrEnum` plus a separate
   ordering.
 - **The contract package already has zero runtime dependencies.**
-  `packages/shared-types` is types only — no React, no runtime imports — so
+  `packages/shared` is types only — no React, no runtime imports — so
   every other package can depend on it without weight.
 
 ### Why not code generation, in either direction
@@ -133,7 +133,7 @@ snippets); and it introduces a third language nobody writes day to day.
   second write is mechanical.
 - **The guard only checks event *type literals*, not field shapes.** A renamed
   field inside `PersonaSimulationState` passes. This is the real gap. Two
-  mitigations: `infra/scripts/seed.py` round-trips its whole payload through the
+  mitigations: `scripts/seed.py` round-trips its whole payload through the
   Pydantic models, which catches field drift on the entities it covers; and the
   PR template requires the TS-first ordering explicitly. A JSON-fixture
   round-trip test in both languages is the proper fix and belongs in Phase 1.
@@ -149,12 +149,12 @@ snippets); and it introduces a third language nobody writes day to day.
 ## The protocol, for reference
 
 ```
-1. Change packages/shared-types/src/*.ts             — the source of truth
+1. Change packages/shared/src/*.ts             — the source of truth
 2. Mirror into apps/api/app/domain/*.py              — identical field names
                                                        and enum literals
-3. Run infra/scripts/check-contracts.sh              — must pass
+3. Run scripts/check-contracts.sh              — must pass
 4. Both changes in the SAME commit                   — never one without the other
 ```
 
-`infra/scripts/check-contracts.sh --list` prints both sets side by side when
+`scripts/check-contracts.sh --list` prints both sets side by side when
 you want to see what it is comparing.

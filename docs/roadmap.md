@@ -45,17 +45,17 @@ The things that had to exist before parallel work was possible at all.
 | Item | Where | Status |
 |---|---|---|
 | pnpm workspace for the JS side, standalone `pyproject.toml` for Python | `pnpm-workspace.yaml`, `apps/api/pyproject.toml` | ✅ [ADR-0001](adr/0001-pnpm-workspace-plus-separate-python-app.md) |
-| Cross-language contracts — entities, streaming events, state machines, enums | `packages/shared-types/src/**` ↔ `apps/api/app/domain/**` | ✅ [ADR-0002](adr/0002-typescript-as-contract-source-of-truth.md) |
-| Contract drift guard, both directions | `infra/scripts/check-contracts.sh` | ✅ runs in CI as its own job |
+| Cross-language contracts — entities, streaming events, state machines, enums | `packages/shared/src/**` ↔ `apps/api/app/domain/**` | ✅ [ADR-0002](adr/0002-typescript-as-contract-source-of-truth.md) |
+| Contract drift guard, both directions | `scripts/check-contracts.sh` | ✅ runs in CI as its own job |
 | Design tokens — light/dark CSS variables, Tailwind preset, aurora + dot matrix | `packages/design-tokens/src/**` | ✅ [ADR-0003](adr/0003-custom-design-system-over-shadcn-theme.md) |
 | Glass component library on Radix primitives | `packages/ui/src/components/**` | ✅ ~27 components |
 | Ownership map, so parallel agents do not collide | `docs/PROJECT_STRUCTURE.md` | ✅ authoritative |
-| Local stack — postgres/redis/qdrant/minio, healthchecked | `infra/docker-compose.yml` | ✅ |
+| Local stack — postgres/redis/qdrant/minio, healthchecked | `docker-compose.yml` | ✅ |
 | Container images — web standalone, api, worker, edge proxy | `infra/docker/**` | ✅ |
-| Bootstrap / reset / seed scripts | `infra/scripts/**` | ✅ seed is defensive about `app.*` names still landing |
+| Bootstrap / reset / seed scripts | `scripts/**` | ✅ seed is defensive about `app.*` names still landing |
 | CI — web, api, contracts, shell jobs | `.github/workflows/ci.yml` | ✅ ⚠️ requires a committed `pnpm-lock.yaml` (`pnpm install --frozen-lockfile`). It was absent when the workflow was written; if `git ls-files pnpm-lock.yaml` is empty, run `pnpm install` and commit. Called out in the workflow itself. |
 | Security workflow — dependency review, pip-audit, pnpm audit, gitleaks, CodeQL | `.github/workflows/security.yml` | ✅ automated floor only; see Phase 3 |
-| Architecture reference, ADRs | `docs/ARCHITECTURE.md`, `docs/adr/**` | ✅ |
+| Architecture reference, ADRs | `docs/architecture.md`, `docs/adr/**` | ✅ |
 
 ---
 
@@ -71,7 +71,7 @@ Upload PDF → Parse → Chunk → Embed → Build Persona → Select Scenario
 ```
 
 The demo that exercises it is Part I §59: the 陳先生 insurance scenario, seeded
-by `infra/scripts/seed.py`. Success is `完成需求探索 + 正確說明保障 + 不產生
+by `database/seeds/seed.py`. Success is `完成需求探索 + 正確說明保障 + 不產生
 Critical Compliance Risk + Trust >= 70 + Overall Score >= 80`.
 
 ### Where each link of the chain stands
@@ -81,7 +81,7 @@ Critical Compliance Risk + Trust >= 70 + Overall Score >= 80`.
 | 1 | **Upload PDF** | ⬜ not started | Signed-URL upload endpoint (`documents.py`), MinIO put, file-type validation via libmagic (§40.1), size ceiling, `DocumentState: uploaded → validating` |
 | 2 | **Parse** | 🟡 partial — `rag/ocr.py`, `rag/structure.py` exist | `rag/parser.py` for pdf/docx/pptx/txt/csv/html; poppler wiring; the worker image already carries poppler + tesseract |
 | 3 | **Chunk** | ⬜ not started | `rag/chunker.py` implementing all seven `ChunkStrategy` values; parent-chunk links; token counting |
-| 4 | **Embed** | ⬜ not started | `rag/embedder.py` with the **two separate paths** of Part I §2.1 (private open model vs external API — see [ARCHITECTURE §5](ARCHITECTURE.md#5-the-rag-pipeline)); `rag/vectorstore.py` Qdrant upsert with the three tenancy payload keys; `rag/pipeline.py` orchestration |
+| 4 | **Embed** | ⬜ not started | `rag/embedder.py` with the **two separate paths** of Part I §2.1 (private open model vs external API — see [ARCHITECTURE §5](architecture.md#5-the-rag-pipeline)); `rag/vectorstore.py` Qdrant upsert with the three tenancy payload keys; `rag/pipeline.py` orchestration |
 | — | **Async job runner** | ⬜ not started | `app/workers/celery_app.py` + the `documents` / `evaluation` / `maintenance` queues. The worker image and its healthcheck already expect `app.workers.celery_app` |
 | 5 | **Build Persona** | 🟡 contracts + agent done | Persona CRUD router; the builder UI (`personas/new`, `[id]`, `[id]/test-lab`); hidden-state serialisation boundary enforced by role |
 | 6 | **Select Scenario** | 🟡 setup page exists, reads fixtures | Scenario CRUD router; the nine-step builder wizard (§17); wire the setup page to the API |
@@ -98,7 +98,7 @@ Critical Compliance Risk + Trust >= 70 + Overall Score >= 80`.
 | Area | Status | Remaining |
 |---|---|---|
 | **`apps/api/app/main.py`** | ⬜ | The app factory itself: middleware chain, router mounting, `/health/live` + `/health/ready`. Both the API image's `HEALTHCHECK` and the compose `depends_on` chain expect `/health/ready` to verify Postgres, Redis and Qdrant |
-| **Alembic migrations** | ⬜ | `app/db/migrations/`, `alembic.ini`. Models exist in `app/db/models/**`; nothing creates the schema. `bootstrap.sh` reports this clearly and skips |
+| **Alembic migrations** | ⬜ | `database/migrations/`, `alembic.ini`. Models exist in `app/db/models/**`; nothing creates the schema. `bootstrap.sh` reports this clearly and skips |
 | **Router surface (§56)** | 🟡 `auth.py` only | 17 more router groups: workspaces, users, teams, knowledge_bases, documents, chunks, retrieval, questions, personas, scenarios, assignments, sessions, reports, security, audit, integrations, runtime |
 | **`pnpm-lock.yaml`** | ⚠️ verify | Must be committed for CI's `web` job and `pnpm audit` to run at all. One command, once: `pnpm install` |
 | **`apps/api/README.md`** | ⬜ | `pyproject.toml` declares it as the project readme; both API images synthesise a stub so the build does not fail on a missing doc file |
@@ -116,10 +116,10 @@ talking to a server.
 |---|---|---|
 | **Browser mock event stream** | `apps/web/src/features/simulation/mock/mock-event-stream.ts` | The whole `/ws` session channel. It emits real `StreamingEvent` values on a timer, which is why the simulation UI looks finished. Replacing it is the single largest Phase 1 task |
 | Mock session | `apps/web/src/features/simulation/mock/mock-session.ts` | `TrainingSession`, persona and scenario for a live session |
-| Typed fixtures | `apps/web/src/lib/fixtures/*.ts` (14 files) | Every list and detail view: knowledge, questions, personas, scenarios, sessions, evaluations, reports, security, training, notifications, integrations, settings, identity. Correctly typed against `shared-types`, so swapping in TanStack Query calls is mechanical rather than a rewrite |
+| Typed fixtures | `apps/web/src/lib/fixtures/*.ts` (14 files) | Every list and detail view: knowledge, questions, personas, scenarios, sessions, evaluations, reports, security, training, notifications, integrations, settings, identity. Correctly typed against `shared`, so swapping in TanStack Query calls is mechanical rather than a rewrite |
 | Auth context | `apps/web/src/lib/auth-context.tsx` | Real session cookies from `/auth` |
 | Model manifests | absent | `LocalModelManifest` entries with real URLs, byte sizes and sha256 digests. Without them the WebGPU and WASM tiers have nothing to load, and the runtime falls through to the server backend |
-| Seed persistence | `infra/scripts/seed.py` | Falls back to writing `infra/seed/demo-seed.json` because no database path exists yet. It needs either `app/db/seed.py::seed_demo` or migrations plus a session factory |
+| Seed persistence | `database/seeds/seed.py` | Falls back to writing `infra/seed/demo-seed.json` because no database path exists yet. It needs either `app/db/seed.py::seed_demo` or migrations plus a session factory |
 
 ### Definition of done for Phase 1
 
@@ -139,6 +139,71 @@ The §59 demo runs against real services with no mock in the path:
 8. The review page shows a recommended next training.
 9. The runtime badge reports WebGPU, WASM or Server honestly, and the loop works
    with WebGPU forced off.
+
+---
+
+## Phase 1.5 — Enterprise governance gaps ⬜ not started
+
+`docs/spec/AI_Coach_Functional_Review_Checklist.md` is a separate functional
+review against `docs/spec/AI_Coach_Spec_v3.md`. Its own summary (§1.1) is that
+**the original three requirement areas — knowledge/RAG, multi-agent/voice,
+evaluation/security — have no functional gap at the spec level.** What it adds
+is a fourth area the spec itself never asked for: the operational governance a
+real enterprise deployment needs before go-live. None of it is implemented.
+It is tracked here rather than folded into Phase 1 so that Phase 1's own
+definition of done — the §59 demo running end to end on real services — is not
+redefined mid-flight.
+
+**Decision (2026-09-04): documented now, built after Phase 1.** The MVP loop
+(upload → parse → chunk → embed → simulate → evaluate) is worth more right now
+than any of the items below, including the P0-labelled ones — none of them
+matter until there is a real session to secure, version or recover.
+
+### P0 — before a real customer's data touches this system
+
+| # | Item | Adds | Where it would live |
+|---|---|---|---|
+| 1 | Auth lifecycle | password reset, email verification, invitation + expiry, disable/delete user, session revocation, logout-all-devices, idle timeout, MFA/TOTP, recovery codes, brute-force lockout | `core/security.py`, `api/v1/routers/auth.py`, new `AuthSession`, `Invitation`, `MFADevice` |
+| 2 | Session version snapshot | every `TrainingSession` pins `scenario_version`, `persona_version`, `rubric_version`, `knowledge_snapshot_id`, `retrieval_config_version`, `compliance_policy_version`, `agent_config_bundle_version`, `model_route_version`, `voice_config_version` — so a report opened in six months is reproducible | `domain/session.py`, `db/models/session.py` (already has version-*pinning*, §54 ADR-0008; this widens it from 2 fields to 9) |
+| 3 | Session autosave / crash recovery | turn + persona-state checkpointing, browser-refresh and tab-crash recovery, rejoin-in-progress, duplicate-connection guard, server-side finalisation if the client vanishes | `ws/gateway.py`, `session-store.ts` |
+| 4 | Document/RAG failure recovery | the full failure-state machine (`validation_failed`, `parse_failed`, `ocr_failed`, `embedding_failed`, `index_failed`, `partially_ready`), retry-from-stage, dead-letter visibility | `workers/document_jobs.py`, `rag/pipeline.py` |
+| 5 | Evaluation low-confidence review queue | route to human review when `confidence < threshold`, a critical compliance finding fires, or AI/human variance exceeds threshold; `auto_scored → review_required → under_review → reviewed → overridden → final` | `services/evaluation_service.py`, new `ReviewTask`, `HumanScore` |
+| 6 | Compliance policy version pinning | `CompliancePolicy` / `CompliancePolicyVersion` with a draft→review→approved→effective→expired→replaced lifecycle, so a new regulation never silently reinterprets an old session | `domain/evaluation.py`, `agents/compliance_agent.py` |
+| 7 | Immutable audit log | append-only/WORM policy, retention period, correlation id, before/after value on critical changes (rubric, compliance rule, model, prompt, role, knowledge publish, report override) | `core/audit.py` (already writes `AuditEvent`; missing the immutability guarantee) |
+| 8 | Data retention / delete / export | per data-class (transcript, voice, report, audit, source, WebGPU cache) retention, export-personal-data, delete-personal-data, legal hold, workspace purge | new `DataRetentionPolicy`, `ExportJob`, `DeletionJob`; `workers/retention_jobs.py` already stubs this direction |
+| 9 | API / webhook security | API keys with scope + workspace binding + rotation + revoke; HMAC-signed webhooks with replay protection, idempotency, retry/backoff, delivery log | new routers + `WebhookDelivery` |
+| 10 | Usage / cost guardrail | token/voice/embedding budgets, per-user and per-session limits, soft/hard limits, cost alerts | new `UsageRecord`, `QuotaPolicy` |
+| 11 | Admin operational health dashboard | live status for API/WS/WebRTC/OpenAI/ElevenLabs/Qdrant/Redis/storage/worker queue, job health, the §49.5 latency metrics surfaced in-product | a `settings/health` or `security/operations` page + `SystemHealthEvent` |
+| 12 | Model / prompt / agent config registry | versioned, diffable, rollback-able registry for LLM routing config and every agent's prompt, each session pinning a `model_route_version` + `agent_config_bundle_version` | new `PromptVersion`, `ModelRouteVersion`, `AgentConfigBundle` |
+
+### P1 — before the first external beta customer
+
+Assignment recurrence/exemption/grace-period, notification preferences and
+quiet hours, scheduled report delivery, connector incremental sync with a
+`connected/syncing/degraded/auth_expired/rate_limited/error/disconnected`
+state machine, knowledge freshness (effective/expiry date, stale warning,
+superseded-by), full content-approval workflow (comment thread, request
+changes, resubmit, maker-checker, emergency unpublish), rubric calibration
+governance (golden evaluation set, inter-rater agreement), voice consent and
+recording retention, an organisation onboarding wizard, API/webhook delivery
+logs.
+
+### P2 — after commercial scale-out
+
+A/B scenario experiments, a template marketplace, 3D avatar / lip sync,
+advanced offline PWA, cross-organisation benchmarking, advanced gamification —
+all deferred consistently with Phase 3's B2C note above.
+
+### Suggested new entities (from the checklist §48)
+
+`AuthSession`, `Invitation`, `MFADevice`, `KnowledgeSnapshot`,
+`RetrievalConfigVersion`, `PromptVersion`, `AgentConfigBundle`,
+`ModelRouteVersion`, `CompliancePolicy`, `CompliancePolicyVersion`,
+`ReviewTask`, `HumanScore`, `ConnectorSyncJob`, `WebhookDelivery`,
+`UsageRecord`, `QuotaPolicy`, `NotificationPreference`,
+`DataRetentionPolicy`, `ExportJob`, `DeletionJob`, `SystemHealthEvent`. None
+of these exist in `packages/shared/src/entities.ts` yet; adding them is a
+`shared` change first, per the contract workflow in `CONTRIBUTING.md`.
 
 ---
 
@@ -175,7 +240,7 @@ administers.
 | SSO | Part I §43 | SAML / OIDC |
 | SCIM | Part I §43 | User and group provisioning and de-provisioning |
 | Webhooks | Part I §43 | Session completed, finding raised, assignment overdue |
-| Kubernetes deployment | Part II §64 | Helm chart; the nginx policy in `infra/docker/nginx.conf` is written to port to ingress-nginx annotations |
+| Kubernetes deployment | Part II §64 | Helm chart; the nginx policy in `infra/nginx/nginx.conf` is written to port to ingress-nginx annotations |
 | AMD AUP private deployment | Part II §72 | Private embedding, reranker, parser, evaluation model, private LLM, vector DB. Requires switching off the external-API embedding path and re-embedding |
 | **External security audit** | Part I §41, Part II §100 | An engagement with **CertiK or an equivalent external security audit provider**, covering the API surface and infrastructure. §41 is explicit that CertiK is known primarily for Web3 / blockchain security, so a general enterprise AI SaaS proposal should claim only demonstrable scope and, until an engagement exists, say "or equivalent provider" rather than naming one. Findings surface in-product under Security & Audit. Everything in `.github/workflows/security.yml` is the automated floor beneath this, not a substitute |
 

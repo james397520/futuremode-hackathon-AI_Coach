@@ -4,7 +4,7 @@
  * Used whenever `NEXT_PUBLIC_API_BASE_URL` is unset so the most important page of
  * the product is fully demoable with no backend running.
  */
-import type { Citation, Evaluation, SessionMode, SkillScore } from '@ai-coach/shared-types';
+import type { Citation, Evaluation, SessionMode, SkillScore } from '@ai-coach/shared';
 
 import type { SessionBootstrap } from '../lib/types';
 

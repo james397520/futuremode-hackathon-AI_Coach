@@ -33,7 +33,7 @@ class Models:
 
     ASSUMPTION: the API-platform module exposes SQLAlchemy models under
     `app.db.models` using the same names as the TypeScript entities in
-    packages/shared-types (`TrainingSession`, `KnowledgeBase`, `KnowledgeDocument`,
+    packages/shared (`TrainingSession`, `KnowledgeBase`, `KnowledgeDocument`,
     `Chunk`, `Question`, `Persona`, `Scenario`, `Rubric`, `Evaluation`,
     `ComplianceFinding`, `TranscriptTurn`, `CoachInsight`, `Assignment`,
     `SkillProfile`, `AuditEvent`). If it uses a different module path or names, only

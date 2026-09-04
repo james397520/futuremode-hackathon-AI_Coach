@@ -27,7 +27,7 @@ import type {
   SkillKey,
   StreamingEvent,
   TranscriptTurn,
-} from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
 
 import { MOCK_CITATIONS, MOCK_COVERAGE_CITATION } from './mock-session';
 

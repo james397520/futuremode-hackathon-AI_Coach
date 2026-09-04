@@ -77,6 +77,8 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
 
       <GlassCard className="p-5">
         <StepProgress
+          orientation="horizontal"
+          aria-label="Scenario builder steps"
           steps={SCENARIO_WIZARD_STEPS.map((wizardStep) => ({ id: wizardStep.id, label: wizardStep.label }))}
           current={step}
         />

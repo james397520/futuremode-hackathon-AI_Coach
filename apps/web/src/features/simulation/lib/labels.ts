@@ -1,7 +1,7 @@
 /**
  * Display labels + tone mapping. Every visible string for enums lives here so the
  * components stay layout-only and nothing invents an enum value the contract
- * (`packages/shared-types`) does not define.
+ * (`packages/shared`) does not define.
  */
 import type {
   AgentName,
@@ -13,7 +13,7 @@ import type {
   SessionState,
   SkillKey,
   SpeakerKind,
-} from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
 
 import type { ToneKey } from './tone';
 

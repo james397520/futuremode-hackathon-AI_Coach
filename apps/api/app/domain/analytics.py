@@ -1,7 +1,7 @@
 """Analytics models (spec §33 / §34 / §35 / §47).
 
 ``SkillProfile`` and ``Recommendation`` mirror
-``packages/shared-types/src/entities.ts`` exactly. The remaining models are API-only
+``packages/shared/src/entities.ts`` exactly. The remaining models are API-only
 aggregates backing the Manager / Team Analytics page (§35); they have no TypeScript
 counterpart yet, so they are additive and must not change the two mirrored shapes.
 """

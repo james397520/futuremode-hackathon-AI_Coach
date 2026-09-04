@@ -154,7 +154,7 @@ class CoachAgent(Agent[CoachRequest, CoachOutput]):
 def to_domain_insight(
     draft: CoachInsightDraft, *, session_id: str, timestamp_ms: int, insight_id: str | None = None
 ) -> dict[str, Any]:
-    """Shape a draft as the `CoachInsight` entity from shared-types (§53).
+    """Shape a draft as the `CoachInsight` entity from shared (§53).
 
     Returned as a dict so the caller can hand it to whichever Pydantic mirror
     `app.domain` exposes without this module guessing the class name.

@@ -4,7 +4,7 @@ CONTRACT WARNING
 ----------------
 This module is the Python half of a **cross-language realtime contract**. The
 ``StreamingEvent`` union here must stay in *lockstep* with
-``packages/shared-types/src/events.ts``:
+``packages/shared/src/events.ts``:
 
 * identical ``type`` discriminator strings,
 * identical payload field names (snake_case on both sides),

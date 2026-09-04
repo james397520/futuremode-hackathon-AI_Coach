@@ -144,7 +144,7 @@ export function TrainingPage() {
                   <ProgressBar
                     className="mt-3 max-w-md"
                     value={Math.round(item.completion_rate * 100)}
-                    label={`Cohort completion ${Math.round(item.completion_rate * 100)}%`}
+                    label="Cohort completion"
                   />
                 </div>
 

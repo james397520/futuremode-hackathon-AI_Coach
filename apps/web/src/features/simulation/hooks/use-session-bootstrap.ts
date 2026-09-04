@@ -10,7 +10,7 @@
  * never a blank page or a thrown render (§94).
  */
 import { useCallback, useEffect, useState } from 'react';
-import type { Persona, PersonaTraits, Scenario, SessionMode, TrainingSession } from '@ai-coach/shared-types';
+import type { Persona, PersonaTraits, Scenario, SessionMode, TrainingSession } from '@ai-coach/shared';
 
 import { endpoints } from '@/lib/api-client';
 

@@ -11,7 +11,7 @@
  *     rather than as an assessment. The authoritative scoring is the Evaluator
  *     agent's `score.updated` / `Evaluation` (§26 / §27).
  */
-import type { ScenarioPhase, TranscriptTurn } from '@ai-coach/shared-types';
+import type { ScenarioPhase, TranscriptTurn } from '@ai-coach/shared';
 
 import { PHASE_ORDER } from './labels';
 

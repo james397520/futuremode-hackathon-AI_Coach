@@ -19,7 +19,7 @@ import type {
   ScenarioPhase,
   SessionMode,
   TranscriptTurn,
-} from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
 
 import type { PersonaStateSnapshot, TimelineMarker } from '../lib/types';
 import { CoachCard } from './coach-card';

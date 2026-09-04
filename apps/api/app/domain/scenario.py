@@ -1,7 +1,7 @@
 """Scenario / Rubric / Assignment models (spec §17 / §26 / §36).
 
 Mirrors ``Scenario``, ``Rubric`` and ``Assignment`` in
-``packages/shared-types/src/entities.ts``.
+``packages/shared/src/entities.ts``.
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 """Shared model base, ID aliases and pagination envelopes.
 
-``ID`` / ``ISODateTime`` mirror the aliases in ``packages/shared-types/src/entities.ts``.
+``ID`` / ``ISODateTime`` mirror the aliases in ``packages/shared/src/entities.ts``.
 ``TenantScoped`` mirrors the ``TenantScoped`` interface exactly: every sensitive entity
 carries ``tenant_id`` + ``workspace_id`` (§10 / §74).
 """

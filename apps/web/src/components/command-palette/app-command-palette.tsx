@@ -37,15 +37,17 @@ import { useShellStore } from '@/components/app-shell/shell-store';
  *
  * Assumed prop shape (documented in src/components/ui.ts):
  *   groups: Array<{ id, label, items: Array<{
- *     id, label, hint?, icon?, keywords?: string[], onSelect: () => void
+ *     id, label, description?, icon?, keywords?: string[], onSelect: () => void
  *   }> }>
  */
 interface PaletteItem {
   id: string;
   label: string;
-  hint?: string;
+  /** The kit renders this as the item's secondary line. */
+  description?: string;
   icon?: React.ReactNode;
   keywords?: string[];
+  /** Used only for the RBAC filter below; harmless extra field for the kit. */
   permission?: Permission;
   onSelect: () => void;
 }
@@ -68,7 +70,7 @@ export function AppCommandPalette() {
       {
         id: 'cmd-start-simulation',
         label: 'Start Simulation',
-        hint: 'Pick a scenario and open setup',
+        description: 'Pick a scenario and open setup',
         icon: <PlayCircle size={16} strokeWidth={1.7} aria-hidden />,
         keywords: ['run', 'practice', 'session', 'live'],
         permission: 'simulation.start',
@@ -77,7 +79,7 @@ export function AppCommandPalette() {
       {
         id: 'cmd-new-persona',
         label: 'New Persona',
-        hint: 'Identity, sliders, hidden state, voice',
+        description: 'Identity, sliders, hidden state, voice',
         icon: <UserRound size={16} strokeWidth={1.7} aria-hidden />,
         keywords: ['customer', 'character', 'builder'],
         permission: 'persona.manage',
@@ -86,7 +88,7 @@ export function AppCommandPalette() {
       {
         id: 'cmd-upload-document',
         label: 'Upload Document',
-        hint: 'PDF / DOCX / PPTX / TXT / CSV',
+        description: 'PDF / DOCX / PPTX / TXT / CSV',
         icon: <Upload size={16} strokeWidth={1.7} aria-hidden />,
         keywords: ['file', 'ingest', 'knowledge', 'pdf'],
         permission: 'knowledge.manage',
@@ -95,7 +97,7 @@ export function AppCommandPalette() {
       {
         id: 'cmd-search-knowledge',
         label: 'Search Knowledge',
-        hint: 'Retrieval playground with similarity and rerank scores',
+        description: 'Retrieval playground with similarity and rerank scores',
         icon: <Search size={16} strokeWidth={1.7} aria-hidden />,
         keywords: ['rag', 'retrieval', 'chunks', 'citation'],
         permission: 'knowledge.view',
@@ -104,7 +106,7 @@ export function AppCommandPalette() {
       {
         id: 'cmd-assign-training',
         label: 'Assign Training',
-        hint: 'Users, teams, deadline, attempts, minimum score',
+        description: 'Users, teams, deadline, attempts, minimum score',
         icon: <GraduationCap size={16} strokeWidth={1.7} aria-hidden />,
         keywords: ['assignment', 'deadline', 'mandatory'],
         permission: 'training.assign',
@@ -113,7 +115,7 @@ export function AppCommandPalette() {
       {
         id: 'cmd-view-report',
         label: 'View Report',
-        hint: 'Team, skill and compliance reporting',
+        description: 'Team, skill and compliance reporting',
         icon: <BarChart3 size={16} strokeWidth={1.7} aria-hidden />,
         keywords: ['analytics', 'team', 'skill', 'compliance'],
         permission: 'report.view_team',
@@ -122,7 +124,7 @@ export function AppCommandPalette() {
       {
         id: 'cmd-open-security',
         label: 'Open Security',
-        hint: 'Findings, safety posture, audit log',
+        description: 'Findings, safety posture, audit log',
         icon: <ShieldCheck size={16} strokeWidth={1.7} aria-hidden />,
         keywords: ['audit', 'compliance', 'findings', 'injection'],
         permission: 'security.view',
@@ -131,7 +133,7 @@ export function AppCommandPalette() {
       {
         id: 'cmd-theme',
         label: mode === 'dark' ? 'Theme — switch to Light' : 'Theme — switch to Dark',
-        hint: 'Light / Dark / System',
+        description: 'Light / Dark / System',
         icon:
           mode === 'dark' ? (
             <Sun size={16} strokeWidth={1.7} aria-hidden />
@@ -147,7 +149,7 @@ export function AppCommandPalette() {
       {
         id: 'cmd-settings',
         label: 'Settings',
-        hint: 'Models, AI runtime, voice, appearance, billing',
+        description: 'Models, AI runtime, voice, appearance, billing',
         icon: <Settings size={16} strokeWidth={1.7} aria-hidden />,
         keywords: ['preferences', 'models', 'runtime'],
         permission: 'settings.view',
@@ -159,7 +161,7 @@ export function AppCommandPalette() {
     const personas: PaletteItem[] = MOCK_PERSONAS.slice(0, 5).map((persona) => ({
       id: `persona-${persona.id}`,
       label: persona.name,
-      hint: [persona.occupation, `v${persona.version}`, persona.status].filter(Boolean).join(' · '),
+      description: [persona.occupation, `v${persona.version}`, persona.status].filter(Boolean).join(' · '),
       icon: <UserRound size={16} strokeWidth={1.7} aria-hidden />,
       keywords: [persona.industry ?? '', persona.locale],
       permission: 'persona.manage',
@@ -169,7 +171,7 @@ export function AppCommandPalette() {
     const scenarios: PaletteItem[] = MOCK_SCENARIOS.slice(0, 5).map((scenario) => ({
       id: `scenario-${scenario.id}`,
       label: scenario.name,
-      hint: `${scenario.difficulty} · ${scenario.mode} · v${scenario.version}`,
+      description: `${scenario.difficulty} · ${scenario.mode} · v${scenario.version}`,
       icon: <PlayCircle size={16} strokeWidth={1.7} aria-hidden />,
       keywords: [scenario.training_type ?? '', scenario.industry ?? ''],
       permission: 'simulation.start',
@@ -179,7 +181,7 @@ export function AppCommandPalette() {
     const knowledge: PaletteItem[] = MOCK_KNOWLEDGE_BASES.map((kb) => ({
       id: `kb-${kb.id}`,
       label: kb.name,
-      hint: `${kb.document_count} documents · ${kb.chunk_count.toLocaleString('en-US')} chunks`,
+      description: `${kb.document_count} documents · ${kb.chunk_count.toLocaleString('en-US')} chunks`,
       icon: <BookOpen size={16} strokeWidth={1.7} aria-hidden />,
       permission: 'knowledge.view',
       onSelect: go(`/knowledge/${kb.id}`),
@@ -188,7 +190,7 @@ export function AppCommandPalette() {
     const questions: PaletteItem[] = MOCK_QUESTIONS.slice(0, 4).map((question) => ({
       id: `question-${question.id}`,
       label: question.title,
-      hint: `${question.type} · ${question.difficulty} · ${question.status}`,
+      description: `${question.type} · ${question.difficulty} · ${question.status}`,
       icon: <ListChecks size={16} strokeWidth={1.7} aria-hidden />,
       permission: 'question.manage',
       onSelect: go(`/questions/${question.id}/edit`),
@@ -197,7 +199,7 @@ export function AppCommandPalette() {
     const people: PaletteItem[] = MOCK_USERS.slice(0, 5).map((user) => ({
       id: `user-${user.id}`,
       label: user.display_name,
-      hint: user.roles.join(' · '),
+      description: user.roles.join(' · '),
       icon: <Users size={16} strokeWidth={1.7} aria-hidden />,
       permission: 'team.review',
       onSelect: go(`/performance/${user.id}`),
@@ -207,7 +209,7 @@ export function AppCommandPalette() {
       {
         id: 'report-team',
         label: 'Team report',
-        hint: 'Average, pass rate, skill matrix, weakness heatmap',
+        description: 'Average, pass rate, skill matrix, weakness heatmap',
         icon: <FileText size={16} strokeWidth={1.7} aria-hidden />,
         permission: 'report.view_team',
         onSelect: go('/reports/team'),
@@ -215,7 +217,7 @@ export function AppCommandPalette() {
       {
         id: 'report-skill',
         label: 'Skill report',
-        hint: 'Per-skill breakdown and knowledge gaps',
+        description: 'Per-skill breakdown and knowledge gaps',
         icon: <FileText size={16} strokeWidth={1.7} aria-hidden />,
         permission: 'report.view_team',
         onSelect: go('/reports/skill'),
@@ -223,7 +225,7 @@ export function AppCommandPalette() {
       {
         id: 'report-compliance',
         label: 'Compliance report',
-        hint: 'Findings by type, severity and reviewer status',
+        description: 'Findings by type, severity and reviewer status',
         icon: <FileText size={16} strokeWidth={1.7} aria-hidden />,
         permission: 'report.view_team',
         onSelect: go('/reports/compliance'),

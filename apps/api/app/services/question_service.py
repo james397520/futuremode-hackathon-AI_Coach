@@ -60,7 +60,7 @@ log = structlog.get_logger(__name__)
 
 
 class QuestionType(StrEnum):
-    """Mirrors `QuestionType` in packages/shared-types/src/entities.ts (§14)."""
+    """Mirrors `QuestionType` in packages/shared/src/entities.ts (§14)."""
 
     MULTIPLE_CHOICE = "multiple_choice"
     TRUE_FALSE = "true_false"

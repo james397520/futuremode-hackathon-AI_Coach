@@ -15,7 +15,7 @@
  * also exported explicitly, which is what the Blob bootstrap in `worker-host.ts`
  * calls.
  */
-import type { LocalTask } from '@ai-coach/shared-types';
+import type { LocalTask } from '@ai-coach/shared';
 
 import {
   detectCapability,

@@ -24,7 +24,7 @@
  * ONNX Runtime Web and the model weights are loaded lazily *behind* this package,
  * inside the worker, and only once local acceleration is actually enabled.
  */
-import type { ComputeBackend, RuntimeState } from '@ai-coach/shared-types';
+import type { ComputeBackend, RuntimeState } from '@ai-coach/shared';
 
 import type { FallbackReason } from './backends/types';
 import { FALLBACK_REASONS, describeFallbackReason } from './backends/types';

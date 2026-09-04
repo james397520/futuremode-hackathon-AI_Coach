@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import type { TranscriptTurn } from '@ai-coach/shared-types';
+import type { TranscriptTurn } from '@ai-coach/shared';
 import { CheckCircle2, CircleSlash, Send, ShieldAlert } from 'lucide-react';
 import { Button, GlassCard, Input, Pill } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';

@@ -14,7 +14,7 @@
  * SSR-safe: the constructor registers nothing and touches no browser API. Listeners
  * are attached on the first `ensureReady()`, which only ever runs in the browser.
  */
-import type { ComputeBackend, LocalTask, RuntimePolicy } from '@ai-coach/shared-types';
+import type { ComputeBackend, LocalTask, RuntimePolicy } from '@ai-coach/shared';
 
 import {
   DEFAULT_RUNTIME_POLICY,
@@ -287,7 +287,7 @@ export class RuntimeLifecycle {
     }
   }
 
-  /** The `shared-types` contract shape, for the UI. */
+  /** The `shared` contract shape, for the UI. */
   computeCapability(): ReturnType<typeof toComputeCapability> {
     return toComputeCapability(this.capabilityValue ?? serverOnlyCapability());
   }

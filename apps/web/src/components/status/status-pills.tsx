@@ -4,7 +4,7 @@ import type {
   Difficulty,
   DocumentState,
   SessionMode,
-} from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
 import { Pill } from '@/components/ui';
 
 type Tone = 'gradient' | 'neutral' | 'success' | 'warning' | 'danger' | 'info';

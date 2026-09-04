@@ -101,9 +101,9 @@ RUN groupadd --gid 10001 app \
 COPY --from=builder --chown=root:root /opt/venv /opt/venv
 
 WORKDIR /srv/api
-# alembic.ini is expected per docs/PROJECT_STRUCTURE.md (`app/db/migrations`),
+# alembic.ini is expected per docs/PROJECT_STRUCTURE.md (`database/migrations`),
 # but it is owned by the API Platform team. Globbing keeps the image buildable
-# while that tree fills in; `infra/scripts/bootstrap.sh` reports a clear error
+# while that tree fills in; `scripts/bootstrap.sh` reports a clear error
 # if migrations cannot run.
 COPY --chown=app:app apps/api/pyproject.toml apps/api/alembic.in* ./
 COPY --chown=app:app apps/api/app ./app

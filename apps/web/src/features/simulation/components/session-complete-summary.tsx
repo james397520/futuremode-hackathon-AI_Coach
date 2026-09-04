@@ -12,7 +12,7 @@
  * blank space or an error (§94).
  */
 import type { ReactNode } from 'react';
-import type { Evaluation, SkillKey } from '@ai-coach/shared-types';
+import type { Evaluation, SkillKey } from '@ai-coach/shared';
 
 import { formatScore } from '../lib/format';
 import { COMPLIANCE_RISK_LABEL, COMPLIANCE_RISK_TONE, SKILL_LABEL } from '../lib/labels';

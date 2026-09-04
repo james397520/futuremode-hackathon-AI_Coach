@@ -30,7 +30,7 @@ import type {
   SkillKey,
   StreamingEvent,
   TranscriptTurn,
-} from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
 
 import {
   COMPLIANCE_TYPE_LABEL,

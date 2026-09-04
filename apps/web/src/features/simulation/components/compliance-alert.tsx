@@ -5,7 +5,7 @@
  * and §32 (type, severity, timestamp, transcript evidence, policy rule,
  * explanation, suggested correction, reviewer status).
  */
-import type { ComplianceFinding } from '@ai-coach/shared-types';
+import type { ComplianceFinding } from '@ai-coach/shared';
 
 import { formatClock } from '../lib/format';
 import { COMPLIANCE_RISK_LABEL, COMPLIANCE_RISK_TONE, COMPLIANCE_TYPE_LABEL } from '../lib/labels';

@@ -12,7 +12,6 @@ import {
   MessageSquare,
   ShieldAlert,
   Stamp,
-  X,
   type LucideIcon,
 } from 'lucide-react';
 import { Button, Drawer, Pill } from '@/components/ui';
@@ -61,15 +60,33 @@ export function NotificationPanel() {
   const unread = items.filter((item) => !item.read).length;
 
   return (
-    <Drawer open={open} onOpenChange={setOpen} side="right" title="Notifications">
+    // The kit's Drawer renders the title row and the close button itself, so this
+    // component only supplies the filter row, the list and the footer.
+    <Drawer
+      open={open}
+      onOpenChange={setOpen}
+      side="right"
+      title="Notifications"
+      description={unread > 0 ? `${unread} unread` : 'You are all caught up'}
+      width={420}
+      footer={
+        <div className="flex w-full items-center justify-between gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setItems((prev) => prev.map((n) => ({ ...n, read: true })))}
+            disabled={unread === 0}
+          >
+            Mark all as read
+          </Button>
+          <Link href="/settings/profile" className="text-body-sm text-accent-indigo hover:underline">
+            Notification settings
+          </Link>
+        </div>
+      }
+    >
       <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between gap-3 pb-4">
-          <div>
-            <h2 className="text-section">Notifications</h2>
-            <p className="text-body-sm text-text-secondary">
-              {unread > 0 ? `${unread} unread` : 'You are all caught up'}
-            </p>
-          </div>
+        <div className="flex items-center justify-end gap-3 pb-3">
           <div className="flex items-center gap-1.5">
             <Button
               variant={filter === 'all' ? 'subtle' : 'ghost'}
@@ -86,9 +103,6 @@ export function NotificationPanel() {
               aria-pressed={filter === 'unread'}
             >
               Unread
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setOpen(false)} aria-label="Close notifications">
-              <X size={16} strokeWidth={1.8} aria-hidden />
             </Button>
           </div>
         </div>
@@ -138,19 +152,6 @@ export function NotificationPanel() {
           })}
         </ul>
 
-        <div className="flex items-center justify-between gap-2 border-t border-border-soft/70 pt-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setItems((prev) => prev.map((n) => ({ ...n, read: true })))}
-            disabled={unread === 0}
-          >
-            Mark all as read
-          </Button>
-          <Link href="/settings/profile" className="text-body-sm text-accent-indigo hover:underline">
-            Notification settings
-          </Link>
-        </div>
       </div>
     </Drawer>
   );

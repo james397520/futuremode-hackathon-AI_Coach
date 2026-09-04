@@ -37,7 +37,7 @@ from app.rag.vectorstore import TenantScope, VectorRecord, VectorStore
 
 log = structlog.get_logger(__name__)
 
-#: Mirrors `DOCUMENT_STATES` in packages/shared-types/src/state-machines.ts
+#: Mirrors `DOCUMENT_STATES` in packages/shared/src/state-machines.ts
 class DocumentState(StrEnum):
     UPLOADED = "uploaded"
     VALIDATING = "validating"

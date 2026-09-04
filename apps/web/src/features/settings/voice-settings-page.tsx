@@ -39,7 +39,7 @@ export function VoiceSettingsPage() {
             <div key={setting.id} className={setting.kind === 'slider' ? 'sm:col-span-1' : undefined}>
               {setting.kind === 'slider' ? (
                 <Slider
-                  label={`${setting.label} — ${values[setting.id] ?? setting.value}`}
+                  label={setting.label}
                   hint={setting.hint}
                   min={setting.min ?? 0}
                   max={setting.max ?? 1}

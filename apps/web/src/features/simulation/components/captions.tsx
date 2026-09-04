@@ -8,7 +8,7 @@
  * TTS text while the persona talks. Nothing waits for a full sentence (§49.2).
  * A single `aria-live="polite"` region keeps screen readers coherent.
  */
-import type { SpeakerKind } from '@ai-coach/shared-types';
+import type { SpeakerKind } from '@ai-coach/shared';
 
 import { insetSurface, toneText } from '../lib/tone';
 import { LiveDot } from './atoms';

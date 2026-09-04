@@ -1,6 +1,6 @@
 """Client runtime capability + policy models (spec §44 / §59 / §61 / §62).
 
-Mirrors ``packages/shared-types/src/runtime.ts``.
+Mirrors ``packages/shared/src/runtime.ts``.
 
 WARNING — camelCase fields: ``runtime.ts`` declares ``ComputeCapability`` with
 camelCase keys (``wasmSimd``, ``memoryClass``, ``selectedBackend``, ``adapterInfo``)

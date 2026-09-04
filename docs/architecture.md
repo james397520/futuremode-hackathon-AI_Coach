@@ -10,7 +10,7 @@ end as the index.
 |---|---|
 | [`docs/spec/AI_Coach_Spec_v3.md`](spec/AI_Coach_Spec_v3.md) | What the product must do. Authoritative. |
 | [`docs/PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) | Where a file goes, and who owns it. Authoritative. |
-| [`docs/ROADMAP.md`](ROADMAP.md) | What is actually built today. Honest. |
+| [`docs/roadmap.md`](roadmap.md) | What is actually built today. Honest. |
 | [`docs/adr/`](adr/) | Why each decision was made, and what it cost. |
 | This file | How the pieces fit together. |
 
@@ -76,7 +76,7 @@ governance, integrated into something that can be deployed at scale.
         │                   │ (session events)          │ ── not through nginx ──
         ▼                   ▼                           ▼
 ┌───────────────────────────────────────────────┐   ┌──────────────────────────┐
-│ EDGE  nginx (infra/docker/nginx.conf)         │   │ STUN / TURN              │
+│ EDGE  nginx (infra/nginx/nginx.conf)         │   │ STUN / TURN              │
 │  TLS · gzip/brotli · rate limit · §73 headers │   │ (not yet deployed —      │
 │  COOP: same-origin + COEP: require-corp       │   │  see ROADMAP Phase 1)    │
 │  WebSocket upgrade · WebRTC signalling only   │   └──────────────────────────┘
@@ -334,7 +334,7 @@ What that means for this codebase:
   not migrated. `KnowledgeBase.embedding_model` and
   `DocumentVersion.embedding_version` exist so a knowledge base knows which
   model produced its vectors and can be re-indexed deliberately.
-- The `infra/scripts/seed.py` knowledge base carries an inline note to the same
+- The `database/seeds/seed.py` knowledge base carries an inline note to the same
   effect, so nobody reads the seed as an endorsement of self-hosting an OpenAI
   model.
 
@@ -449,7 +449,7 @@ a provider URL. If someone "optimises" that into a direct provider fetch, COEP
 is where it will fail.
 
 **Opting a route out**, in order of preference — the full recipes are in
-[`infra/docker/nginx.conf`](../infra/docker/nginx.conf):
+[`infra/nginx/nginx.conf`](../infra/nginx/nginx.conf):
 
 1. `COEP: credentialless` — keeps isolation, drops the CORP requirement for
    no-cors subresources. Chromium and Firefox support it; Safari does not.
@@ -489,7 +489,7 @@ Organization → Workspace → Team → User
 Rules:
 
 - **Every tenant-scoped row carries both `tenant_id` and `workspace_id`.**
-  `TenantScoped` in `packages/shared-types` makes this structural rather than a
+  `TenantScoped` in `packages/shared` makes this structural rather than a
   convention. A table with one but not the other is a bug.
 - **Every query filters on both.** Filtering on `workspace_id` alone is the
   specific mistake this rule exists to prevent: workspace ids are unique in
@@ -554,7 +554,7 @@ Browser → Voice Session Service → ElevenLabs        (§71)
 
 Part II §73: CSP, secure cookies, CSRF protection, XSS sanitation, HTTPS only.
 Implemented across `apps/web/next.config.mjs` (CSP, HSTS, Permissions-Policy)
-and `infra/docker/nginx.conf` (transport headers, HTTP→HTTPS redirect, rate
+and `infra/nginx/nginx.conf` (transport headers, HTTP→HTTPS redirect, rate
 limits). Session cookies are `Secure` outside local, and there is a separate
 CSRF cookie.
 
@@ -584,7 +584,7 @@ Part I §42. Recorded: login, logout, file upload, file delete, knowledge
 change, chunk edit, persona change, scenario change, prompt change, rubric
 change, model change, permission change, report export, API access, security
 finding. Fields: time, user, action, resource, workspace, IP/session, result,
-risk. `AuditEvent` in `shared-types` is that row. The nginx `$request_id` is
+risk. `AuditEvent` in `shared` is that row. The nginx `$request_id` is
 propagated as `X-Request-Id` so a proxy log line, a structured API log line and
 an audit row can be correlated.
 
@@ -605,7 +605,7 @@ a general enterprise AI SaaS proposal should claim only demonstrable scope, and
 until an engagement exists should say **"CertiK or an equivalent external
 security audit provider"** rather than naming one. Findings surface in-product
 under **Security & Audit** with severity, component, scan time, status and
-recommendation. This sits in [ROADMAP Phase 3](ROADMAP.md).
+recommendation. This sits in [ROADMAP Phase 3](roadmap.md).
 
 Everything in `.github/workflows/security.yml` — dependency review, `pip-audit`,
 `pnpm audit`, gitleaks, CodeQL — is the automated floor beneath that, not a
@@ -674,26 +674,26 @@ disambiguates.
 | Part | § | Topic | Implemented in |
 |---|---|---|---|
 | I | 2.1 | Knowledge / question construction; private vs API embedding | `apps/api/app/rag/embedder.py`, `apps/api/app/rag/vectorstore.py` |
-| I | 5.2 | High-fidelity MVP loop | end to end — see [ROADMAP Phase 1](ROADMAP.md) |
+| I | 5.2 | High-fidelity MVP loop | end to end — see [ROADMAP Phase 1](roadmap.md) |
 | I | 6, 8 | Product vision, UX principles | `packages/design-tokens/**`, `apps/web/src/app/**` |
-| I | 9 | Roles and RBAC | `apps/api/app/core/security.py`, `app/core/deps.py`, `packages/shared-types/src/state-machines.ts` (`ROLES`) |
+| I | 9 | Roles and RBAC | `apps/api/app/core/security.py`, `app/core/deps.py`, `packages/shared/src/state-machines.ts` (`ROLES`) |
 | I | 10 | Workspace / tenant model | `apps/api/app/core/context.py`, `app/db/models`, `TenantScoped` |
 | I | 11 | Knowledge base features | `apps/api/app/api/v1/routers/knowledge_bases.py`, `documents.py`, `app/services/knowledge.py` |
 | I | 12 | Advanced RAG / retrieval | `apps/api/app/rag/**`, `app/api/v1/routers/retrieval.py` |
 | I | 12.4 | Retrieval Playground | `apps/web/src/app/(app)/knowledge/[kbId]/playground/`, `packages/ai-runtime` |
-| I | 12.5 | Citation | `Citation` in `shared-types`; `apps/api/app/rag/pipeline.py` |
+| I | 12.5 | Citation | `Citation` in `shared`; `apps/api/app/rag/pipeline.py` |
 | I | 13 | Knowledge mining | `apps/api/app/services/knowledge.py`, `apps/web/src/features/knowledge/`, `.../mining/` |
 | I | 14, 15 | Question bank, AI question generation | `apps/api/app/api/v1/routers/questions.py`, `app/services/question.py`, `apps/web/src/features/questions/` |
-| I | 16 | Persona Builder, hidden state | `apps/api/app/api/v1/routers/personas.py`, `packages/shared-types/src/persona.ts`, `apps/web/src/features/personas/` |
+| I | 16 | Persona Builder, hidden state | `apps/api/app/api/v1/routers/personas.py`, `packages/shared/src/persona.ts`, `apps/web/src/features/personas/` |
 | I | 17 | Scenario Builder (9-step wizard) | `apps/web/src/app/(app)/scenarios/[id]/builder/`, `apps/api/.../scenarios.py` |
 | I | 18 | Difficulty engine | `apps/api/app/agents/scenario_director.py` |
 | I | 19 | Multi-agent orchestration | `apps/api/app/agents/**` |
-| I | 20 | Agent structured state | `apps/api/app/domain/persona.py`, `packages/shared-types/src/persona.ts` |
+| I | 20 | Agent structured state | `apps/api/app/domain/persona.py`, `packages/shared/src/persona.ts` |
 | I | 21 | Intent tolerance and steering | `apps/api/app/agents/orchestrator.py` |
 | I | 22 | Two-way realistic voice | `apps/web/src/features/simulation/hooks/useVoiceSession.ts`, `apps/api/app/services/session.py` |
 | I | 23, 24 | Live simulation, controls | `apps/web/src/features/simulation/**` |
 | I | 25 | Conversation and transcript | `TranscriptTurn`; `apps/web/src/features/simulation/components/ConversationPanel` |
-| I | 26–28 | Evaluation model, evidence, calibration | `apps/api/app/agents/evaluator.py`, `app/services/evaluation.py`, `shared-types` (`SkillScore`, `EvaluationEvidence`) |
+| I | 26–28 | Evaluation model, evidence, calibration | `apps/api/app/agents/evaluator.py`, `app/services/evaluation.py`, `shared` (`SkillScore`, `EvaluationEvidence`) |
 | I | 29 | Session completion | `apps/api/app/services/session.py`, `app/workers/` (`evaluation` queue) |
 | I | 30, 31 | Replay, persona-state timeline | `apps/web/src/app/(app)/simulations/[sessionId]/review/` |
 | I | 32 | Compliance report | `apps/api/app/agents/compliance.py`, `ComplianceFinding` |
@@ -704,23 +704,23 @@ disambiguates.
 | I | 38 | Content approval workflow | `ContentStatus` state machine; `apps/api/app/services/**` |
 | I | 39 | Knowledge access control | `KnowledgeAcl`; `apps/api/app/core/deps.py` |
 | I | 40 | Security controls | `apps/api/app/core/security.py`, `app/services/safety.py` |
-| I | 41 | External security audit positioning | `.github/workflows/security.yml`, `apps/web/src/app/(app)/security/findings/`, [ROADMAP Phase 3](ROADMAP.md) |
+| I | 41 | External security audit positioning | `.github/workflows/security.yml`, `apps/web/src/app/(app)/security/findings/`, [ROADMAP Phase 3](roadmap.md) |
 | I | 42 | Audit log | `AuditEvent`; `apps/api/app/api/v1/routers/audit.py` |
 | I | 43 | Integrations | `apps/api/app/api/v1/routers/integrations.py`, `apps/web/src/app/(app)/integrations/` |
 | I | 44 | Model / AI runtime settings | `apps/api/.../runtime.py`, `apps/web/src/app/(app)/settings/{models,runtime}/`, `packages/ai-runtime` |
-| I | 45, 46 | B2C mode, billing / quota | not built — [ROADMAP Phase 3](ROADMAP.md) |
+| I | 45, 46 | B2C mode, billing / quota | not built — [ROADMAP Phase 3](roadmap.md) |
 | I | 47 | Report types | `apps/web/src/app/(app)/reports/**` |
 | I | 48 | Search / command palette | `apps/web/src/components/command-palette/` |
 | I | 49 | Non-functional requirements | this document, §9 |
 | I | 50 | Accessibility / localisation | `packages/ui/**`, `apps/web/src/app/**` |
 | I | 51, 52 | Browser capability strategy, WebGPU mapping | `packages/ai-runtime/**` |
-| I | 53 | Data model | `packages/shared-types/src/entities.ts`, `apps/api/app/domain/**`, `app/db/models` |
+| I | 53 | Data model | `packages/shared/src/entities.ts`, `apps/api/app/domain/**`, `app/db/models` |
 | I | 54 | TrainingSession, version pinning | `TrainingSession`; [ADR-0008](adr/0008-version-pinned-sessions.md) |
-| I | 55 | Streaming event schema | `packages/shared-types/src/events.ts` ↔ `apps/api/app/domain/events.py`, guarded by `infra/scripts/check-contracts.sh` |
+| I | 55 | Streaming event schema | `packages/shared/src/events.ts` ↔ `apps/api/app/domain/events.py`, guarded by `scripts/check-contracts.sh` |
 | I | 56 | API surface | `apps/api/app/api/v1/routers/**` |
 | I | 57, 58 | Navigation, page list | `apps/web/src/app/**` |
-| I | 59 | Core demo scenario | `infra/scripts/seed.py` |
-| I | 60 | Feature-completeness acceptance matrix | [ROADMAP](ROADMAP.md), checklist |
+| I | 59 | Core demo scenario | `database/seeds/seed.py` |
+| I | 60 | Feature-completeness acceptance matrix | [ROADMAP](roadmap.md), checklist |
 | I | 61 | Core product value | this document, §1 |
 | II | 0–4 | Design decisions, reference language, dot matrix, glass, colour tokens | `packages/design-tokens/src/{tokens.css,aurora.css,tailwind-preset.ts}` |
 | II | 5–47 | Component-level visual spec | `packages/ui/**`, `apps/web/src/components/**` |
@@ -729,21 +729,21 @@ disambiguates.
 | II | 50 | Audio architecture | `apps/web/src/features/simulation/hooks/useVoiceSession.ts` |
 | II | 51–62 | WebGPU strategy, tasks, worker, lifecycle, cache, fallback | `packages/ai-runtime/**`; [ADR-0004](adr/0004-webgpu-as-acceleration-layer.md) |
 | II | 63 | Backend architecture | `apps/api/app/{main.py,services}/**` |
-| II | 64 | Backend stack | `infra/docker-compose.yml`; [ADR-0005](adr/0005-qdrant-as-production-vector-store.md), [ADR-0006](adr/0006-fastapi-alongside-nextjs.md) |
+| II | 64 | Backend stack | `docker-compose.yml`; [ADR-0005](adr/0005-qdrant-as-production-vector-store.md), [ADR-0006](adr/0006-fastapi-alongside-nextjs.md) |
 | II | 65 | RAG pipeline | `apps/api/app/rag/**`; this document, §5 |
 | II | 66, 67 | Multi-agent backend, customer agent state | `apps/api/app/agents/**` |
 | II | 68 | Streaming events | `apps/api/app/ws/**` |
 | II | 69 | API direction | `apps/api/app/api/v1/routers/**` |
 | II | 70, 71 | OpenAI, ElevenLabs integration | `apps/api/app/services/**`; this document, §8.3 |
 | II | 72 | AMD AUP | deployment target; `apps/api/app/rag/embedder.py` provider switch |
-| II | 73 | Security | `apps/web/next.config.mjs`, `infra/docker/nginx.conf`, `apps/api/app/core/security.py` |
+| II | 73 | Security | `apps/web/next.config.mjs`, `infra/nginx/nginx.conf`, `apps/api/app/core/security.py` |
 | II | 74 | Data isolation | `apps/api/app/core/context.py`, `app/rag/vectorstore.py`; this document, §8.1 |
 | II | 75–86 | Web capabilities, PWA, shortcuts, palette, search, notification, toast, modal, scrollbar, icons, sparkle | `apps/web/src/components/**`, `packages/ui/**` |
-| II | 87 | Visual acceptance criteria | [ROADMAP](ROADMAP.md), checklist |
+| II | 87 | Visual acceptance criteria | [ROADMAP](roadmap.md), checklist |
 | II | 88 | Minimum page list | `apps/web/src/app/**` |
 | II | 89, 90 | UI generation prompts | reference material only; not code |
 | II | 91 | Component tree | `apps/web/src/features/simulation/components/**` |
-| II | 92 | State machines | `packages/shared-types/src/state-machines.ts` |
+| II | 92 | State machines | `packages/shared/src/state-machines.ts` |
 | II | 93 | Runtime status UI | `apps/web/src/app/(app)/settings/runtime/`, runtime pill in `packages/ui` |
 | II | 94 | Error handling | `apps/api/app/core/errors.py`, `apps/web/src/app/**/error.tsx` |
 | II | 95 | Performance targets | this document, §9 |
@@ -751,10 +751,10 @@ disambiguates.
 | II | 97 | WebGPU security / privacy UX | `RuntimePolicy`; `apps/web/src/app/(app)/settings/runtime/` |
 | II | 98 | Dark-mode matching | `packages/design-tokens/src/tokens.css` |
 | II | 99 | Forbidden practices | [`CONTRIBUTING.md`](../CONTRIBUTING.md), PR template |
-| II | 100 | Final acceptance definition | [ROADMAP](ROADMAP.md), checklist |
+| II | 100 | Final acceptance definition | [ROADMAP](roadmap.md), checklist |
 | II | 101, 102 | One-line summaries | this document, §1 |
 
 > Paths above describe the layout that `docs/PROJECT_STRUCTURE.md` sanctions.
-> Several of them are not populated yet — see [`docs/ROADMAP.md`](ROADMAP.md)
+> Several of them are not populated yet — see [`docs/roadmap.md`](roadmap.md)
 > for what exists today. A path listed here is where the code **belongs**, which
 > is the question this table is meant to answer.

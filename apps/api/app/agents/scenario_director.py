@@ -35,7 +35,7 @@ from app.agents.patterns import fold, normalize
 from app.agents.prompts.scenario import event_text
 
 # Assumption: `app.domain` re-exports the Pydantic mirror of
-# packages/shared-types/src/persona.ts (same field names and enum values). Imported
+# packages/shared/src/persona.ts (same field names and enum values). Imported
 # from the package root because that is the surface most likely to be stable.
 from app.domain import PersonaSimulationState
 
@@ -115,7 +115,7 @@ class DirectorState(BaseModel):
     """Director-owned state that is *not* part of `PersonaSimulationState`.
 
     `PersonaSimulationState` is the UI contract (§20) and must stay exactly the shape
-    published in shared-types, so the queue/difficulty bookkeeping lives here and is
+    published in shared, so the queue/difficulty bookkeeping lives here and is
     persisted next to the session.
     """
 
@@ -434,17 +434,10 @@ class ScenarioDirector:
             state.compliance_risk = payload.compliance_severity
             reasons.append(f"compliance_risk:{payload.compliance_severity}")
 
-        # --- 5. phase progression -----------------------------------------
-        new_phase = self._next_phase(state, director, signals)
-        phase_changed = new_phase != state.scenario_phase
-        if phase_changed:
-            state.scenario_phase = new_phase
-            reasons.append(f"phase:{new_phase}")
-
-        # --- 6. time pressure ---------------------------------------------
+        # --- 5. time pressure ---------------------------------------------
         state.time_pressure = self._time_pressure(payload, director)
 
-        # --- 7. exit intent -----------------------------------------------
+        # --- 6. exit intent (before the phase machine, which reads it) -----
         if TurnSignal.EXIT_SIGNAL in signals:
             director.exit_intent_signals += 1
         if (
@@ -454,6 +447,13 @@ class ScenarioDirector:
         ):
             director.exit_intent = True
             reasons.append("exit_intent")
+
+        # --- 7. phase progression -----------------------------------------
+        new_phase = self._next_phase(state, director, signals)
+        phase_changed = new_phase != state.scenario_phase
+        if phase_changed:
+            state.scenario_phase = new_phase
+            reasons.append(f"phase:{new_phase}")
 
         # --- 8. dynamic difficulty ----------------------------------------
         difficulty_changed = self._adjust_difficulty(payload, director, signals, reasons)

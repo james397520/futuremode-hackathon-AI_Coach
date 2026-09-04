@@ -1,6 +1,6 @@
 """Knowledge Base / Document / Chunk / Citation models (spec §11 / §12 / §39).
 
-Mirrors the "Knowledge" section of ``packages/shared-types/src/entities.ts``.
+Mirrors the "Knowledge" section of ``packages/shared/src/entities.ts``.
 
 Note the Python class name ``KnowledgeDocument`` matches the TypeScript interface
 ``KnowledgeDocument`` (the wire shape is what matters; ``Document`` alone would collide

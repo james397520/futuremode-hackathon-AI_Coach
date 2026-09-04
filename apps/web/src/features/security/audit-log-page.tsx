@@ -59,7 +59,7 @@ export function AuditLogPage() {
           <Select
             value={group}
             onValueChange={setGroup}
-            aria-label="Activity type"
+            ariaLabel="Activity type"
             options={AUDIT_ACTION_GROUPS.map((entry) => ({ value: entry.id, label: entry.label }))}
           />
         </div>
@@ -67,7 +67,7 @@ export function AuditLogPage() {
           <Select
             value={result}
             onValueChange={setResult}
-            aria-label="Result"
+            ariaLabel="Result"
             options={[
               { value: 'all', label: 'Any result' },
               { value: 'success', label: 'Success' },

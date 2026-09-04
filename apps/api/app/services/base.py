@@ -28,7 +28,7 @@ from app.services.exceptions import PermissionDeniedError, TenantMismatchError
 
 log = structlog.get_logger(__name__)
 
-#: §9 RBAC roles (mirrors ROLES in packages/shared-types/src/state-machines.ts)
+#: §9 RBAC roles (mirrors ROLES in packages/shared/src/state-machines.ts)
 ROLE_TRAINEE = "trainee"
 ROLE_COACH = "coach"
 ROLE_MANAGER = "manager"

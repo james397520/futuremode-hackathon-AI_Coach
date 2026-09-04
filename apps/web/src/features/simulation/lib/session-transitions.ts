@@ -4,7 +4,7 @@
  * dropped (never thrown), so a late / duplicated / hostile event can not corrupt
  * the UI or crash the page (§62 / §94).
  */
-import type { SessionState } from '@ai-coach/shared-types';
+import type { SessionState } from '@ai-coach/shared';
 
 export const LEGAL_TRANSITIONS: Record<SessionState, readonly SessionState[]> = {
   idle: ['connecting', 'error'],

@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/app-shell';
 import { EvidenceDisclosure, StateTimeline, TranscriptDocument } from '@/components/transcript';
 import { SkillRadar, TrendLine } from '@/components/data-viz';
 import { ModePill, RiskPill } from '@/components/status';
-import { SKILL_KEYS } from '@ai-coach/shared-types';
+import { SKILL_KEYS } from '@ai-coach/shared';
 import {
   DEMO_EVALUATION,
   RUBRIC_LIFE_CORE,

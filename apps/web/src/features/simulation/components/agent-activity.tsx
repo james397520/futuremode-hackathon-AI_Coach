@@ -8,7 +8,7 @@
  * that detail belongs in Settings → AI Runtime for administrators (§93).
  */
 import { useEffect, useState } from 'react';
-import type { AgentName, SessionState } from '@ai-coach/shared-types';
+import type { AgentName, SessionState } from '@ai-coach/shared';
 
 import { AGENT_LABEL } from '../lib/labels';
 import { toneText } from '../lib/tone';

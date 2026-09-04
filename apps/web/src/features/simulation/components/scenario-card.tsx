@@ -10,7 +10,7 @@
  *   • 正確說明商品價值
  *   • 不可承諾固定報酬
  */
-import type { Difficulty, SessionMode } from '@ai-coach/shared-types';
+import type { Difficulty, SessionMode } from '@ai-coach/shared';
 
 import { DIFFICULTY_LABEL, DIFFICULTY_TONE } from '../lib/labels';
 import { Bullet, CardTitle, InsetBlock, TonePill } from './atoms';

@@ -34,7 +34,7 @@ from app.agents.prompts.knowledge import localised
 
 log = structlog.get_logger(__name__)
 
-#: Mirrors `SKILL_KEYS` in packages/shared-types/src/entities.ts (§26.1). Kept as a
+#: Mirrors `SKILL_KEYS` in packages/shared/src/entities.ts (§26.1). Kept as a
 #: local tuple so the ten dimensions cannot drift silently if `app.domain` renames
 #: its enum; the values are identical strings.
 SKILL_KEYS: Final[tuple[str, ...]] = (

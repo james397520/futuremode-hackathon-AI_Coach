@@ -15,7 +15,7 @@
  * No credentials are passed in the URL: the socket is authenticated by the same
  * HttpOnly session cookie as REST (§70/§71 — nothing secret in the browser).
  */
-import type { ClientCommand, StreamingEvent, StreamingEventType } from '@ai-coach/shared-types';
+import type { ClientCommand, StreamingEvent, StreamingEventType } from '@ai-coach/shared';
 
 export const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL ?? 'ws://localhost:8000';
 

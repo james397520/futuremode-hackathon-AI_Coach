@@ -21,7 +21,7 @@ import type {
   RuntimePolicy,
   RuntimeState,
   RuntimeTelemetry,
-} from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
 
 import {
   DEFAULT_RUNTIME_POLICY,
@@ -109,7 +109,7 @@ export interface RuntimeSnapshot {
   /** §92 state machine. The UI may only display these values. */
   state: RuntimeState;
   phase: LifecyclePhase;
-  /** The `shared-types` contract shape. Null until `detect()` has run. */
+  /** The `shared` contract shape. Null until `detect()` has run. */
   capability: ComputeCapability | null;
   /** Diagnostics for the admin runtime page (§93). */
   capabilityDetail: DetailedComputeCapability | null;

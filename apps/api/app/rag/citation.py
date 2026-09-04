@@ -3,7 +3,7 @@
     每個 AI 知識性 claim 盡量提供：source document / version / page / section /
     chunk id / retrieval score
 
-`Citation` mirrors packages/shared-types/src/entities.ts exactly, because the web
+`Citation` mirrors packages/shared/src/entities.ts exactly, because the web
 client renders it directly (§17/§36 Part II "Knowledge Citation" message type). It is
 produced as a plain dict so that whichever Pydantic mirror `app.domain` exposes can
 validate it without this module importing a name it had to guess.
@@ -23,7 +23,7 @@ SNIPPET_CHARS = 320
 
 
 class Citation(BaseModel):
-    """Mirror of the `Citation` interface in shared-types."""
+    """Mirror of the `Citation` interface in shared."""
 
     model_config = ConfigDict(extra="forbid")
 

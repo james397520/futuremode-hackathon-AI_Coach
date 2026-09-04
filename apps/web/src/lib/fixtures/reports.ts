@@ -1,4 +1,4 @@
-import type { ComplianceRisk, Difficulty, ID, SkillKey } from '@ai-coach/shared-types';
+import type { ComplianceRisk, Difficulty, ID, SkillKey } from '@ai-coach/shared';
 
 /** §35 Part I — Manager / Team analytics view models. */
 export interface TeamKpi {

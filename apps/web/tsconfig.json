@@ -13,7 +13,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@ai-coach/shared-types": ["../../packages/shared-types/src/index.ts"],
+      "@ai-coach/shared": ["../../packages/shared/src/index.ts"],
       "@ai-coach/design-tokens": ["../../packages/design-tokens/src/index.ts"],
       "@ai-coach/design-tokens/tailwind-preset": ["../../packages/design-tokens/src/tailwind-preset.ts"],
       "@ai-coach/ui": ["../../packages/ui/src/index.ts"],

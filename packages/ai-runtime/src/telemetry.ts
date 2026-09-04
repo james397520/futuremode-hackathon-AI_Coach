@@ -17,7 +17,7 @@
  * The reporter posts to the API so admins can see it in Settings > AI Runtime
  * (§93). A normal trainee never sees any of this (§59, §93).
  */
-import type { ComputeBackend, RuntimeTelemetry } from '@ai-coach/shared-types';
+import type { ComputeBackend, RuntimeTelemetry } from '@ai-coach/shared';
 
 import { errorText } from './capability';
 import type { FallbackReason } from './backends/types';
@@ -120,7 +120,7 @@ export class TelemetryCollector {
     };
   }
 
-  /** The `shared-types` contract shape — this is what the app should show/send. */
+  /** The `shared` contract shape — this is what the app should show/send. */
   snapshot(): RuntimeTelemetry {
     const {
       backend,

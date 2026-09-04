@@ -25,17 +25,19 @@ export function BillingSettingsPage() {
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
+          surface="card"
           label="Seats in use"
           value={seats ? `${seats.used} / ${seats.limit}` : '—'}
           hint="active learners this period"
         />
         <StatTile
+          surface="card"
           label="Simulation minutes"
           value={simMinutes ? formatCount(simMinutes.used) : '—'}
           hint={simMinutes ? `of ${formatCount(simMinutes.limit)}` : undefined}
         />
-        <StatTile label="Voice minutes" value={formatCount(QUOTA_ROWS.find((row) => row.id === 'voice_minutes')?.used ?? 0)} hint="included in the plan" />
-        <StatTile label="Next invoice" value={INVOICES[0]?.amount ?? '—'} hint={INVOICES[0] ? titleize(INVOICES[0].status) : undefined} />
+        <StatTile surface="card" label="Voice minutes" value={formatCount(QUOTA_ROWS.find((row) => row.id === 'voice_minutes')?.used ?? 0)} hint="included in the plan" />
+        <StatTile surface="card" label="Next invoice" value={INVOICES[0]?.amount ?? '—'} hint={INVOICES[0] ? titleize(INVOICES[0].status) : undefined} />
       </div>
 
       <GlassCard className="p-5">
@@ -58,8 +60,8 @@ export function BillingSettingsPage() {
                 </div>
                 <ProgressBar
                   value={percent}
-                  tone={percent >= 90 ? 'danger' : percent >= 75 ? 'warning' : 'default'}
-                  label={`${row.label}: ${percent}% of quota used`}
+                  tone={percent >= 90 ? 'danger' : percent >= 75 ? 'warning' : 'ai'}
+                  aria-label={`${row.label}: ${percent}% of quota used`}
                 />
               </li>
             );

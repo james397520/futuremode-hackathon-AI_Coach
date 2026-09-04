@@ -41,7 +41,7 @@ CHANNEL_PREFIX: Final = "ws:session:"
 
 
 class EventType:
-    """String constants for `StreamingEvent['type']` (packages/shared-types)."""
+    """String constants for `StreamingEvent['type']` (packages/shared)."""
 
     SESSION_STARTED = "session.started"
     SESSION_PAUSED = "session.paused"
@@ -63,7 +63,7 @@ class EventType:
     SESSION_ERROR = "session.error"
 
 
-#: `AGENT_NAMES` from packages/shared-types/src/events.ts
+#: `AGENT_NAMES` from packages/shared/src/events.ts
 AGENT_NAMES: Final[tuple[str, ...]] = (
     "orchestrator",
     "scenario_director",

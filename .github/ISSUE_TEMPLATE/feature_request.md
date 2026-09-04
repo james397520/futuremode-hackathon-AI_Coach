@@ -16,7 +16,7 @@ is scheduling work, and new scope is a product decision.
 ## Which is it?
 
 - [ ] **Already specified.** `docs/spec/AI_Coach_Spec_v3.md` describes it and it
-      is not built yet. → This is a scheduling request; see `docs/ROADMAP.md`
+      is not built yet. → This is a scheduling request; see `docs/roadmap.md`
       before filing, in case it is already phased.
 - [ ] **New scope.** The spec does not cover it.
 - [ ] **Changes the spec.** The spec says something different and you think it
@@ -54,7 +54,7 @@ Roadmap phase (if any):
 
 ## What it touches
 
-- [ ] New or changed cross-language contract — `packages/shared-types`
+- [ ] New or changed cross-language contract — `packages/shared`
       (**and therefore** `apps/api/app/domain`; see `docs/adr/0002`)
 - [ ] New streaming event (Part II §55) or state-machine state (§92)
 - [ ] New API endpoint (§56)

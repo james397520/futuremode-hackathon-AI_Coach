@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { SKILL_KEYS } from '@ai-coach/shared-types';
+import { SKILL_KEYS } from '@ai-coach/shared';
 import { Download, Filter } from 'lucide-react';
 import { Button, GlassCard, Pill, Select, StatTile } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';
@@ -59,7 +59,7 @@ export function TeamReportPage() {
           <Select
             value={teamId}
             onValueChange={setTeamId}
-            aria-label="Team"
+            ariaLabel="Team"
             options={[
               { value: 'all', label: 'All teams' },
               ...MOCK_TEAMS.map((team) => ({ value: team.id, label: team.name })),
@@ -70,7 +70,7 @@ export function TeamReportPage() {
           <Select
             value={range}
             onValueChange={setRange}
-            aria-label="Date range"
+            ariaLabel="Date range"
             options={[
               { value: '7d', label: 'Last 7 days' },
               { value: '30d', label: 'Last 30 days' },
@@ -81,10 +81,10 @@ export function TeamReportPage() {
       </GlassCard>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Team average" value={String(avgScore)} hint={`${totalMembers} learners`} />
-        <StatTile label="Pass rate" value={`${Math.round(avgPass * 100)}%`} hint="against each scenario minimum" />
-        <StatTile label="Completion" value={`${Math.round(avgCompletion * 100)}%`} hint="mandatory assignments" />
-        <StatTile label="High potential" value={String(rows.reduce((sum, row) => sum + row.high_potential, 0))} hint={`${rows.reduce((sum, row) => sum + row.low_readiness, 0)} low readiness`} />
+        <StatTile surface="card" label="Team average" value={String(avgScore)} hint={`${totalMembers} learners`} />
+        <StatTile surface="card" label="Pass rate" value={`${Math.round(avgPass * 100)}%`} hint="against each scenario minimum" />
+        <StatTile surface="card" label="Completion" value={`${Math.round(avgCompletion * 100)}%`} hint="mandatory assignments" />
+        <StatTile surface="card" label="High potential" value={String(rows.reduce((sum, row) => sum + row.high_potential, 0))} hint={`${rows.reduce((sum, row) => sum + row.low_readiness, 0)} low readiness`} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">

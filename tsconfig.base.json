@@ -13,7 +13,7 @@
     "jsx": "preserve",
     "declaration": true,
     "paths": {
-      "@ai-coach/shared-types": ["./packages/shared-types/src/index.ts"],
+      "@ai-coach/shared": ["./packages/shared/src/index.ts"],
       "@ai-coach/design-tokens": ["./packages/design-tokens/src/index.ts"],
       "@ai-coach/ui": ["./packages/ui/src/index.ts"],
       "@ai-coach/ai-runtime": ["./packages/ai-runtime/src/index.ts"]

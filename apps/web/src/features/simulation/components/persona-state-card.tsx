@@ -11,7 +11,7 @@
  *
  * Visual rules: 4px hairline meters, no speedometer, no dashboard (§22 / §99).
  */
-import type { PersonaSimulationState } from '@ai-coach/shared-types';
+import type { PersonaSimulationState } from '@ai-coach/shared';
 
 import { humaniseSlug } from '../lib/format';
 import {

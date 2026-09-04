@@ -1,4 +1,4 @@
-"""Enumerations mirroring ``packages/shared-types/src/state-machines.ts``,
+"""Enumerations mirroring ``packages/shared/src/state-machines.ts``,
 ``persona.ts``, ``entities.ts``, ``events.ts`` and ``runtime.ts``.
 
 ``StrEnum`` is used so every member serialises to the *exact* literal string the

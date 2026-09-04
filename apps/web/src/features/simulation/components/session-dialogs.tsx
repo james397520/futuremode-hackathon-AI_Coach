@@ -7,7 +7,7 @@
  */
 import { useState } from 'react';
 import type { ChangeEvent } from 'react';
-import type { Citation } from '@ai-coach/shared-types';
+import type { Citation } from '@ai-coach/shared';
 
 import { formatClock } from '../lib/format';
 import { SPEAKER_LABEL } from '../lib/labels';

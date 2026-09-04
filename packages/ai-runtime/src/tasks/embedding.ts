@@ -17,7 +17,7 @@
  * `authority: 'authoritative'`, `local: false`. Callers that care (because they are
  * about to tell the user "this stayed on your device") must check `local`.
  */
-import type { ComputeBackend } from '@ai-coach/shared-types';
+import type { ComputeBackend } from '@ai-coach/shared';
 
 import type {
   AuthorityLevel,

@@ -65,7 +65,7 @@ const nextConfig = {
   transpilePackages: [
     '@ai-coach/ui',
     '@ai-coach/design-tokens',
-    '@ai-coach/shared-types',
+    '@ai-coach/shared',
     '@ai-coach/ai-runtime',
   ],
   experimental: {

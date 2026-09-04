@@ -6,7 +6,7 @@
  * paragraph, plus intent / citations / compliance annotations.
  */
 import { useCallback, useMemo } from 'react';
-import type { TranscriptTurn } from '@ai-coach/shared-types';
+import type { TranscriptTurn } from '@ai-coach/shared';
 
 import { formatClock, humaniseSlug } from '../lib/format';
 import { COMPLIANCE_TYPE_LABEL, SPEAKER_LABEL } from '../lib/labels';

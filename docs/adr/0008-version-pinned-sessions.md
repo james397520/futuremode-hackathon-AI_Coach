@@ -42,7 +42,7 @@ meaningless if the two looked at different definitions.
 shaped it, and the report renders against those pinned versions — never against
 current state.**
 
-From `TrainingSession` in `packages/shared-types/src/entities.ts`:
+From `TrainingSession` in `packages/shared/src/entities.ts`:
 
 ```ts
 scenario_id: ID;

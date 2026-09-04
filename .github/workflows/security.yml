@@ -37,7 +37,7 @@ permissions:
 # Security & Audit (§41), as ComplianceFinding-shaped rows with severity,
 # component, scan time, status and resolution.
 #
-# See docs/ROADMAP.md, Phase 3, for where this sits in the plan. Nothing in
+# See docs/roadmap.md, Phase 3, for where this sits in the plan. Nothing in
 # this workflow should be read as a substitute for it.
 # =============================================================================
 

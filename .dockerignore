@@ -67,8 +67,8 @@ Thumbs.db
 # infra/ is excluded EXCEPT the Dockerfiles themselves, which BuildKit reads
 # via -f before the context is sent, so their exclusion here is harmless.
 .github/
-infra/docker-compose.yml
-infra/scripts/
+docker-compose.yml
+scripts/
 infra/seed/
 
 # ---- docs: large, and nothing in an image reads them ------------------------

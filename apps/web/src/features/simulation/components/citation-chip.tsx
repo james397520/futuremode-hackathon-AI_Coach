@@ -9,7 +9,7 @@
  * knowledge claim in the conversation is traceable without leaving the page.
  */
 import { useState } from 'react';
-import type { Citation } from '@ai-coach/shared-types';
+import type { Citation } from '@ai-coach/shared';
 
 import { formatSimilarity } from '../lib/format';
 import { insetSurface, tint, toneText } from '../lib/tone';

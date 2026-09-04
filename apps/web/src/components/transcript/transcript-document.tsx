@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { SpeakerKind, TranscriptTurn } from '@ai-coach/shared-types';
+import type { SpeakerKind, TranscriptTurn } from '@ai-coach/shared';
 import { AlertTriangle, BookOpen, Play, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
 import { Pill } from '@/components/ui';
 import { cn, formatClock, titleize } from '@/lib/utils';

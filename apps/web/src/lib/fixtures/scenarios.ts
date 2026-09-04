@@ -1,4 +1,4 @@
-import type { Scenario } from '@ai-coach/shared-types';
+import type { Scenario } from '@ai-coach/shared';
 import { SCOPE, daysAgo } from './constants';
 
 /** §59 demo scenario — the objection-handling drill built on 陳先生. */

@@ -51,7 +51,7 @@ log = structlog.get_logger(__name__)
 
 
 class AclPermission(StrEnum):
-    """`KnowledgeAcl.permissions` in shared-types (§39)."""
+    """`KnowledgeAcl.permissions` in shared (§39)."""
 
     VIEW = "view"
     USE_FOR_RAG = "use_for_rag"

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { SKILL_KEYS } from '@ai-coach/shared-types';
+import { SKILL_KEYS } from '@ai-coach/shared';
 import { ArrowUpRight, Flame, Target, TrendingUp } from 'lucide-react';
 import { Button, GlassCard, Pill, StatTile } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';
@@ -62,10 +62,10 @@ export function PerformancePage({ userId }: { userId?: string }) {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Overall skill score" value={String(profile.overall_score)} delta={`+${profile.monthly_improvement}`} hint="weighted across ten dimensions" />
-        <StatTile label="Strongest" value={SKILL_LABEL[profile.strongest_skill]} hint={`${profile.skills[profile.strongest_skill]} / 100`} />
-        <StatTile label="Weakest" value={SKILL_LABEL[profile.weakest_skill]} hint={`${profile.skills[profile.weakest_skill]} / 100`} />
-        <StatTile label="Days to readiness" value={String(profile.days_to_readiness ?? '—')} hint="at the current pace" />
+        <StatTile surface="card" label="Overall skill score" value={String(profile.overall_score)} delta={`+${profile.monthly_improvement}`} hint="weighted across ten dimensions" />
+        <StatTile surface="card" label="Strongest" value={SKILL_LABEL[profile.strongest_skill]} hint={`${profile.skills[profile.strongest_skill]} / 100`} />
+        <StatTile surface="card" label="Weakest" value={SKILL_LABEL[profile.weakest_skill]} hint={`${profile.skills[profile.weakest_skill]} / 100`} />
+        <StatTile surface="card" label="Days to readiness" value={String(profile.days_to_readiness ?? '—')} hint="at the current pace" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">

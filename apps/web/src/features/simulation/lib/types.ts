@@ -1,6 +1,6 @@
 /**
  * Local view models. These are *derived* shapes only — every field that describes
- * the simulation itself comes from `@ai-coach/shared-types` (consume, never modify).
+ * the simulation itself comes from `@ai-coach/shared` (consume, never modify).
  */
 import type {
   Citation,
@@ -12,7 +12,7 @@ import type {
   ScenarioPhase,
   SessionMode,
   SkillKey,
-} from '@ai-coach/shared-types';
+} from '@ai-coach/shared';
 
 /** Everything the page needs before the socket opens (REST bootstrap or mock fixture). */
 export interface SessionBootstrap {

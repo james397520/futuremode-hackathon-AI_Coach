@@ -115,7 +115,7 @@ free.
 
 - **The contract must be mirrored.** The direct cost, addressed in
   [ADR-0002](0002-typescript-as-contract-source-of-truth.md) and enforced by
-  `infra/scripts/check-contracts.sh`.
+  `scripts/check-contracts.sh`.
 - **Two toolchains, two CI jobs, two dependency-audit flows.** Accepted; see
   [ADR-0001](0001-pnpm-workspace-plus-separate-python-app.md).
 - **An extra network hop for browser→API traffic.** Real, and mostly irrelevant:
@@ -127,7 +127,7 @@ free.
   the cookie and redirects. The shared secret is `JWT_SECRET`, and the API
   refuses to boot outside local with the placeholder value.
 - **Local development needs two processes.** `pnpm dev` and `pnpm api:dev`.
-  `infra/scripts/bootstrap.sh` prints both, and the compose `app` profile runs
+  `scripts/bootstrap.sh` prints both, and the compose `app` profile runs
   the whole thing in containers when you want the production shape.
 - **Duplicated cross-cutting concerns.** CORS, security headers and rate limits
   need thinking about at the proxy, in Next.js and in FastAPI. This is
@@ -135,7 +135,7 @@ free.
   `apps/web/next.config.mjs` emits the CSP, and the proxy deliberately does not
   add a second one, because two CSP headers are enforced as their intersection
   and would silently break the inference worker. See
-  [ARCHITECTURE §7](../ARCHITECTURE.md#7-cross-origin-isolation-why-the-edge-sets-coop--coep).
+  [ARCHITECTURE §7](../architecture.md#7-cross-origin-isolation-why-the-edge-sets-coop--coep).
 
 ### Rejected alternatives
 

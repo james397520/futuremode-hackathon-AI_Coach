@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import type { Citation } from '@ai-coach/shared-types';
+import type { Citation } from '@ai-coach/shared';
 import { Search, Sparkles, ThumbsDown, ThumbsUp, Zap } from 'lucide-react';
 import { Button, GlassCard, Input, Pill, Slider, Switch } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';
@@ -218,7 +218,7 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
             <h2 className="text-card-title">Retrieval settings</h2>
             <div className="mt-4 space-y-5">
               <Slider
-                label={`Top K — ${topK}`}
+                label="Top K"
                 min={1}
                 max={10}
                 step={1}
@@ -226,7 +226,8 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
                 onValueChange={setTopK}
               />
               <Slider
-                label={`Threshold — ${threshold.toFixed(2)}`}
+                label="Threshold"
+                formatValue={(value) => value.toFixed(2)}
                 hint="Chunks below this similarity are discarded before reranking."
                 min={0.4}
                 max={0.95}

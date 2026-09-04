@@ -1,7 +1,7 @@
 /**
  * Fixture scaffolding for the demo scenario in §59 (insurance-sales AI Coach).
  *
- * Everything under `src/lib/fixtures/` is typed against `@ai-coach/shared-types`
+ * Everything under `src/lib/fixtures/` is typed against `@ai-coach/shared`
  * so that swapping a fixture for a real API call is a one-line change in the
  * page/feature that consumes it. No fixture may invent a field that is not in
  * the contract.

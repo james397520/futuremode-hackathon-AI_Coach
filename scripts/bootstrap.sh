@@ -2,14 +2,14 @@
 # =============================================================================
 # Local development bootstrap — idempotent.
 #
-#   infra/scripts/bootstrap.sh                 full setup
-#   infra/scripts/bootstrap.sh --no-seed       stack + migrations, no demo data
-#   infra/scripts/bootstrap.sh --with-proxy    also start nginx (+ self-signed certs)
-#   infra/scripts/bootstrap.sh --with-app      also build/run api, worker, web images
-#   infra/scripts/bootstrap.sh --check-only    verify tooling and exit
+#   scripts/bootstrap.sh                 full setup
+#   scripts/bootstrap.sh --no-seed       stack + migrations, no demo data
+#   scripts/bootstrap.sh --with-proxy    also start nginx (+ self-signed certs)
+#   scripts/bootstrap.sh --with-app      also build/run api, worker, web images
+#   scripts/bootstrap.sh --check-only    verify tooling and exit
 #
 # Safe to re-run at any time: it never drops data. To start clean, use
-# infra/scripts/reset.sh (which is destructive and asks first).
+# scripts/reset.sh (which is destructive and asks first).
 #
 # Order matters. Migrations before seed, seed after MinIO's bucket exists,
 # and every step waits for real health rather than sleeping.
@@ -17,7 +17,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-COMPOSE_FILE="${REPO_ROOT}/infra/docker-compose.yml"
+COMPOSE_FILE="${REPO_ROOT}/docker-compose.yml"
 ENV_FILE="${REPO_ROOT}/.env"
 ENV_EXAMPLE="${REPO_ROOT}/.env.example"
 
@@ -84,7 +84,7 @@ require_tool python3 "install Python 3.11 (apps/api requires >=3.11)"
 COMPOSE_VER="$(docker compose version --short 2>/dev/null | tr -d 'v' || true)"
 [ -n "$COMPOSE_VER" ] || die "\`docker compose\` (v2 plugin) not available. Compose v1 (\`docker-compose\`) is not supported."
 version_ge "$COMPOSE_VER" 2.24.0 \
-  || die "Docker Compose ${COMPOSE_VER} is too old; need >= 2.24.0 for the optional env_file syntax in infra/docker-compose.yml"
+  || die "Docker Compose ${COMPOSE_VER} is too old; need >= 2.24.0 for the optional env_file syntax in docker-compose.yml"
 ok "docker compose ${COMPOSE_VER}"
 
 docker info >/dev/null 2>&1 || die "the Docker daemon is not running"
@@ -293,7 +293,7 @@ fi
 # -----------------------------------------------------------------------------
 if [ "$DO_SEED" = "1" ]; then
   step "Seeding the demo dataset (spec §59)"
-  SEED="${REPO_ROOT}/infra/scripts/seed.py"
+  SEED="${REPO_ROOT}/database/seeds/seed.py"
   if [ "$WITH_APP" = "1" ]; then
     "${COMPOSE[@]}" exec -T api python - < "$SEED" \
       || warn "seed reported a problem; see its output above"
@@ -313,7 +313,7 @@ fi
 # 8. Contract drift guard — cheap, and catches the worst class of local breakage
 # -----------------------------------------------------------------------------
 step "Checking cross-language contracts"
-"${REPO_ROOT}/infra/scripts/check-contracts.sh" || warn "contract drift — see above"
+"${REPO_ROOT}/scripts/check-contracts.sh" || warn "contract drift — see above"
 
 # -----------------------------------------------------------------------------
 step "Ready"
@@ -331,5 +331,5 @@ cat <<EOF
     pnpm api:dev          # api  → http://localhost:8000  (docs at /docs)
 
   Demo walkthrough: see the "Demo walkthrough" section of README.md.
-  Honest status:    docs/ROADMAP.md
+  Honest status:    docs/roadmap.md
 EOF

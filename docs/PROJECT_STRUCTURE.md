@@ -12,7 +12,7 @@ futuremode_rmrf2/
 │   ├── web/                  Next.js App Router 前端（唯一 user-facing app）
 │   └── api/                  Python FastAPI AI Orchestration API
 ├── packages/
-│   ├── shared-types/         前後端共用契約：Entity / Streaming Event / Enum
+│   ├── shared/         前後端共用契約：Entity / Streaming Event / Enum
 │   ├── design-tokens/        Soft Aurora 設計 token（CSS vars + Tailwind preset）
 │   ├── ui/                   Glassmorphism 元件庫（Radix primitives + 自訂 skin）
 │   └── ai-runtime/           WebGPU → WASM → Server 三級推論 abstraction
@@ -23,7 +23,7 @@ futuremode_rmrf2/
 
 理由（對應 spec §63/§64/§101）：前端 Next.js、AI API 用 Python FastAPI，
 兩者語言不同 → 用 **pnpm workspace 管 JS 側，`apps/api` 自帶 pyproject**，
-不強行把 Python 塞進 JS workspace。跨語言契約放 `packages/shared-types`
+不強行把 Python 塞進 JS workspace。跨語言契約放 `packages/shared`
 （TS 為主，Python 端在 `apps/api/app/domain/` 用 Pydantic 對映同名欄位）。
 
 ## 2. `apps/web` — 前端
@@ -86,7 +86,7 @@ apps/api/app/
 │                            documents, chunks, retrieval, questions, personas,
 │                            scenarios, assignments, sessions, reports,
 │                            security, audit, integrations, runtime
-├── domain/                  Pydantic entity / enum / streaming event（對映 shared-types）
+├── domain/                  Pydantic entity / enum / streaming event（對映 shared）
 ├── db/                      SQLAlchemy models、session、alembic migrations
 ├── services/                應用服務層（§63）：session / persona / knowledge /
 │                            question / evaluation / safety / report
@@ -108,7 +108,7 @@ apps/api/app/
 
 | package | 內容 | 不該放什麼 |
 |---|---|---|
-| `shared-types` | Entity 型別、`StreamingEvent` union、狀態機 enum | React、任何 runtime 依賴 |
+| `shared` | Entity 型別、`StreamingEvent` union、狀態機 enum | React、任何 runtime 依賴 |
 | `design-tokens` | light/dark CSS vars、Tailwind preset、aurora/dot-matrix | 元件 |
 | `ui` | Glass 元件庫（Radix + Tailwind） | 業務語意（Persona/Scenario…） |
 | `ai-runtime` | capability detection、Worker、WebGPU/WASM/Server backend | UI |
@@ -117,7 +117,7 @@ apps/api/app/
 
 | Owner | 可寫路徑 |
 |---|---|
-| 契約層（先完成，其他人只讀） | `packages/shared-types/**`, `packages/design-tokens/**`, `docs/**` |
+| 契約層（先完成，其他人只讀） | `packages/shared/**`, `packages/design-tokens/**`, `docs/**` |
 | UI Kit | `packages/ui/**` |
 | Web Shell & Pages | `apps/web/**` 除 `src/features/simulation/**` |
 | Live Simulation | `apps/web/src/features/simulation/**` |

@@ -17,7 +17,7 @@
  *
  * Runs inside the inference worker (§58).
  */
-import type { LocalTask } from '@ai-coach/shared-types';
+import type { LocalTask } from '@ai-coach/shared';
 
 import { detectCrossOriginIsolated, detectSharedArrayBuffer, detectWasmSimd } from '../capability';
 import { OrtBackend, type OrtBackendOptions } from './ort-backend';

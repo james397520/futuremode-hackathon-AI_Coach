@@ -17,7 +17,7 @@
  * transferable `ArrayBuffer`s, so the transfer is zero-copy and the worker never
  * needs credentials.
  */
-import type { ComputeBackend, ComputeCapability, LocalTask, RuntimePolicy } from '@ai-coach/shared-types';
+import type { ComputeBackend, ComputeCapability, LocalTask, RuntimePolicy } from '@ai-coach/shared';
 
 import type {
   EmbedOptions,

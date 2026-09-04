@@ -12,7 +12,7 @@
  * the command in an assessment as a second line of defence.
  */
 import type { ReactNode } from 'react';
-import type { SessionMode, SessionState } from '@ai-coach/shared-types';
+import type { SessionMode, SessionState } from '@ai-coach/shared';
 
 import { insetSurface, toneText, type ToneKey } from '../lib/tone';
 import {

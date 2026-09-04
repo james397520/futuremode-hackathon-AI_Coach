@@ -17,7 +17,7 @@ data, and an automated learning loop.**
 > **Status:** this repository contains the architecture, the cross-language
 > contracts, the design system and a scaffolded implementation — **not a
 > production system.** The live simulation currently runs against a mock event
-> stream. Read [`docs/ROADMAP.md`](docs/ROADMAP.md) before evaluating it.
+> stream. Read [`docs/roadmap.md`](docs/roadmap.md) before evaluating it.
 
 ---
 
@@ -58,7 +58,7 @@ exchange is scored against a rubric with evidence attached to every number.
 | Cache / queue | Redis 7 · Celery | — |
 | Object storage | S3-compatible (MinIO locally) | — |
 | AI services | OpenAI (LLM, STT/TTS) · ElevenLabs (TTS) · AMD AUP (private inference) | — |
-| Edge | nginx — TLS, WebSocket upgrade, security headers, cross-origin isolation | [`infra/docker/nginx.conf`](infra/docker/nginx.conf) |
+| Edge | nginx — TLS, WebSocket upgrade, security headers, cross-origin isolation | [`infra/nginx/nginx.conf`](infra/nginx/nginx.conf) |
 | Monorepo | pnpm workspace for JS; `apps/api` standalone | [ADR-0001](docs/adr/0001-pnpm-workspace-plus-separate-python-app.md) |
 
 ---
@@ -74,7 +74,7 @@ apps/
   web/                  Next.js frontend — the only user-facing app
   api/                  FastAPI AI orchestration API, agents, RAG, workers
 packages/
-  shared-types/         cross-language contracts: entities, streaming events, state machines
+  shared/         cross-language contracts: entities, streaming events, state machines
   design-tokens/        Soft Aurora tokens — light/dark CSS vars, Tailwind preset
   ui/                   glassmorphism component library (Radix behaviour, custom skin)
   ai-runtime/           WebGPU → WASM → server inference abstraction
@@ -85,8 +85,8 @@ infra/
 docs/
   spec/                 the specification. Authoritative for what the product must do
   PROJECT_STRUCTURE.md  ownership map. Authoritative for where files go
-  ARCHITECTURE.md       how the pieces fit together
-  ROADMAP.md            what is actually built. Honest
+  architecture.md       how the pieces fit together
+  roadmap.md            what is actually built. Honest
   adr/                  why each decision was made, and what it cost
 .github/workflows/      CI and security scanning
 ```
@@ -104,13 +104,13 @@ docs/
 | pnpm | 9.x | `corepack enable` — the version is pinned in `package.json` |
 | Python | ≥ 3.11 | `apps/api` uses PEP 604 unions and `StrEnum` |
 
-`infra/scripts/bootstrap.sh --check-only` verifies all four and tells you
+`scripts/bootstrap.sh --check-only` verifies all four and tells you
 exactly what is wrong if not.
 
 ### One command
 
 ```bash
-infra/scripts/bootstrap.sh
+scripts/bootstrap.sh
 ```
 
 Idempotent. It copies `.env.example` → `.env` if absent, starts the data plane,
@@ -139,7 +139,7 @@ apps/api/.venv/bin/pip install -e 'apps/api[dev]'
 cd apps/api && ../../apps/api/.venv/bin/alembic upgrade head && cd ../..
 
 # 6. The §59 demo dataset
-python3 infra/scripts/seed.py
+python3 database/seeds/seed.py
 
 # 7. Two processes, two terminals
 pnpm dev        # web → http://localhost:3000
@@ -149,16 +149,16 @@ pnpm api:dev    # api → http://localhost:8000  (OpenAPI at /docs)
 Useful extras:
 
 ```bash
-infra/scripts/bootstrap.sh --with-app     # run api + worker + web as containers
-infra/scripts/bootstrap.sh --with-proxy   # add nginx with a self-signed cert
-infra/scripts/check-contracts.sh          # TS ↔ Pydantic drift, both directions
-infra/scripts/reset.sh                    # DESTROY volumes and re-bootstrap
+scripts/bootstrap.sh --with-app     # run api + worker + web as containers
+scripts/bootstrap.sh --with-proxy   # add nginx with a self-signed cert
+scripts/check-contracts.sh          # TS ↔ Pydantic drift, both directions
+scripts/reset.sh                    # DESTROY volumes and re-bootstrap
 pnpm infra:down                           # stop the stack, keep the data
 ```
 
 ### Demo users
 
-Seeded by `infra/scripts/seed.py`, one per role:
+Seeded by `database/seeds/seed.py`, one per role:
 
 | Email | Roles |
 |---|---|
@@ -251,7 +251,7 @@ Phase 1 is not about designing anything further. It is about deleting
 fixture files, one call site at a time, until the §59 demo runs on real services.
 
 Full per-module status, the §60 acceptance matrix and the §100 final acceptance
-definition, all with honest per-row status: **[`docs/ROADMAP.md`](docs/ROADMAP.md)**.
+definition, all with honest per-row status: **[`docs/roadmap.md`](docs/roadmap.md)**.
 
 One precondition worth checking before you push: CI installs with
 `pnpm install --frozen-lockfile`, so **`pnpm-lock.yaml` must be committed**. If
@@ -294,7 +294,7 @@ CodeQL — runs in [`security.yml`](.github/workflows/security.yml). That is the
 floor. Part I §41 and Part II §100 both call for an external security audit with
 **CertiK or an equivalent external security audit provider** before the platform
 handles real enterprise data; see
-[ROADMAP Phase 3](docs/ROADMAP.md#phase-3--commercial-and-enterprise-readiness--not-started).
+[ROADMAP Phase 3](docs/roadmap.md#phase-3--commercial-and-enterprise-readiness--not-started).
 
 **Found a security issue?** Do not open a public issue. Contact a maintainer
 directly.
@@ -309,7 +309,7 @@ Read [`CONTRIBUTING.md`](CONTRIBUTING.md). The four rules that matter most:
    a file.** It is the authoritative ownership map, and parallel work depends on
    it.
 2. **Contract changes go TypeScript first**, then mirror to Pydantic in the same
-   commit, then run `infra/scripts/check-contracts.sh`.
+   commit, then run `scripts/check-contracts.sh`.
 3. **No hex literals.** Colours come from `packages/design-tokens` (Part II §99).
 4. **Anything touching tenant isolation, RBAC or the safety layer** gets the
    extra review checklist. Untested isolation is not isolation.

@@ -111,7 +111,7 @@ Query — a resource with a URL, correctly on the query side of the line.
 - **Zustand is small and unopinionated.** No provider tree, no context nesting,
   no boilerplate. Testing the reducer is testing a function.
 - **The mock and the real socket are substitutable.** The single most important
-  practical consequence — see [ROADMAP Phase 1](../ROADMAP.md).
+  practical consequence — see [ROADMAP Phase 1](../roadmap.md).
 
 ### Bad, and what we do about it
 

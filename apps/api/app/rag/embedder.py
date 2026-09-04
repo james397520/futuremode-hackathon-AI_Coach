@@ -20,7 +20,7 @@ configurable client:
   described in §2.1 ("Approved Enterprise Policy → OpenAI text-embedding-3-* → Vector
   Database") plus a data-residency review. Never select it as a silent default.
 
-A knowledge base records `embedding_model` (see `KnowledgeBase` in shared-types) and a
+A knowledge base records `embedding_model` (see `KnowledgeBase` in shared) and a
 `DocumentVersion` records `embedding_version`, because switching provider or dimension
 invalidates the index: `EmbeddingSpec.index_key()` is what the vector store namespaces
 collections by, so a model change can never mix vectors of different geometry.

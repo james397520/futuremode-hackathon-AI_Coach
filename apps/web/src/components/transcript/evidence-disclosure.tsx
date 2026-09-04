@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { SkillScore } from '@ai-coach/shared-types';
+import type { SkillScore } from '@ai-coach/shared';
 import { ChevronDown, Quote } from 'lucide-react';
 import { ScoreBar } from '@/components/data-viz';
 import { cn, formatClock, titleize } from '@/lib/utils';

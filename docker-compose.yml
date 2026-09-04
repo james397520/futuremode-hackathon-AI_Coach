@@ -13,16 +13,16 @@
 #                      Use it to reproduce a production-ish container run.
 #   profile "proxy"  : nginx TLS terminator in front of web + api.
 #
-#   docker compose -f infra/docker-compose.yml up -d
-#   docker compose -f infra/docker-compose.yml --profile app up -d --build
-#   docker compose -f infra/docker-compose.yml --profile app --profile proxy up -d
+#   docker compose up -d
+#   docker compose --profile app up -d --build
+#   docker compose --profile app --profile proxy up -d
 #
 # A note on env files
 #   Compose resolves `${VAR}` interpolation from the *project directory*, which
 #   defaults to the directory holding this file (`infra/`) — NOT the repository
 #   root. So every interpolation below carries a `:-default` that matches the
 #   root `.env.example`, and the containers that need real values read the root
-#   file explicitly via `env_file: ../.env`. Nothing here breaks if the root
+#   file explicitly via `env_file: .env`. Nothing here breaks if the root
 #   `.env` is missing; you just get the documented defaults.
 #
 #   `env_file` values are overridden by the `environment:` block, which is how
@@ -58,7 +58,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:-postgres}
       POSTGRES_DB: postgres
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
-      # Consumed by ./docker/postgres/init/01-init-db.sh
+      # Consumed by ./infra/docker/postgres/init/01-init-db.sh
       APP_DB_NAME: ${POSTGRES_DB:-aicoach}
       APP_DB_USER: ${POSTGRES_USER:-aicoach}
       APP_DB_PASSWORD: ${POSTGRES_PASSWORD:-aicoach}
@@ -69,7 +69,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
       # Runs once, on an empty data directory. `./scripts/reset.sh` drops the
       # volume, which is what makes edits to the init script take effect.
-      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./infra/docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test:
         ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPERUSER:-postgres} -d ${POSTGRES_DB:-aicoach}"]
@@ -213,13 +213,13 @@ services:
   api:
     profiles: ["app"]
     build:
-      context: ..
+      context: .
       dockerfile: infra/docker/api.Dockerfile
     image: ai-coach/api:local
     container_name: ai-coach-api
     <<: [*restart, *logging]
     env_file:
-      - path: ../.env
+      - path: .env
         required: false
     environment:
       # Rewrite the host-oriented URLs from .env onto the compose network.
@@ -257,13 +257,13 @@ services:
   worker:
     profiles: ["app"]
     build:
-      context: ..
+      context: .
       dockerfile: infra/docker/worker.Dockerfile
     image: ai-coach/worker:local
     container_name: ai-coach-worker
     <<: [*restart, *logging]
     env_file:
-      - path: ../.env
+      - path: .env
         required: false
     environment:
       APP_ENV: ${APP_ENV:-local}
@@ -303,7 +303,7 @@ services:
   web:
     profiles: ["app"]
     build:
-      context: ..
+      context: .
       dockerfile: infra/docker/web.Dockerfile
       args:
         # NEXT_PUBLIC_* are inlined at build time, so they are build args, not
@@ -339,7 +339,7 @@ services:
 
   # ---------------------------------------------------------------------------
   # Edge proxy — profile "proxy". TLS termination, WebSocket upgrade, security
-  # headers and cross-origin isolation (see infra/docker/nginx.conf).
+  # headers and cross-origin isolation (see infra/nginx/nginx.conf).
   # ---------------------------------------------------------------------------
   proxy:
     profiles: ["proxy"]
@@ -350,10 +350,10 @@ services:
       - "${PROXY_HTTP_PORT:-80}:80"
       - "${PROXY_HTTPS_PORT:-443}:443"
     volumes:
-      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
-      # Drop fullchain.pem / privkey.pem here. `infra/scripts/bootstrap.sh
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Drop fullchain.pem / privkey.pem here. `scripts/bootstrap.sh
       # --with-proxy` mints a local self-signed pair if the directory is empty.
-      - ./certs:/etc/nginx/certs:ro
+      - ./infra/certs:/etc/nginx/certs:ro
       - nginx-cache:/var/cache/nginx
     depends_on:
       web:

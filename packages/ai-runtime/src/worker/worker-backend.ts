@@ -19,7 +19,7 @@
  * heap is exactly the kind of memory pressure that triggers §62's
  * `memory_exceeded`.
  */
-import type { ComputeBackend, LocalTask } from '@ai-coach/shared-types';
+import type { ComputeBackend, LocalTask } from '@ai-coach/shared';
 
 import {
   BackendFailure,

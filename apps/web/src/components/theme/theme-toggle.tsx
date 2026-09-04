@@ -47,10 +47,11 @@ export function ThemeToggle({
   return (
     <div className={cn('flex flex-col gap-2', className)}>
       <span className="meta-label px-1">Appearance</span>
-      <SegmentedControl
+      <SegmentedControl<ThemeMode>
         value={mode}
-        onValueChange={(value: string) => setMode(value as ThemeMode)}
-        aria-label="Colour theme"
+        onValueChange={setMode}
+        ariaLabel="Colour theme"
+        size="sm"
         options={OPTIONS.map(({ value, label, Icon }) => ({
           value,
           label,

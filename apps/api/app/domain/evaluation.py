@@ -1,6 +1,6 @@
 """Evaluation / Evidence / Compliance models (spec §26 / §27 / §28 / §32).
 
-Mirrors the "Evaluation" section of ``packages/shared-types/src/entities.ts``.
+Mirrors the "Evaluation" section of ``packages/shared/src/entities.ts``.
 Scoring without evidence is forbidden (§27): ``SkillScore.evidence`` is required and
 ``Evaluation`` rejects a payload whose skills carry no evidence at all.
 """

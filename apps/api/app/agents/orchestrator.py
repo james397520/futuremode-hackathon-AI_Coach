@@ -539,7 +539,7 @@ class ConversationOrchestrator:
         citations: Sequence[dict[str, Any]] | None = None,
         state_delta: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Shape a `TranscriptTurn` (shared-types §53) as a plain dict."""
+        """Shape a `TranscriptTurn` (shared §53) as a plain dict."""
         turn: dict[str, Any] = {
             "id": turn_id,
             "session_id": payload.session_id,
@@ -592,7 +592,7 @@ class ConversationOrchestrator:
 def build_citations(
     evidence: Sequence[EvidenceItem], used_indexes: Sequence[int]
 ) -> list[dict[str, Any]]:
-    """Shape `Citation` objects (shared-types §12.5) from retrieved evidence."""
+    """Shape `Citation` objects (shared §12.5) from retrieved evidence."""
     wanted = set(used_indexes)
     return [
         {

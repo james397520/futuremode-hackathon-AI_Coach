@@ -23,7 +23,7 @@ from app.services.exceptions import (
     ValidationFailedError,
 )
 
-#: Mirrors `CONTENT_STATUSES` in packages/shared-types/src/state-machines.ts
+#: Mirrors `CONTENT_STATUSES` in packages/shared/src/state-machines.ts
 CONTENT_TRANSITIONS: dict[str, frozenset[str]] = {
     "draft": frozenset({"review_required", "archived"}),
     "generated": frozenset({"review_required", "draft", "archived"}),

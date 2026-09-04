@@ -11,7 +11,7 @@ Two-tier detector:
   really occurs in the audited text: a finding the agent cannot point at is dropped,
   so the §32 "transcript evidence" column can never be fabricated.
 
-`ComplianceFindingType` in shared-types has no `jailbreak` member, so jailbreak
+`ComplianceFindingType` in shared has no `jailbreak` member, so jailbreak
 detections are reported as `prompt_injection` carrying the policy rule
 `AI-SAFETY-JAILBREAK` (see `patterns.RiskKind`).
 """
@@ -50,7 +50,7 @@ log = structlog.get_logger(__name__)
 
 
 class FindingType(StrEnum):
-    """Mirrors `ComplianceFindingType` in packages/shared-types/src/entities.ts."""
+    """Mirrors `ComplianceFindingType` in packages/shared/src/entities.ts."""
 
     FALSE_PROMISE = "false_promise"
     MISLEADING_STATEMENT = "misleading_statement"
