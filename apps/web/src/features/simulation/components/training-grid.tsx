@@ -37,10 +37,10 @@ export function TrainingGrid({ left, right, variant = 'training', className }: T
         className,
       )}
     >
-      <div className="flex min-h-0 min-w-0 flex-col gap-4">{left}</div>
+      <div className="flex h-full min-h-0 min-w-0 flex-col gap-4 overflow-hidden">{left}</div>
 
       {/* 8–16px float-out on large screens (§14.1). */}
-      <div className="min-h-0 min-w-0 xl:-mr-2 xl:-mt-2 2xl:-mr-4 2xl:-mt-3">{right}</div>
+      <div className="h-full min-h-0 min-w-0 overflow-hidden xl:-mr-2 xl:-mt-2 2xl:-mr-4 2xl:-mt-3">{right}</div>
     </div>
   );
 }

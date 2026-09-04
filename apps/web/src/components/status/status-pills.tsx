@@ -10,38 +10,38 @@ import { Pill } from '@/components/ui';
 type Tone = 'gradient' | 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
 const CONTENT_STATUS: Record<ContentStatus, { label: string; tone: Tone }> = {
-  draft: { label: 'Draft', tone: 'neutral' },
-  generated: { label: 'AI generated', tone: 'info' },
-  review_required: { label: 'Review required', tone: 'warning' },
-  approved: { label: 'Approved', tone: 'success' },
-  published: { label: 'Published', tone: 'success' },
-  archived: { label: 'Archived', tone: 'neutral' },
+  draft: { label: '草稿', tone: 'neutral' },
+  generated: { label: 'AI 產生', tone: 'info' },
+  review_required: { label: '需要審核', tone: 'warning' },
+  approved: { label: '已核准', tone: 'success' },
+  published: { label: '已發布', tone: 'success' },
+  archived: { label: '已封存', tone: 'neutral' },
 };
 
 const DOCUMENT_STATE: Record<DocumentState, { label: string; tone: Tone }> = {
-  uploaded: { label: 'Uploaded', tone: 'neutral' },
-  validating: { label: 'Validating', tone: 'info' },
-  parsing: { label: 'Parsing', tone: 'info' },
-  chunking: { label: 'Chunking', tone: 'info' },
-  embedding: { label: 'Embedding', tone: 'info' },
-  indexing: { label: 'Indexing', tone: 'info' },
-  ready: { label: 'Ready', tone: 'success' },
-  failed: { label: 'Error', tone: 'danger' },
+  uploaded: { label: '已上傳', tone: 'neutral' },
+  validating: { label: '驗證中', tone: 'info' },
+  parsing: { label: '解析中', tone: 'info' },
+  chunking: { label: '切分中', tone: 'info' },
+  embedding: { label: '向量化中', tone: 'info' },
+  indexing: { label: '建立索引中', tone: 'info' },
+  ready: { label: '已就緒', tone: 'success' },
+  failed: { label: '發生錯誤', tone: 'danger' },
 };
 
 const RISK: Record<ComplianceRisk, { label: string; tone: Tone }> = {
-  safe: { label: 'Safe', tone: 'success' },
-  low: { label: 'Low risk', tone: 'success' },
-  medium: { label: 'Medium risk', tone: 'warning' },
-  high: { label: 'High risk', tone: 'danger' },
-  critical: { label: 'Critical', tone: 'danger' },
+  safe: { label: '安全', tone: 'success' },
+  low: { label: '低風險', tone: 'success' },
+  medium: { label: '中風險', tone: 'warning' },
+  high: { label: '高風險', tone: 'danger' },
+  critical: { label: '重大風險', tone: 'danger' },
 };
 
 const DIFFICULTY: Record<Difficulty, { label: string; tone: Tone }> = {
-  easy: { label: 'Easy', tone: 'neutral' },
-  medium: { label: 'Medium', tone: 'info' },
-  hard: { label: 'Hard', tone: 'warning' },
-  expert: { label: 'Expert', tone: 'danger' },
+  easy: { label: '初階', tone: 'neutral' },
+  medium: { label: '中階', tone: 'info' },
+  hard: { label: '進階', tone: 'warning' },
+  expert: { label: '專家', tone: 'danger' },
 };
 
 /** §38 Part I approval workflow states. Text label always present (§47). */
@@ -70,7 +70,7 @@ export function DifficultyPill({ difficulty }: { difficulty: Difficulty }) {
 export function ModePill({ mode }: { mode: SessionMode }) {
   return (
     <Pill tone={mode === 'assessment' ? 'warning' : 'neutral'} size="sm">
-      {mode === 'assessment' ? 'Assessment mode' : 'Training mode'}
+      {mode === 'assessment' ? '評測模式' : '訓練模式'}
     </Pill>
   );
 }

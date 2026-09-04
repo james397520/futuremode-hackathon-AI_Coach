@@ -41,14 +41,14 @@ export function TrainingPage() {
   return (
     <div className="space-y-5 pb-4">
       <PageHeader
-        title="Training"
-        description="Assignments, deadlines and completion rules. Completion needs enough attempts, a passing score and no critical compliance risk."
-        meta={overdue > 0 ? <Pill tone="danger" size="sm">{overdue} overdue</Pill> : null}
+        title="我的訓練"
+        description="查看指派項目、期限與完成條件。完成需達到足夠練習次數、及格分數，且不得有重大合規風險。"
+        meta={overdue > 0 ? <Pill tone="danger" size="sm">{overdue} 項逾期</Pill> : null}
         actions={
           canAssign ? (
             <Button variant="primary" size="sm" onClick={() => setAssignOpen(true)}>
               <Plus size={15} strokeWidth={2} aria-hidden />
-              Assign training
+              指派訓練
             </Button>
           ) : null
         }
@@ -58,11 +58,11 @@ export function TrainingPage() {
         value={filter}
         onValueChange={(value: string) => setFilter(value as Filter)}
         items={[
-          { value: 'all', label: 'All', count: MOCK_ASSIGNMENT_PROGRESS.length },
-          { value: 'not_started', label: 'Not started' },
-          { value: 'awaiting_retry', label: 'Retry required' },
-          { value: 'overdue', label: 'Overdue' },
-          { value: 'completed', label: 'Completed' },
+          { value: 'all', label: '全部', count: MOCK_ASSIGNMENT_PROGRESS.length },
+          { value: 'not_started', label: '尚未開始' },
+          { value: 'awaiting_retry', label: '需要重試' },
+          { value: 'overdue', label: '已逾期' },
+          { value: 'completed', label: '已完成' },
         ]}
       />
 
@@ -75,7 +75,7 @@ export function TrainingPage() {
                   <div className="mb-2 flex flex-wrap items-center gap-1.5">
                     <DifficultyPill difficulty={item.difficulty} />
                     <ModePill mode={item.mode} />
-                    {item.mandatory ? <Pill tone="warning" size="sm">Mandatory</Pill> : null}
+                    {item.mandatory ? <Pill tone="warning" size="sm">必修</Pill> : null}
                     <Pill
                       tone={
                         item.status === 'completed'
@@ -97,45 +97,45 @@ export function TrainingPage() {
                       {item.scenario_name}
                     </Link>
                   </h2>
-                  <p className="mt-0.5 text-body-sm text-text-tertiary">Persona: {item.persona_name}</p>
+                  <p className="mt-0.5 text-body-sm text-text-tertiary">模擬人物：{item.persona_name}</p>
 
                   <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1.5 text-body-sm">
                     <div className="flex gap-2">
-                      <dt className="text-text-tertiary">Deadline</dt>
+                      <dt className="text-text-tertiary">期限</dt>
                       <dd>
-                        {item.deadline ? `${formatDate(item.deadline)} · ${formatRelative(item.deadline)}` : 'None'}
+                        {item.deadline ? `${formatDate(item.deadline)} · ${formatRelative(item.deadline)}` : '未設定'}
                       </dd>
                     </div>
                     <div className="flex gap-2">
-                      <dt className="text-text-tertiary">Attempts</dt>
+                      <dt className="text-text-tertiary">嘗試次數</dt>
                       <dd className="tabular-nums">
                         {item.attempts_used} / {item.max_attempts ?? '∞'}
                       </dd>
                     </div>
                     <div className="flex gap-2">
-                      <dt className="text-text-tertiary">Best score</dt>
+                      <dt className="text-text-tertiary">最佳分數</dt>
                       <dd className="tabular-nums">
-                        {item.best_score ?? '—'} / min {item.minimum_score}
+                        {item.best_score ?? '—'} / 最低 {item.minimum_score}
                       </dd>
                     </div>
                     <div className="flex gap-2">
                       <dt className="flex items-center gap-1.5 text-text-tertiary">
                         <Users size={13} strokeWidth={1.8} aria-hidden />
-                        Assignees
+                        指派對象
                       </dt>
                       <dd className="tabular-nums">{item.assignee_count}</dd>
                     </div>
                     {item.blocking_skill ? (
                       <div className="flex gap-2">
-                        <dt className="text-text-tertiary">Blocking skill</dt>
+                        <dt className="text-text-tertiary">待補強能力</dt>
                         <dd>{SKILL_LABEL[item.blocking_skill]}</dd>
                       </div>
                     ) : null}
                     {item.critical_findings > 0 ? (
                       <div className="flex gap-2">
-                        <dt className="text-text-tertiary">Compliance</dt>
+                        <dt className="text-text-tertiary">合規</dt>
                         <dd className="text-state-danger">
-                          {item.critical_findings} finding{item.critical_findings === 1 ? '' : 's'} blocking completion
+                          {item.critical_findings} 項發現阻礙完成
                         </dd>
                       </div>
                     ) : null}
@@ -144,18 +144,18 @@ export function TrainingPage() {
                   <ProgressBar
                     className="mt-3 max-w-md"
                     value={Math.round(item.completion_rate * 100)}
-                    label="Cohort completion"
+                    label="整體完成率"
                   />
                 </div>
 
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   <Button variant="primary" size="sm" asChild>
                     <Link href={`/simulations/${item.scenario_id}/setup`}>
-                      {item.status === 'completed' ? 'Practise again' : 'Start'}
+                      {item.status === 'completed' ? '再次練習' : '開始'}
                     </Link>
                   </Button>
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href="/performance">View my progress</Link>
+                    <Link href="/performance">查看我的進度</Link>
                   </Button>
                 </div>
               </div>
@@ -179,20 +179,20 @@ function AssignModal({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Assign training"
-      description="Assignees, deadline, attempts, minimum score, prerequisite and mode."
+      title="指派訓練"
+      description="設定對象、期限、可嘗試次數、最低分數、先修條件與模式。"
       size="md"
       footer={
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-            Cancel
+            取消
           </Button>
-          <Button variant="primary" size="sm">Create assignment</Button>
+          <Button variant="primary" size="sm">建立指派</Button>
         </div>
       }
     >
       <div className="space-y-4">
-        <Field label="Scenario">
+        <Field label="訓練情境">
           <Select
             value={scenarioId}
             onValueChange={setScenarioId}
@@ -203,7 +203,7 @@ function AssignModal({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
           />
         </Field>
 
-        <Field label="Team" hint="Individual users can be added after the assignment is created.">
+        <Field label="團隊" hint="建立後可再加入個別使用者。">
           <Select
             value={teamId}
             onValueChange={setTeamId}
@@ -212,38 +212,38 @@ function AssignModal({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Deadline">
+          <Field label="期限">
             <div className="flex items-center gap-2">
               <CalendarClock size={15} strokeWidth={1.8} aria-hidden className="shrink-0 text-text-tertiary" />
               <Input type="date" defaultValue="2026-03-31" />
             </div>
           </Field>
-          <Field label="Max attempts">
+          <Field label="最多嘗試次數">
             <Input type="number" min={1} defaultValue={3} />
           </Field>
-          <Field label="Minimum score">
+          <Field label="最低分數">
             <Input type="number" min={0} max={100} defaultValue={80} />
           </Field>
-          <Field label="Mode">
+          <Field label="模式">
             <Select
               value={mode}
               onValueChange={(value: string) => setMode(value as typeof mode)}
               options={[
-                { value: 'training', label: 'Training' },
-                { value: 'assessment', label: 'Assessment' },
+                { value: 'training', label: '訓練' },
+                { value: 'assessment', label: '評測' },
               ]}
             />
           </Field>
         </div>
 
-        <Switch checked={mandatory} onCheckedChange={setMandatory} label="Mandatory" />
+        <Switch checked={mandatory} onCheckedChange={setMandatory} label="必修" />
 
-        <Field label="Prerequisite" hint="Blocks the assignment until the prerequisite is completed.">
+        <Field label="先修條件" hint="完成先修項目後才能開始此訓練。">
           <Select
             value=""
             onValueChange={() => undefined}
             options={[
-              { value: '', label: 'None' },
+              { value: '', label: '無' },
               ...MOCK_ASSIGNMENT_PROGRESS.map((item) => ({
                 value: item.assignment_id,
                 label: item.scenario_name,
@@ -253,9 +253,9 @@ function AssignModal({ open, onOpenChange }: { open: boolean; onOpenChange: (ope
         </Field>
 
         <p className="rounded-card-sm border border-border-soft px-3.5 py-3 text-body-sm text-text-secondary">
-          Completion condition: attempts ≥ 2, score ≥ minimum, and no critical compliance finding.
+          完成條件：嘗試次數 ≥ 2、分數達最低標準，且沒有重大合規發現。
           {' '}
-          {MOCK_USERS.length} users are available in this workspace.
+          此工作區共有 {MOCK_USERS.length} 位可指派使用者。
         </p>
       </div>
     </Modal>

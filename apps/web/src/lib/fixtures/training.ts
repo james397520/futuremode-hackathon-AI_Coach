@@ -171,9 +171,9 @@ export const MOCK_ASSIGNMENT_PROGRESS: AssignmentProgress[] = [
 ];
 
 export const ASSIGNMENT_STATUS_LABEL: Record<AssignmentProgressStatus, string> = {
-  not_started: 'Not started',
-  in_progress: 'In progress',
-  awaiting_retry: 'Retry required',
-  completed: 'Completed',
-  overdue: 'Overdue',
+  not_started: '尚未開始',
+  in_progress: '進行中',
+  awaiting_retry: '需要重試',
+  completed: '已完成',
+  overdue: '已逾期',
 };

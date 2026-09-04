@@ -14,6 +14,7 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
+import type { Role } from '@ai-coach/shared';
 import type { Permission } from '@/lib/rbac';
 
 /** §57 — the thirteen primary navigation items, in spec order. */
@@ -32,7 +33,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   {
     id: 'dashboard',
-    label: 'Dashboard',
+    label: '首頁',
     href: '/dashboard',
     icon: LayoutDashboard,
     permission: 'dashboard.view',
@@ -40,7 +41,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'simulations',
-    label: 'Simulations',
+    label: '模擬練習',
     href: '/simulations',
     icon: PlayCircle,
     permission: 'simulation.start',
@@ -48,7 +49,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'training',
-    label: 'Training',
+    label: '我的訓練',
     href: '/training',
     icon: GraduationCap,
     permission: 'training.view_assigned',
@@ -56,7 +57,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'personas',
-    label: 'Personas',
+    label: '模擬人物',
     href: '/personas',
     icon: UserRound,
     permission: 'persona.manage',
@@ -64,7 +65,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'scenarios',
-    label: 'Scenarios',
+    label: '訓練情境',
     href: '/scenarios',
     icon: SlidersHorizontal,
     permission: 'scenario.manage',
@@ -72,7 +73,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'knowledge',
-    label: 'Knowledge Base',
+    label: '知識庫',
     href: '/knowledge',
     icon: BookOpen,
     permission: 'knowledge.view',
@@ -80,7 +81,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'questions',
-    label: 'Question Bank',
+    label: '題庫',
     href: '/questions',
     icon: ListChecks,
     permission: 'question.manage',
@@ -88,7 +89,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'performance',
-    label: 'Performance Review',
+    label: '成效回顧',
     href: '/performance',
     icon: TrendingUp,
     permission: 'performance.view_own',
@@ -96,7 +97,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'reports',
-    label: 'Reports',
+    label: '報表',
     href: '/reports/team',
     icon: BarChart3,
     permission: 'report.view_team',
@@ -105,7 +106,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'team',
-    label: 'Team',
+    label: '團隊',
     href: '/team',
     icon: Users,
     permission: 'team.review',
@@ -113,7 +114,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'security',
-    label: 'Security & Audit',
+    label: '安全與稽核',
     href: '/security',
     icon: ShieldCheck,
     permission: 'security.view',
@@ -121,7 +122,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'integrations',
-    label: 'Integrations',
+    label: '整合服務',
     href: '/integrations',
     icon: Plug,
     permission: 'integration.manage',
@@ -129,13 +130,22 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'settings',
-    label: 'Settings',
+    label: '設定',
     href: '/settings',
     icon: Settings,
     permission: 'settings.view',
     description: 'Models, AI runtime, voice, appearance, profile and billing',
   },
 ];
+
+/** Keep the rail task-focused: a selected work identity sees only its core journey. */
+export const ROLE_NAV_IDS: Record<Role, readonly NavItem['id'][]> = {
+  trainee: ['dashboard', 'simulations', 'training', 'performance'],
+  coach: ['dashboard', 'simulations', 'training', 'personas', 'scenarios', 'knowledge', 'questions', 'performance'],
+  manager: ['dashboard', 'training', 'performance', 'reports', 'team'],
+  reviewer: ['dashboard', 'performance', 'reports', 'security'],
+  admin: ['dashboard', 'team', 'security', 'integrations', 'settings'],
+};
 
 /** Longest-prefix match so `/knowledge/kb_x/chunks` still highlights Knowledge. */
 export function isNavItemActive(item: NavItem, pathname: string): boolean {

@@ -18,8 +18,22 @@ const isDev = process.env.NODE_ENV !== 'production';
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 const wsBase = process.env.NEXT_PUBLIC_WS_BASE_URL ?? 'ws://localhost:8000';
 
+/**
+ * Avatar Runtime (LivePortrait + MuseTalk) — a local, loopback-only process.
+ * The browser talks to it over HTTP (`/health`, `/capabilities`, `/sessions`) and
+ * WebSocket (`/ws/sessions/{id}`, carrying §45 control events + JPEG/WebP frames),
+ * so both origins must be in `connect-src` or the requests are blocked silently.
+ * It is optional: these entries only *permit* an origin, they do not require one
+ * to exist.
+ */
+const avatarBase = process.env.NEXT_PUBLIC_AVATAR_BASE_URL ?? 'http://127.0.0.1:8765';
+const avatarWsBase =
+  process.env.NEXT_PUBLIC_AVATAR_WS_URL ?? avatarBase.replace(/^http/, 'ws');
+
 /** Model files for local inference are served from our own origin / API by default. */
-const connectSources = ["'self'", apiBase, wsBase, 'blob:', 'data:'].filter(Boolean);
+const connectSources = ["'self'", apiBase, wsBase, avatarBase, avatarWsBase, 'blob:', 'data:'].filter(
+  Boolean,
+);
 
 const csp = [
   "default-src 'self'",
@@ -28,10 +42,14 @@ const csp = [
   `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:${isDev ? " 'unsafe-eval'" : ''}`,
   // The no-flash theme bootstrap script and Tailwind's injected styles are inline.
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:",
+  // `avatarBase` so the runtime's prepared portrait (§7) can be shown by the
+  // §53 fallback — it is served over plain http on loopback, which `https:` misses.
+  `img-src 'self' data: blob: https: ${avatarBase}`,
   "font-src 'self' data:",
   // Persona TTS audio arrives as blob / object URLs (§50 Audio Architecture).
-  "media-src 'self' blob: data:",
+  // The avatar origin is listed for the Phase-2 WebRTC / MSE video path; the
+  // Phase-1 frame path paints a canvas and needs nothing here.
+  `media-src 'self' blob: data: ${avatarBase}`,
   `connect-src ${connectSources.join(' ')}`,
   // §58 — the WebGPU/WASM worker is created from a blob URL.
   "worker-src 'self' blob:",

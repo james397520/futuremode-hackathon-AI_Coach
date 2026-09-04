@@ -3,8 +3,8 @@
  *
  * Replays the insurance-sales demo end to end with realistic timing:
  *   opening → needs discovery → main price objection
- *   → compliance warning triggered by an over-promise
- *   → hidden-need reveal → trust rising past 70 → closing → session.completed
+ *   → a budget discussion → hidden-need reveal → trust rising past 70
+ *   → closing → session.completed
  *
  * It also deliberately exercises the awkward paths the real backend will produce:
  *   - partial-then-final text for both ASR and LLM output (§49.2)
@@ -12,8 +12,8 @@
  *   - a `runtime.fallback` mid-session (§62)
  *
  * The stream is interactive: a `message.send` command satisfies the next trainee
- * beat with the user's real text. If the user says nothing, autopilot plays the
- * scripted line so the demo drives itself on a projector.
+ * beat with the user's real text. It never generates a trainee utterance on the
+ * user's behalf.
  */
 import type {
   AgentName,
@@ -29,7 +29,7 @@ import type {
   TranscriptTurn,
 } from '@ai-coach/shared';
 
-import { MOCK_CITATIONS, MOCK_COVERAGE_CITATION } from './mock-session';
+import { MOCK_COVERAGE_CITATION } from './mock-session';
 
 /** 44-byte silent WAV so the transcript's audio replay control is real, not a dead link. */
 const SILENT_AUDIO =
@@ -39,7 +39,7 @@ export interface MockEventStreamOptions {
   sessionId: ID;
   mode?: SessionMode;
   onEvent: (event: StreamingEvent) => void;
-  /** How long to wait for the trainee before autopilot types the scripted line. */
+  /** Reserved for controlled visual demos. Production demo mode never auto-sends trainee text. */
   autopilotMs?: number;
   /** Multiplier for every delay — 0.5 halves the demo length. */
   speed?: number;
@@ -106,14 +106,6 @@ const HINT_INSIGHT: Omit<CoachInsight, 'session_id' | 'timestamp_ms'> = {
   allowed_in_assessment: false,
 };
 
-const MISSED_SIGNAL_INSIGHT: Omit<CoachInsight, 'session_id' | 'timestamp_ms'> = {
-  id: 'insight-2',
-  kind: 'missed_signal',
-  title: '客戶兩次提到「每個月又多一筆錢」',
-  body: '這是家庭現金流的焦慮，不是嫌貴。先回應財務壓力，會比介紹商品規格更有效。',
-  allowed_in_assessment: false,
-};
-
 const STRATEGY_INSIGHT: Omit<CoachInsight, 'session_id' | 'timestamp_ms'> = {
   id: 'insight-3',
   kind: 'next_strategy',
@@ -125,23 +117,9 @@ const STRATEGY_INSIGHT: Omit<CoachInsight, 'session_id' | 'timestamp_ms'> = {
 const POST_SESSION_INSIGHT: Omit<CoachInsight, 'session_id' | 'timestamp_ms'> = {
   id: 'insight-4',
   kind: 'post_session',
-  title: '本次關鍵：你自己更正了「保證」用語',
-  body: '主動更正讓信任度從 46 回到 62。下一次請直接用「宣告利率非保證、可能變動」的句型，避免先講錯再補救。',
+  title: '本次關鍵：先釐清需求，再討論預算',
+  body: '你沒有把保障說成投資回報，而是先確認家庭缺口與可接受的月預算。下一次也請持續依商品條款說明保障與費用。',
   allowed_in_assessment: true,
-};
-
-const FALSE_PROMISE_FINDING: Omit<ComplianceFinding, 'session_id' | 'timestamp_ms'> = {
-  id: 'finding-1',
-  type: 'false_promise',
-  severity: 'high',
-  transcript_turn_id: 'turn-t3',
-  evidence: '這張保單保證每年至少有 6% 的報酬，等於保費會自己長回來。',
-  policy_rule: '業務員合規行為指引 §1.2 — 不得以「保證報酬率」等文字使要保人誤信收益確定。',
-  explanation:
-    '宣告利率並非保證項目，會隨市場調整。以「保證每年至少 6%」招攬屬於不實承諾，也超出商品手冊 p.12 的說明範圍。',
-  suggested_correction:
-    '改為：「這部分是宣告利率，不是保證的，會變動；真正保證的是保障內容。」並引用商品手冊 p.12。',
-  reviewer_status: 'open',
 };
 
 const SCRIPT: Beat[] = [
@@ -339,41 +317,8 @@ const SCRIPT: Beat[] = [
     kind: 'trainee',
     turnId: 'turn-t3',
     intent: 'price_objection_handling',
-    // The deliberate over-promise that triggers the compliance layer.
     scriptedText:
-      '我理解。其實這張保單保證每年至少有 6% 的報酬，等於保費會自己長回來，不算多花錢。',
-  },
-  {
-    kind: 'emit',
-    delay: 380,
-    make: (ctx) => ({
-      seq: ctx.nextSeq(),
-      session_id: ctx.sessionId,
-      at_ms: ctx.now(),
-      type: 'agent.thinking',
-      agent: 'compliance',
-    }),
-  },
-  {
-    kind: 'emit',
-    delay: 520,
-    make: (ctx) => [
-      {
-        seq: ctx.nextSeq(),
-        session_id: ctx.sessionId,
-        at_ms: ctx.now(),
-        type: 'compliance.warning',
-        finding: { ...FALSE_PROMISE_FINDING, session_id: ctx.sessionId, timestamp_ms: ctx.now() },
-      },
-      {
-        seq: ctx.nextSeq(),
-        session_id: ctx.sessionId,
-        at_ms: ctx.now(),
-        type: 'knowledge.citation',
-        turn_id: 'turn-t3',
-        citations: MOCK_CITATIONS,
-      },
-    ],
+      '我理解多一筆固定支出會有壓力。我們先不預設要加保，而是把目前保障和家庭支出列出來；如果有缺口，再依您可接受的月預算討論選項。',
   },
   {
     kind: 'emit',
@@ -386,23 +331,16 @@ const SCRIPT: Beat[] = [
         type: 'persona.state.updated',
         state: personaState({
           scenario_phase: 'objection_handling',
-          emotion: 'frustrated',
-          trust: 46,
-          interest: 58,
-          resistance: 74,
-          patience: 52,
-          intent: 'distrust_spike',
-          current_goal: '確認這個人有沒有在誇大',
+          emotion: 'interested',
+          trust: 60,
+          interest: 66,
+          resistance: 48,
+          patience: 62,
+          intent: 'budget_exploration',
+          current_goal: '確認保障缺口和可接受的預算',
           budget: 2500,
-          compliance_risk: 'medium',
+          compliance_risk: 'low',
         }),
-      },
-      {
-        seq: ctx.nextSeq(),
-        session_id: ctx.sessionId,
-        at_ms: ctx.now(),
-        type: 'coach.insight',
-        insight: { ...MISSED_SIGNAL_INSIGHT, session_id: ctx.sessionId, timestamp_ms: ctx.now() },
       },
     ],
   },
@@ -410,16 +348,16 @@ const SCRIPT: Beat[] = [
     kind: 'persona',
     delay: 620,
     turnId: 'turn-p5',
-    intent: 'challenge_claim',
-    text: '保證 6%？我上次聽到有人這樣講，後來根本不是這樣。你確定？',
+    intent: 'budget_exploration',
+    text: '這樣聽起來比較合理。那如果真的有缺口，一個月大概會多多少？',
   },
   {
     kind: 'trainee',
     turnId: 'turn-t4',
-    intent: 'self_correction',
+    intent: 'budget_discovery',
     scoreEvent: { skill: 'trust_building', delta: 8 },
     scriptedText:
-      '我更正一下，剛剛講「保證」是不精確的：宣告利率不是保證的，會變動；真正保證的是保障內容。我更想確認的是——萬一收入中斷，孩子的教育安排會不會被迫改變？',
+      '我會先依商品條款和您現有保障試算，不會把收益當成保證來估。更想先確認的是：萬一收入中斷，孩子的教育安排會不會被迫改變？',
   },
   {
     // Arrives BEFORE turn-p6 exists — exercises the pending-citation path.
@@ -453,7 +391,7 @@ const SCRIPT: Beat[] = [
         current_goal: '確認孩子的教育不會被影響',
         budget: 2500,
         hidden_need_revealed: true,
-        compliance_risk: 'medium',
+        compliance_risk: 'low',
       }),
     }),
   },
@@ -562,7 +500,7 @@ const SCRIPT: Beat[] = [
         at_ms: ctx.now(),
         type: 'score.updated',
         skill: 'compliance',
-        score: 62,
+        score: 96,
         confidence: 0.94,
       },
     ],
@@ -627,7 +565,7 @@ function chunkText(text: string, size: number): string[] {
 }
 
 export function createMockEventStream(options: MockEventStreamOptions): MockEventStream {
-  const { sessionId, onEvent, autopilotMs = 16_000, speed = 1 } = options;
+  const { sessionId, onEvent, autopilotMs = 0, speed = 1 } = options;
 
   let seq = 0;
   let index = 0;
@@ -816,12 +754,15 @@ export function createMockEventStream(options: MockEventStreamOptions): MockEven
       return;
     }
 
-    // Trainee beat: wait for a real message, or autopilot the scripted line.
+    // Trainee beat: only an explicit user message can create a trainee turn.
     awaitingTrainee = beat;
-    later(autopilotMs, () => {
-      if (awaitingTrainee !== beat) return;
-      playTrainee(beat, beat.scriptedText, true);
-    });
+    if (autopilotMs && autopilotMs > 0) {
+      // This is opt-in for controlled visual fixtures only. The app never sets it.
+      later(autopilotMs, () => {
+        if (awaitingTrainee !== beat) return;
+        playTrainee(beat, beat.scriptedText, true);
+      });
+    }
   }
 
   const clearTimers = (): void => {

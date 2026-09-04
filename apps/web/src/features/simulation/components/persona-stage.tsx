@@ -12,11 +12,13 @@
  * warm and slightly lifted rather than crushed (§42.2).
  */
 import type { ReactNode } from 'react';
+import type { PersonaSimulationState } from '@ai-coach/shared';
 
+import { AvatarStage } from '@/features/avatar';
 import { auroraGlow, tint, toneText } from '../lib/tone';
 import { LiveDot } from './atoms';
 import { ChevronRightIcon, MicIcon, SparkleIcon } from './icons';
-import { cn, PersonaAvatar } from './kit';
+import { cn } from './kit';
 
 export interface PersonaStageProps {
   personaName: string;
@@ -30,6 +32,16 @@ export interface PersonaStageProps {
   onOpenProfile?: () => void;
   /** Waveform slot — filled on the voice page (§24). */
   waveform?: ReactNode;
+  /**
+   * Live persona state. The Avatar Runtime drives expression from this (§8/§13);
+   * when the runtime is absent it still drives the fallback's expression, so the
+   * card reacts to the conversation either way.
+   */
+  personaState?: PersonaSimulationState | null;
+  /** Training session id — the avatar runtime session is scoped to it. */
+  sessionId?: string;
+  /** Timestamp of the last trainee barge-in — each increase fires §44 interrupt. */
+  bargeInAtMs?: number;
   className?: string;
 }
 
@@ -43,6 +55,9 @@ export function PersonaStage({
   thinking,
   onOpenProfile,
   waveform,
+  personaState = null,
+  sessionId,
+  bargeInAtMs = 0,
   className,
 }: PersonaStageProps) {
   return (
@@ -56,21 +71,25 @@ export function PersonaStage({
 
       <div className="glass-card sim-portrait relative overflow-hidden p-0">
         <div className="relative aspect-[4/3] w-full">
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- feature-local
-            <img
-              src={avatarUrl}
-              alt={`${personaName} — simulated customer portrait`}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div
-              className="dot-matrix flex h-full w-full items-center justify-center"
-              style={{ background: auroraGlow(0.8) }}
-            >
-              <PersonaAvatar name={personaName} size="xl" speaking={speaking} />
-            </div>
-          )}
+          {/*
+            The virtual human itself (`features/avatar`). It picks its own
+            surface: live frames from the local Avatar Runtime when one is
+            running, and the §53 portrait fallback — breathing, blinking and
+            expression-driven — when there is not. The card, its gradient, the
+            name plate and the status chip below are unchanged: this is a swap of
+            the inner visual only.
+          */}
+          <AvatarStage
+            personaName={personaName}
+            {...(avatarUrl === undefined ? {} : { portraitUrl: avatarUrl })}
+            {...(sessionId === undefined ? {} : { sessionId })}
+            personaState={personaState}
+            speaking={speaking}
+            listening={listening}
+            thinking={thinking}
+            bargeInAtMs={bargeInAtMs}
+            surface="bare"
+          />
 
           {/* §20.1 top gradient overlay so the name stays legible on any portrait. */}
           <div

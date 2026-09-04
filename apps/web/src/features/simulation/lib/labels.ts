@@ -19,17 +19,9 @@ import type { ToneKey } from './tone';
 
 /** §23 session states — user-facing wording (`Live`, `Thinking`) over raw enum names. */
 export const SESSION_STATE_LABEL: Record<SessionState, string> = {
-  idle: 'Ready to start',
-  connecting: 'Connecting',
-  ready: 'Live',
-  listening: 'Listening',
-  transcribing: 'Transcribing',
-  processing: 'Thinking',
-  persona_speaking: 'Speaking',
-  paused: 'Paused',
-  reconnecting: 'Reconnecting',
-  completed: 'Completed',
-  error: 'Error',
+  idle: '準備開始', connecting: '連線中', ready: '進行中', listening: '聆聽中',
+  transcribing: '轉錄中', processing: '思考中', persona_speaking: '對方說話中',
+  paused: '已暫停', reconnecting: '重新連線中', completed: '已完成', error: '發生錯誤',
 };
 
 export const SESSION_STATE_TONE: Record<SessionState, ToneKey> = {
@@ -48,13 +40,8 @@ export const SESSION_STATE_TONE: Record<SessionState, ToneKey> = {
 
 /** §31 / §40 — simulated persona emotion, never inferred from a real face or voice. */
 export const EMOTION_LABEL: Record<PersonaEmotion, string> = {
-  neutral: 'Neutral',
-  curious: 'Curious',
-  skeptical: 'Skeptical',
-  frustrated: 'Frustrated',
-  interested: 'Interested',
-  reassured: 'Reassured',
-  ready: 'Ready',
+  neutral: '平靜', curious: '好奇', skeptical: '懷疑', frustrated: '挫折',
+  interested: '有興趣', reassured: '安心', ready: '準備好',
 };
 
 export const EMOTION_TONE: Record<PersonaEmotion, ToneKey> = {
@@ -79,12 +66,8 @@ export const EMOTION_LADDER: readonly PersonaEmotion[] = [
 ];
 
 export const PHASE_LABEL: Record<ScenarioPhase, string> = {
-  opening: 'Opening',
-  needs_discovery: 'Needs Discovery',
-  presentation: 'Presentation',
-  objection_handling: 'Objection Handling',
-  closing: 'Closing',
-  ended: 'Ended',
+  opening: '開場', needs_discovery: '需求探索', presentation: '說明方案',
+  objection_handling: '異議處理', closing: '收尾', ended: '已結束',
 };
 
 export const PHASE_ORDER: readonly ScenarioPhase[] = [
@@ -97,11 +80,7 @@ export const PHASE_ORDER: readonly ScenarioPhase[] = [
 ];
 
 export const COMPLIANCE_RISK_LABEL: Record<ComplianceRisk, string> = {
-  safe: 'Safe',
-  low: 'Low risk',
-  medium: 'Medium risk',
-  high: 'High risk',
-  critical: 'Critical risk',
+  safe: '安全', low: '低風險', medium: '中風險', high: '高風險', critical: '重大風險',
 };
 
 export const COMPLIANCE_RISK_TONE: Record<ComplianceRisk, ToneKey> = {
@@ -113,22 +92,13 @@ export const COMPLIANCE_RISK_TONE: Record<ComplianceRisk, ToneKey> = {
 };
 
 export const COMPLIANCE_TYPE_LABEL: Record<ComplianceFindingType, string> = {
-  false_promise: 'False Promise',
-  misleading_statement: 'Misleading Statement',
-  unsupported_claim: 'Unsupported Claim',
-  privacy_issue: 'Privacy Issue',
-  unauthorized_advice: 'Unauthorized Advice',
-  sensitive_information: 'Sensitive Information',
-  missing_disclosure: 'Missing Disclosure',
-  prompt_injection: 'Prompt Injection',
-  restricted_topic: 'Restricted Topic',
+  false_promise: '不實承諾', misleading_statement: '誤導性陳述', unsupported_claim: '無佐證主張',
+  privacy_issue: '隱私問題', unauthorized_advice: '未授權建議', sensitive_information: '敏感資訊',
+  missing_disclosure: '缺少揭露', prompt_injection: '提示注入', restricted_topic: '受限制主題',
 };
 
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
-  easy: 'Easy',
-  medium: 'Medium',
-  hard: 'Hard',
-  expert: 'Expert',
+  easy: '初階', medium: '中階', hard: '進階', expert: '專家',
 };
 
 export const DIFFICULTY_TONE: Record<Difficulty, ToneKey> = {
@@ -140,44 +110,22 @@ export const DIFFICULTY_TONE: Record<Difficulty, ToneKey> = {
 
 /** §19 multi-agent names — one tasteful line, never an engineering dump (§93). */
 export const AGENT_LABEL: Record<AgentName, string> = {
-  orchestrator: 'Coordinating the session',
-  scenario_director: 'Adjusting the scenario',
-  customer: 'The customer is thinking',
-  coach: 'Coach is reviewing your reply',
-  knowledge: 'Looking up approved material',
-  evaluator: 'Scoring this turn',
-  compliance: 'Checking compliance',
+  orchestrator: '正在協調對話', scenario_director: '正在調整情境', customer: '客戶正在思考',
+  coach: '教練正在檢視回覆', knowledge: '正在查找核准資料', evaluator: '正在評量此回合', compliance: '正在檢查合規性',
 };
 
 export const SKILL_LABEL: Record<SkillKey, string> = {
-  professional_knowledge: 'Professional Knowledge',
-  empathy: 'Empathy',
-  needs_discovery: 'Needs Discovery',
-  communication_clarity: 'Communication Clarity',
-  objection_handling: 'Objection Handling',
-  trust_building: 'Trust Building',
-  product_knowledge: 'Product Knowledge',
-  compliance: 'Compliance',
-  closing_ability: 'Closing Ability',
-  goal_achievement: 'Goal Achievement',
+  professional_knowledge: '專業知識', empathy: '同理心', needs_discovery: '需求探索',
+  communication_clarity: '表達清晰度', objection_handling: '異議處理', trust_building: '信任建立',
+  product_knowledge: '產品知識', compliance: '合規', closing_ability: '締結能力', goal_achievement: '目標達成',
 };
 
 export const SPEAKER_LABEL: Record<SpeakerKind, string> = {
-  trainee: 'You',
-  persona: 'Customer',
-  coach: 'AI Coach',
-  system: 'System',
-  compliance: 'Compliance',
-  knowledge: 'Knowledge',
+  trainee: '你', persona: '客戶', coach: 'AI 教練', system: '系統', compliance: '合規', knowledge: '知識庫',
 };
 
 export const SPEAKER_ROLE_TAG: Record<SpeakerKind, string> = {
-  trainee: 'Trainee',
-  persona: 'Customer',
-  coach: 'Coach',
-  system: 'System',
-  compliance: 'Compliance',
-  knowledge: 'Source',
+  trainee: '學員', persona: '客戶', coach: '教練', system: '系統', compliance: '合規', knowledge: '來源',
 };
 
 export const SPEAKER_TONE: Record<SpeakerKind, ToneKey> = {
@@ -190,10 +138,7 @@ export const SPEAKER_TONE: Record<SpeakerKind, ToneKey> = {
 };
 
 export const COACH_KIND_LABEL: Record<'hint' | 'missed_signal' | 'next_strategy' | 'post_session', string> = {
-  hint: 'Hint',
-  missed_signal: 'Missed signal',
-  next_strategy: 'Next strategy',
-  post_session: 'Post-session note',
+  hint: '提示', missed_signal: '錯過的訊號', next_strategy: '下一步策略', post_session: '練習後建議',
 };
 
 export const COACH_KIND_TONE: Record<'hint' | 'missed_signal' | 'next_strategy' | 'post_session', ToneKey> = {
@@ -205,22 +150,15 @@ export const COACH_KIND_TONE: Record<'hint' | 'missed_signal' | 'next_strategy' 
 
 export const RUNTIME_BADGE: Record<'webgpu' | 'wasm' | 'server', { label: string; sub: string; tone: ToneKey }> = {
   // §15: show the acceleration tier, never the GPU model.
-  webgpu: { label: 'GPU Accelerated', sub: 'WebGPU', tone: 'mint' },
-  wasm: { label: 'WASM Mode', sub: 'Local CPU', tone: 'blue' },
-  server: { label: 'Server Mode', sub: 'Server inference', tone: 'indigo' },
+  webgpu: { label: 'GPU 加速', sub: 'WebGPU', tone: 'mint' },
+  wasm: { label: 'WASM 模式', sub: '本機 CPU', tone: 'blue' },
+  server: { label: '伺服器模式', sub: '伺服器推論', tone: 'indigo' },
 };
 
 export const VOICE_STATUS_LABEL: Record<
   'idle' | 'connecting' | 'listening' | 'transcribing' | 'thinking' | 'speaking' | 'interrupted' | 'reconnecting' | 'ended',
   string
 > = {
-  idle: 'Ready',
-  connecting: 'Connecting',
-  listening: 'Listening',
-  transcribing: 'Transcribing',
-  thinking: 'Thinking',
-  speaking: 'Speaking',
-  interrupted: 'Interrupted',
-  reconnecting: 'Reconnecting',
-  ended: 'Call ended',
+  idle: '準備完成', connecting: '連線中', listening: '聆聽中', transcribing: '轉錄中',
+  thinking: '思考中', speaking: '說話中', interrupted: '已中斷', reconnecting: '重新連線中', ended: '通話已結束',
 };

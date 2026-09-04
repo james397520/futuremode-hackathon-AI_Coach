@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-/** §12 — `/` is not a page; the shell starts at the dashboard. */
+/** `/` begins with selecting an authorised work identity. */
 export default function RootPage() {
-  redirect('/dashboard');
+  redirect('/role-select');
 }

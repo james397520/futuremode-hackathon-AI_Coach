@@ -209,16 +209,15 @@ after a major incident:
 
 ```text
 opening → needs discovery → main price objection
-  → compliance warning triggered by an over-promise ("保證每年至少 6%")
-  → self-correction → hidden-need reveal → trust 74 (> 70) → closing
+  → budget discussion → hidden-need reveal → trust 74 (> 70) → closing
   → session.completed
 ```
 
 It also exercises the awkward paths on purpose: partial-then-final text for both
 ASR and LLM output, a `knowledge.citation` that arrives *before* its transcript
-turn, and a mid-session `runtime.fallback`. The stream is interactive — typing a
-message satisfies the next trainee beat with your real text; if you type nothing
-for ~16s, autopilot plays the scripted line so the demo drives itself.
+turn, and a mid-session `runtime.fallback`. The stream is interactive — only an
+explicitly typed message satisfies the next trainee beat. Demo mode never creates
+a trainee response on the user's behalf.
 
 ---
 

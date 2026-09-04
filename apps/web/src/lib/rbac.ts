@@ -141,9 +141,9 @@ export function permissionsForRoles(roles: readonly Role[]): Set<Permission> {
 }
 
 export const ROLE_LABEL: Record<Role, string> = {
-  trainee: 'Trainee',
-  coach: 'Coach',
-  manager: 'Manager',
-  admin: 'Admin',
-  reviewer: 'Compliance Reviewer',
+  trainee: '學員',
+  coach: '教練',
+  manager: '主管',
+  admin: '管理者',
+  reviewer: '合規審查者',
 };

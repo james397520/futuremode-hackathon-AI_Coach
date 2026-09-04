@@ -10,7 +10,7 @@ import { ThemeToggle } from '@/components/theme';
 import { useAuth } from '@/lib/auth-context';
 import { ROLE_LABEL } from '@/lib/rbac';
 import { cn, initials } from '@/lib/utils';
-import { NAV_ITEMS, isNavItemActive } from './nav';
+import { NAV_ITEMS, ROLE_NAV_IDS, isNavItemActive } from './nav';
 
 const RAIL_PIN_KEY = 'ai-coach:rail-pinned';
 
@@ -26,7 +26,7 @@ const RAIL_PIN_KEY = 'ai-coach:rail-pinned';
  */
 export function IconRail() {
   const pathname = usePathname();
-  const { user, can, signOut } = useAuth();
+  const { user, activeRole, can, signOut } = useAuth();
   const [pinned, setPinned] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focusWithin, setFocusWithin] = useState(false);
@@ -54,7 +54,8 @@ export function IconRail() {
   }, []);
 
   const expanded = pinned || hovered || focusWithin;
-  const items = NAV_ITEMS.filter((item) => can(item.permission));
+  const visibleIds = activeRole ? ROLE_NAV_IDS[activeRole] : [];
+  const items = NAV_ITEMS.filter((item) => visibleIds.includes(item.id) && can(item.permission));
 
   return (
     <nav
@@ -78,7 +79,7 @@ export function IconRail() {
       }}
     >
       <h2 id={navLabelId} className="sr-only-live">
-        Primary navigation
+        主要導覽
       </h2>
 
       {/* Logo / pin toggle — §11 "click logo → expand". */}
@@ -95,7 +96,7 @@ export function IconRail() {
         {expanded ? (
           <div className="min-w-0 flex-1">
             <p className="truncate text-body-sm font-semibold">AI Coach</p>
-            <p className="truncate text-tiny text-text-tertiary">Enterprise workspace</p>
+            <p className="truncate text-tiny text-text-tertiary">企業訓練工作區</p>
           </div>
         ) : null}
         {expanded ? (
@@ -148,11 +149,11 @@ export function IconRail() {
         {expanded ? (
           <Link href="/settings" className="rail-item justify-start">
             <HelpCircle size={18} strokeWidth={1.6} aria-hidden />
-            <span className="text-body-sm">Help & shortcuts</span>
+            <span className="text-body-sm">說明與快速鍵</span>
           </Link>
         ) : (
-          <Tooltip content="Help & shortcuts (⌘/)" side="right">
-            <Link href="/settings" className="rail-item justify-center" aria-label="Help and shortcuts">
+          <Tooltip content="說明與快速鍵（⌘/）" side="right">
+            <Link href="/settings" className="rail-item justify-center" aria-label="說明與快速鍵">
               <HelpCircle size={18} strokeWidth={1.6} aria-hidden />
             </Link>
           </Tooltip>
@@ -225,10 +226,13 @@ function UserMenu({
             <p className="truncate text-tiny text-text-tertiary">{roleLabel || 'No role assigned'}</p>
           </div>
           <Link role="menuitem" href="/settings/profile" className="rail-item w-full justify-start px-2 text-body-sm">
-            Profile & preferences
+            個人資料與偏好設定
           </Link>
           <Link role="menuitem" href="/workspace-select" className="rail-item w-full justify-start px-2 text-body-sm">
-            Switch workspace
+            切換工作區
+          </Link>
+          <Link role="menuitem" href="/role-select" className="rail-item w-full justify-start px-2 text-body-sm">
+            切換身份
           </Link>
           <button
             role="menuitem"
@@ -237,7 +241,7 @@ function UserMenu({
             className="rail-item w-full justify-start px-2 text-body-sm text-state-danger"
           >
             <LogOut size={16} strokeWidth={1.7} aria-hidden />
-            Sign out
+            登出
           </button>
         </div>
       ) : null}

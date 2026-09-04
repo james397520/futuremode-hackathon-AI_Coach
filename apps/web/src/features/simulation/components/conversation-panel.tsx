@@ -97,16 +97,16 @@ function TranscriptHeader({
   const live = isLive(status);
   return (
     <div className="flex flex-wrap items-center gap-3 px-1.5 pb-3">
-      <h2 className="text-section text-text-primary">Conversation</h2>
+      <h2 className="text-section text-text-primary">對談</h2>
       {live ? (
         <span className="text-tiny uppercase tracking-[0.14em]" style={{ color: toneText('mint') }}>
-          Live
+          進行中
         </span>
       ) : null}
 
       <GradientPill className="ml-auto flex items-center gap-1.5 px-3 py-1 text-tiny">
         <SparkleIcon size={11} />
-        {live ? `AI Persona connected · ${personaName}` : 'AI Persona standing by'}
+        {live ? `AI 客戶已連線 · ${personaName}` : 'AI 客戶待命中'}
       </GradientPill>
 
       {language ? (

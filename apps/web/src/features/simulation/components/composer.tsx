@@ -41,13 +41,13 @@ export interface ComposerProps {
 }
 
 const BLOCK_REASON: Partial<Record<SessionState, string>> = {
-  idle: 'Waiting for the session to start.',
-  connecting: 'Connecting to the session…',
-  persona_speaking: 'The customer is speaking — start talking to interrupt, or wait for them to finish.',
-  paused: 'Session paused. Resume to continue the conversation.',
-  reconnecting: 'Reconnecting — your last message will be sent once the connection is back.',
-  completed: 'This session has ended.',
-  error: 'The session hit an error. Resume or restart to continue.',
+  idle: '正在準備練習。',
+  connecting: '正在連線…',
+  persona_speaking: '客戶正在說話，請等他說完後再回覆。',
+  paused: '練習已暫停，繼續後即可輸入。',
+  reconnecting: '正在重新連線，連線完成後即可繼續。',
+  completed: '本次練習已結束。',
+  error: '練習發生問題，請繼續或重新開始。',
 };
 
 export function Composer({
@@ -134,12 +134,27 @@ export function Composer({
         className="glass-strong flex items-end gap-2 rounded-card border p-2.5 shadow-soft"
         style={{ borderColor: tint('neutral', 18) }}
       >
+        <div className="min-w-0 flex-1">
+          <Textarea
+            value={value}
+            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setValue(event.target.value)}
+            onKeyDown={onKeyDown}
+            disabled={blocked}
+            rows={1}
+            maxLength={MAX_CHARS + 200}
+            aria-label="你的回覆"
+            aria-describedby="composer-hints"
+            placeholder={blocked ? (reason ?? '') : '輸入你的回覆…'}
+            className="sim-scroll max-h-32 min-h-[40px] w-full resize-none border-0 bg-transparent px-1 py-2 text-body text-text-primary placeholder:text-text-tertiary focus:outline-none disabled:cursor-not-allowed"
+          />
+        </div>
+
         {voiceEnabled ? (
           <button
             type="button"
             onClick={onToggleMic}
             aria-pressed={micLive && !muted}
-            aria-label={micLive && !muted ? 'Mute microphone' : 'Unmute microphone'}
+            aria-label={micLive && !muted ? '靜音麥克風' : '啟用麥克風'}
             className="sim-focusable sim-lift flex h-10 w-10 shrink-0 items-center justify-center rounded-input border"
             style={insetSurface(vadActive ? 'mint' : micLive && !muted ? 'blue' : 'neutral', 14)}
           >
@@ -151,27 +166,12 @@ export function Composer({
           </button>
         ) : null}
 
-        <div className="min-w-0 flex-1">
-          <Textarea
-            value={value}
-            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setValue(event.target.value)}
-            onKeyDown={onKeyDown}
-            disabled={blocked}
-            rows={1}
-            maxLength={MAX_CHARS + 200}
-            aria-label="Your reply"
-            aria-describedby="composer-hints"
-            placeholder={blocked ? (reason ?? '') : 'Ask or respond naturally…'}
-            className="sim-scroll max-h-32 min-h-[40px] w-full resize-none border-0 bg-transparent px-1 py-2 text-body text-text-primary placeholder:text-text-tertiary focus:outline-none disabled:cursor-not-allowed"
-          />
-        </div>
-
         {onRequestHint ? (
           <button
             type="button"
             onClick={onRequestHint}
             disabled={blocked}
-            aria-label="Ask the coach for a hint"
+          aria-label="向教練詢問提示"
             className="sim-focusable sim-lift flex h-10 w-10 shrink-0 items-center justify-center rounded-input border disabled:opacity-50"
             style={insetSurface('violet', 13)}
           >
@@ -190,7 +190,7 @@ export function Composer({
           }}
         >
           <SendIcon size={16} />
-          Send
+          送出
         </button>
       </div>
 
@@ -201,10 +201,10 @@ export function Composer({
         {pttHeld ? (
           <span className="flex items-center gap-1.5" style={{ color: toneText('mint') }}>
             <LiveDot tone="mint" pulsing />
-            Listening — release space to send
+            正在聆聽，放開空白鍵即可送出
           </span>
         ) : (
-          <span>{voiceEnabled ? 'Hold space to talk · Enter to send · Shift+Enter for a new line' : 'Enter to send · Shift+Enter for a new line'}</span>
+          <span>{voiceEnabled ? '按住空白鍵說話 · Enter 送出 · Shift + Enter 換行' : 'Enter 送出 · Shift + Enter 換行'}</span>
         )}
         <span className="tabular-nums">{turnHint}</span>
         <span className={cn('tabular-nums', overLimit && 'font-semibold')} style={overLimit ? { color: toneText('danger') } : undefined}>

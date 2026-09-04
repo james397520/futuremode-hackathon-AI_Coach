@@ -20,10 +20,10 @@ export function WorkspaceSelectPage() {
 
   return (
     <GlassCard tone="strong" className="p-8">
-      <h1 className="text-section">Choose a workspace</h1>
+      <h1 className="text-section">選擇工作區</h1>
       <p className="mt-1.5 text-body-sm text-text-secondary">
-        {user ? `Signed in as ${user.display_name}. ` : ''}
-        Knowledge bases, personas and reports are isolated per workspace.
+        {user ? `已登入：${user.display_name}。` : ''}
+        知識庫、模擬人物與報表會依工作區隔離。
       </p>
 
       <ul className="mt-6 space-y-2">
@@ -35,7 +35,7 @@ export function WorkspaceSelectPage() {
                 type="button"
                 onClick={() => {
                   selectWorkspace(option.id);
-                  router.push('/dashboard');
+                  router.push('/role-select');
                 }}
                 className={cn(
                   'flex w-full items-center gap-3 rounded-card-sm border border-border-soft px-4 py-3.5 text-left',
@@ -53,8 +53,8 @@ export function WorkspaceSelectPage() {
                   <span className="block truncate text-body font-medium">{option.name}</span>
                   <span className="block text-tiny text-text-tertiary">
                     {isB2c
-                      ? 'Personal practice space — no access to enterprise knowledge bases'
-                      : 'Enterprise workspace · shared knowledge, rubrics and reporting'}
+                      ? '個人練習空間，不可存取企業知識庫'
+                      : '企業工作區，共用知識、評分規準與報表'}
                   </span>
                 </span>
                 <ChevronRight size={16} strokeWidth={1.8} aria-hidden className="shrink-0 text-text-tertiary" />
@@ -65,7 +65,7 @@ export function WorkspaceSelectPage() {
       </ul>
 
       <Button variant="ghost" size="sm" className="mt-6" onClick={() => router.push('/login')}>
-        Sign in as someone else
+        使用其他帳號登入
       </Button>
     </GlassCard>
   );

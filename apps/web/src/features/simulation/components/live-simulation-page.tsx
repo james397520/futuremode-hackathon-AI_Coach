@@ -127,6 +127,9 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
 
   // ---- Voice + socket, cross-wired through refs to avoid a hook cycle ------
 
+  /** Rises on every trainee interruption; the avatar stage interrupts on change. */
+  const [bargeInAtMs, setBargeInAtMs] = useState(0);
+
   const socketRef = useRef<ReturnType<typeof useSessionSocket> | null>(null);
   const voiceRef = useRef<ReturnType<typeof useVoiceSession> | null>(null);
 
@@ -138,6 +141,9 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
       // §22.3 — the trainee took the floor: TTS is already cancelled inside the
       // hook; tell the server the floor changed hands.
       socketRef.current?.pushToTalk(true);
+      // §44 — the avatar must stop mid-word too: cancel TTS, flush stale frames,
+      // close the mouth. The persona stage watches this timestamp.
+      setBargeInAtMs(Date.now());
       pushNotice(`barge-${Date.now()}`, 'You interrupted the customer — the simulation is listening.');
     },
     onSilenceTimeout: () => {
@@ -350,7 +356,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
     <>
       <SimulationStyles />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="flex h-full min-h-0 flex-1 flex-col gap-4 overflow-hidden">
         <SessionHeader
           scenarioName={bootstrap.scenario.name}
           personaName={bootstrap.persona.name}
@@ -398,6 +404,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
         ) : null}
 
         <TrainingGrid
+          className="min-h-0 flex-1 overflow-hidden"
           left={
             finished ? (
               <SessionCompleteSummary
@@ -417,7 +424,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
               />
             ) : (
               <ConversationPanel
-                className="min-h-[26rem] flex-1"
+                className="h-full min-h-0 flex-1"
                 sessionId={sessionId}
                 mode={mode}
                 status={status}
@@ -460,8 +467,10 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
           }
           right={
             <PersonaColumn
-              className="max-h-full"
+              className="h-full max-h-full"
               mode={mode}
+              sessionId={sessionId}
+              bargeInAtMs={bargeInAtMs}
               scenarioName={bootstrap.scenario.name}
               category={bootstrap.scenario.category}
               industry={bootstrap.scenario.industry}

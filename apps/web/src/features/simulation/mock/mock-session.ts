@@ -140,19 +140,18 @@ const MOCK_SKILLS: SkillScore[] = [
   },
   {
     skill: 'compliance',
-    score: 62,
+    score: 96,
     confidence: 0.94,
-    rubric_note: '一次「保證報酬」用語，已於同一輪內自行更正。',
+    rubric_note: '全程依商品條款說明保障與費用，未做保證收益承諾。',
     evidence: [
       {
         timestamp_ms: 168_000,
         transcript_turn_ids: ['turn-t3'],
-        quote: '這張保單保證每年至少有 6% 的報酬。',
-        issue: '對非保證項目做出保證性陳述（False Promise）。',
-        better_approach: '說明「宣告利率非保證、可能變動」，並引用商品手冊 p.12。',
+        quote: '我會先依商品條款和您現有保障試算，不會把收益當成保證來估。',
+        better_approach: '持續引用商品條款，並清楚區分保障內容與非保證項目。',
       },
     ],
-    improvement_suggestion: '談收益時固定使用「非保證、可能變動」的句型。',
+    improvement_suggestion: '談收益時持續使用「非保證、可能變動」的句型。',
   },
   {
     skill: 'objection_handling',

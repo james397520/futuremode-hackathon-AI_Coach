@@ -37,7 +37,7 @@ export const MOCK_CURRENT_USER: User & { theme_preference?: 'light' | 'dark' | '
   ...SCOPE,
   email: 'lin.yuchen@hexagon-life.example',
   display_name: 'Lin Yu-Chen',
-  roles: ['coach', 'manager', 'admin'],
+  roles: ['trainee', 'coach', 'manager', 'admin'],
   team_ids: ['team_taipei_north'],
   created_at: daysAgo(400),
   updated_at: NOW_ISO,

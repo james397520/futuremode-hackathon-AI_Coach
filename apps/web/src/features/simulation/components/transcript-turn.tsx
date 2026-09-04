@@ -16,18 +16,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { CoachInsight, ComplianceFinding, TranscriptTurn } from '@ai-coach/shared';
 
-import { formatClock, humaniseSlug } from '../lib/format';
+import { formatClock } from '../lib/format';
 import {
   COACH_KIND_LABEL,
-  EMOTION_LABEL,
-  PHASE_LABEL,
-  SKILL_LABEL,
   SPEAKER_LABEL,
   SPEAKER_ROLE_TAG,
   SPEAKER_TONE,
 } from '../lib/labels';
 import { insetSurface, tint, toneText, type ToneKey } from '../lib/tone';
-import { TonePill } from './atoms';
 import { CitationList } from './citation-chip';
 import { ComplianceAlert } from './compliance-alert';
 import { AlertIcon, BookIcon, LightbulbIcon, PauseIcon, PlayIcon, SparkleIcon } from './icons';
@@ -172,35 +168,6 @@ function Gutter({
 
 // ---------------------------------------------------------------------------
 
-function StateChangeMarker({ turn }: { turn: TranscriptTurn }) {
-  const delta = turn.state_delta;
-  if (!delta) return null;
-  const bits: string[] = [];
-  if (delta.emotion) bits.push(EMOTION_LABEL[delta.emotion] ?? delta.emotion);
-  if (delta.scenario_phase) bits.push(PHASE_LABEL[delta.scenario_phase] ?? delta.scenario_phase);
-  if (delta.hidden_need_revealed) bits.push('Hidden need revealed');
-  if (bits.length === 0) return null;
-  return (
-    <TonePill tone="violet" fill={13} title="Simulated persona state change">
-      {bits.join(' · ')}
-    </TonePill>
-  );
-}
-
-function ScoreEventPill({ turn }: { turn: TranscriptTurn }) {
-  const event = turn.score_event;
-  if (!event) return null;
-  const positive = event.delta >= 0;
-  return (
-    <TonePill tone={positive ? 'mint' : 'warning'} fill={14}>
-      {SKILL_LABEL[event.skill] ?? event.skill} {positive ? '+' : ''}
-      {Math.round(event.delta)}
-    </TonePill>
-  );
-}
-
-// ---------------------------------------------------------------------------
-
 export function TranscriptTurnRow({
   item,
   startedAtMs,
@@ -232,25 +199,23 @@ export function TranscriptTurnRow({
   const body = streaming ? (streamingText ?? '') : turn.text;
   const citations = turn.citations ?? [];
 
-  // §17: Coach rows are a light violet glass inset; persona rows get the
-  // faintest wash so the eye can group them; trainee rows stay on the surface.
+  // Keep the conversation as one continuous document. Coach guidance receives
+  // only a subtle tint; individual speech turns are deliberately not cards.
   const rowStyle =
     turn.speaker === 'coach'
-      ? insetSurface('violet', 10)
-      : turn.speaker === 'persona'
-        ? insetSurface('indigo', 5)
-        : turn.speaker === 'system'
-          ? insetSurface('neutral', 6)
-          : undefined;
+      ? insetSurface('violet', 5)
+      : turn.speaker === 'system'
+        ? insetSurface('neutral', 4)
+        : undefined;
 
   return (
     <li
       className={cn(
-        'sim-card-enter list-none rounded-card px-3.5 py-3',
-        rowStyle ? 'border' : 'border border-transparent',
+        'sim-card-enter list-none border-b px-2 py-3.5 last:border-b-0',
+        rowStyle ? 'rounded-input border-x' : '',
         className,
       )}
-      style={rowStyle}
+      style={{ ...rowStyle, borderColor: tint('neutral', 12) }}
     >
       <div className="flex gap-3">
         <div className="shrink-0 pt-0.5">
@@ -271,14 +236,7 @@ export function TranscriptTurnRow({
             </span>
             <span className="text-tiny tabular-nums text-text-tertiary">· {timecode}</span>
 
-            <span className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
-              {turn.intent ? (
-                <TonePill tone="blue" fill={12} title="Detected intent">
-                  {humaniseSlug(turn.intent)}
-                </TonePill>
-              ) : null}
-              <StateChangeMarker turn={turn} />
-              <ScoreEventPill turn={turn} />
+            <span className="ml-auto flex items-center justify-end gap-1.5">
               {turn.audio_url && !streaming ? (
                 <AudioReplay url={turn.audio_url} label={`${displayName} at ${timecode}`} />
               ) : null}

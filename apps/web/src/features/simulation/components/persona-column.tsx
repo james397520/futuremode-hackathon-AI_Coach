@@ -33,6 +33,11 @@ import { StateTimeline } from './state-timeline';
 export interface PersonaColumnProps {
   mode: SessionMode;
 
+  /** Training session id — scopes the Avatar Runtime session on the persona stage. */
+  sessionId?: string;
+  /** Timestamp of the last trainee barge-in; each increase interrupts the avatar (§44). */
+  bargeInAtMs?: number;
+
   scenarioName: string;
   category?: string;
   industry?: string;
@@ -78,6 +83,8 @@ export interface PersonaColumnProps {
 export function PersonaColumn(props: PersonaColumnProps) {
   const {
     mode,
+    sessionId,
+    bargeInAtMs,
     scenarioName,
     category,
     industry,
@@ -115,7 +122,7 @@ export function PersonaColumn(props: PersonaColumnProps) {
 
   return (
     <aside
-      className={cn('sim-scroll grid content-start gap-4 overflow-y-auto pb-4 pr-1', className)}
+      className={cn('sim-scroll grid h-full min-h-0 content-start gap-4 overflow-y-auto pb-4 pr-1', className)}
       aria-label="AI persona"
     >
       <ScenarioCard
@@ -138,6 +145,10 @@ export function PersonaColumn(props: PersonaColumnProps) {
         thinking={thinking}
         waveform={waveform}
         onOpenProfile={onOpenProfile}
+        // The avatar reads the same persona state the cards below render (§20).
+        personaState={personaState}
+        sessionId={sessionId}
+        bargeInAtMs={bargeInAtMs}
       />
 
       <PersonaObjectiveCard

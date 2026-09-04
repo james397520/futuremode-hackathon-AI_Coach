@@ -207,10 +207,10 @@ export function TranscriptFeed({
       >
         {items.length === 0 ? (
           <div className="dot-matrix mx-1.5 mt-2 rounded-card border border-border-soft p-6">
-            <p className="text-card-title text-text-primary">The session is about to begin</p>
+            <p className="text-card-title text-text-primary">對談即將開始</p>
             <p className="mt-2 max-w-prose text-body text-text-secondary">
               {openingContext ??
-                'The AI persona will open the conversation. Respond naturally — you can type or use the microphone.'}
+                'AI 客戶會先開場。請自然回覆；你可以直接打字，或選擇使用麥克風。'}
             </p>
           </div>
         ) : null}
@@ -247,7 +247,7 @@ export function TranscriptFeed({
         {status === 'processing' && streamingItems.length === 0 ? (
           <p className="mt-2 flex items-center gap-2 px-3.5 text-meta text-text-tertiary">
             <LiveDot tone="indigo" pulsing />
-            {personaName} is thinking…
+            {personaName} 正在思考…
           </p>
         ) : null}
       </div>
@@ -264,7 +264,7 @@ export function TranscriptFeed({
           }}
         >
           <ArrowDownIcon size={13} />
-          {hasUnseen ? 'New messages' : 'Jump to latest'}
+          {hasUnseen ? '查看新訊息' : '回到最新訊息'}
         </button>
       ) : null}
     </div>

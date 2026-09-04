@@ -39,12 +39,12 @@ export function SimulationLibraryPage() {
   return (
     <div className="space-y-5 pb-4">
       <PageHeader
-        title="Simulations"
-        description="Pick a scenario to practise against a live persona. Every session is version-pinned so its report stays reproducible."
+        title="模擬練習"
+        description="選擇情境，與 AI 模擬人物進行練習。每次對話會固定版本，確保報告可重現。"
         actions={
           canBuild ? (
             <Button variant="secondary" size="sm" asChild>
-              <Link href="/scenarios">Manage scenarios</Link>
+              <Link href="/scenarios">管理訓練情境</Link>
             </Button>
           ) : null
         }
@@ -55,10 +55,10 @@ export function SimulationLibraryPage() {
           value={filter}
           onValueChange={(value: string) => setFilter(value as Filter)}
           items={[
-            { value: 'all', label: 'All', count: MOCK_SCENARIOS.length },
-            { value: 'training', label: 'Training' },
-            { value: 'assessment', label: 'Assessment' },
-            { value: 'draft', label: 'Not published' },
+            { value: 'all', label: '全部', count: MOCK_SCENARIOS.length },
+            { value: 'training', label: '訓練' },
+            { value: 'assessment', label: '評測' },
+            { value: 'draft', label: '尚未發布' },
           ]}
         />
         <div className="relative ml-auto w-full max-w-xs">
@@ -71,8 +71,8 @@ export function SimulationLibraryPage() {
           <Input
             type="search"
             value={query}
-            placeholder="Filter scenarios…"
-            aria-label="Filter scenarios"
+            placeholder="篩選訓練情境…"
+            aria-label="篩選訓練情境"
             className="pl-9"
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)}
           />
@@ -81,11 +81,11 @@ export function SimulationLibraryPage() {
 
       {scenarios.length === 0 ? (
         <EmptyState
-          title="No scenario matches that filter"
-          description="Try a different tab, or clear the search box."
+          title="找不到符合篩選條件的情境"
+          description="請改用其他分類，或清除搜尋條件。"
           action={
             <Button variant="ghost" size="sm" onClick={() => { setFilter('all'); setQuery(''); }}>
-              Reset filters
+              重設篩選
             </Button>
           }
         />
@@ -115,35 +115,35 @@ export function SimulationLibraryPage() {
                     <div className="flex items-center gap-2">
                       <dt className="flex w-24 shrink-0 items-center gap-1.5 text-text-tertiary">
                         <Users size={13} strokeWidth={1.8} aria-hidden />
-                        Persona
+                        模擬人物
                       </dt>
                       <dd className="truncate">{persona?.name ?? scenario.persona_id}</dd>
                     </div>
                     <div className="flex items-center gap-2">
                       <dt className="flex w-24 shrink-0 items-center gap-1.5 text-text-tertiary">
                         <Clock size={13} strokeWidth={1.8} aria-hidden />
-                        Limit
+                        限制
                       </dt>
                       <dd>
-                        {scenario.time_limit_seconds ? formatDuration(scenario.time_limit_seconds) : 'No limit'}
-                        {scenario.max_turns ? ` · ${scenario.max_turns} turns` : ''}
+                        {scenario.time_limit_seconds ? formatDuration(scenario.time_limit_seconds) : '不限時'}
+                        {scenario.max_turns ? ` · ${scenario.max_turns} 回合` : ''}
                       </dd>
                     </div>
                     <div className="flex items-center gap-2">
-                      <dt className="w-24 shrink-0 text-text-tertiary">Knowledge</dt>
-                      <dd className="truncate">{scenario.knowledge_base_ids.length} knowledge base(s)</dd>
+                      <dt className="w-24 shrink-0 text-text-tertiary">知識庫</dt>
+                      <dd className="truncate">{scenario.knowledge_base_ids.length} 個知識庫</dd>
                     </div>
                   </dl>
 
                   {mastery ? (
                     <p className="mt-3 text-tiny text-text-tertiary">
-                      {mastery.attempts} attempts · {Math.round(mastery.pass_rate * 100)}% pass rate · avg{' '}
+                      {mastery.attempts} 次嘗試 · 通過率 {Math.round(mastery.pass_rate * 100)}% · 平均{' '}
                       {mastery.average_score}
                     </p>
                   ) : null}
 
                   <p className="mt-1 text-tiny text-text-tertiary">
-                    Updated {formatRelative(scenario.updated_at)}
+                    更新於 {formatRelative(scenario.updated_at)}
                   </p>
 
                   <div className="mt-4 flex items-center gap-2 border-t border-border-soft pt-4">
@@ -151,18 +151,18 @@ export function SimulationLibraryPage() {
                       {startable ? (
                         <Link href={`/simulations/${scenario.id}/setup`}>
                           <Play size={15} strokeWidth={2} aria-hidden />
-                          Set up session
+                          設定練習
                         </Link>
                       ) : (
                         <>
                           <Play size={15} strokeWidth={2} aria-hidden />
-                          Awaiting publish
+                          等待發布
                         </>
                       )}
                     </Button>
                     {canBuild ? (
                       <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/scenarios/${scenario.id}/builder`}>Edit</Link>
+                        <Link href={`/scenarios/${scenario.id}/builder`}>編輯</Link>
                       </Button>
                     ) : null}
                   </div>

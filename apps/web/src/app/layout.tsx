@@ -32,7 +32,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="zh-Hant" suppressHydrationWarning>
       <head>
         {/*
           §6 — blocking inline script sets `data-theme` before the first paint.
@@ -48,7 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           href="#workspace-main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-6 focus:top-6 focus:z-50 focus:rounded-button focus:bg-glass-strong focus:px-4 focus:py-2 focus:text-body-sm focus:shadow-floating"
         >
-          Skip to main content
+          跳至主要內容
         </a>
         <Providers>{children}</Providers>
       </body>

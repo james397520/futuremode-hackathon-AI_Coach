@@ -29,7 +29,7 @@ export function LoginPage() {
         </span>
         <div>
           <h1 className="text-section">AI Coach</h1>
-          <p className="text-body-sm text-text-secondary">Enterprise simulation & assessment</p>
+          <p className="text-body-sm text-text-secondary">企業情境模擬與能力評估</p>
         </div>
       </div>
 
@@ -42,7 +42,7 @@ export function LoginPage() {
           router.push('/workspace-select');
         }}
       >
-        <Field label="Work email" hint="Use your organisation address so we can match your workspace.">
+        <Field label="工作信箱" hint="請使用公司信箱，以便找到你的工作區。">
           <Input
             type="email"
             name="email"
@@ -53,7 +53,7 @@ export function LoginPage() {
           />
         </Field>
 
-        <Field label="Password">
+        <Field label="密碼">
           <Input
             type="password"
             name="password"
@@ -65,31 +65,30 @@ export function LoginPage() {
 
         <Button type="submit" variant="primary" size="lg" className="w-full" disabled={pending}>
           {pending ? <Loader2 size={16} strokeWidth={2} className="animate-spin" aria-hidden /> : null}
-          {pending ? 'Signing in…' : 'Sign in'}
+          {pending ? '登入中…' : '登入'}
         </Button>
       </form>
 
       <div className="my-6 flex items-center gap-3 text-tiny text-text-tertiary">
         <span className="h-px flex-1 bg-border-soft" aria-hidden />
-        or continue with
+        或使用以下方式繼續
         <span className="h-px flex-1 bg-border-soft" aria-hidden />
       </div>
 
       <div className="space-y-2">
         <Button variant="secondary" size="md" className="w-full" onClick={() => router.push('/workspace-select')}>
           <KeyRound size={16} strokeWidth={1.8} aria-hidden />
-          Microsoft Entra ID (SSO)
+          Microsoft Entra ID（單一登入）
         </Button>
         <Button variant="ghost" size="md" className="w-full" onClick={() => router.push('/workspace-select')}>
-          Google Workspace
+          Google 工作區
         </Button>
       </div>
 
       <p className="mt-7 text-tiny text-text-tertiary">
-        Access is governed by your workspace administrator. Sign-in activity, exports and permission
-        changes are recorded in the audit log.{' '}
+        存取權由工作區管理者設定。登入、匯出與權限變更都會記錄於稽核日誌。{' '}
         <Link href="/security" className="text-accent-indigo hover:underline">
-          Security & audit
+          安全與稽核
         </Link>
       </p>
     </GlassCard>

@@ -1,11 +1,13 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { GlassShell } from '@/components/ui';
 import { AppCommandPalette } from '@/components/command-palette/app-command-palette';
 import { NotificationPanel } from '@/components/notifications/notification-panel';
 import { GlobalShortcuts, ShortcutsDialog } from '@/components/keyboard/shortcuts';
 import { LocalAiConsent } from '@/components/runtime';
+import { useAuth } from '@/lib/auth-context';
 import { IconRail } from './icon-rail';
 import { WorkspaceTopBar } from './workspace-top-bar';
 
@@ -20,6 +22,17 @@ import { WorkspaceTopBar } from './workspace-top-bar';
  * area is dropped and the rail becomes a bottom strip (§46).
  */
 export function AppShell({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const { activeRole, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && !activeRole) router.replace('/role-select');
+  }, [activeRole, isLoading, router]);
+
+  if (isLoading || !activeRole) {
+    return <div className="aurora-canvas min-h-screen" aria-busy="true" />;
+  }
+
   return (
     <div className="aurora-canvas min-h-screen overflow-hidden">
       {/* §2 — dot matrix only top-left, never tiled across the page. */}

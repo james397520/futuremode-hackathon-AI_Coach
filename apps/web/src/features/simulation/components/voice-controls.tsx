@@ -15,14 +15,9 @@ import type { VoiceStatus } from '../lib/types';
 import { LiveDot } from './atoms';
 import {
   CaptionsIcon,
-  HeadphonesIcon,
   MicIcon,
   MicOffIcon,
   PhoneOffIcon,
-  RadioIcon,
-  SpeakerIcon,
-  SpeakerOffIcon,
-  TranscriptIcon,
 } from './icons';
 import { cn } from './kit';
 
@@ -45,14 +40,11 @@ export interface VoiceControlsProps {
   muted: boolean;
   speakerMuted: boolean;
   pushToTalkMode: boolean;
-  pushToTalkHeld: boolean;
   captionsEnabled: boolean;
   onStart: () => void;
   onToggleMute: () => void;
   onToggleSpeaker: () => void;
   onTogglePushToTalkMode: () => void;
-  onPushToTalkDown: () => void;
-  onPushToTalkUp: () => void;
   onOpenAudioDevice: () => void;
   onOpenTranscript: () => void;
   onToggleCaptions: () => void;
@@ -100,14 +92,11 @@ export function VoiceControls({
   muted,
   speakerMuted,
   pushToTalkMode,
-  pushToTalkHeld,
   captionsEnabled,
   onStart,
   onToggleMute,
   onToggleSpeaker,
   onTogglePushToTalkMode,
-  onPushToTalkDown,
-  onPushToTalkUp,
   onOpenAudioDevice,
   onOpenTranscript,
   onToggleCaptions,
@@ -120,15 +109,15 @@ export function VoiceControls({
   return (
     <div
       className={cn(
-        'glass-strong flex flex-wrap items-center gap-2.5 rounded-card border p-3 shadow-floating',
+        'glass-strong flex items-center gap-2 rounded-card border px-3 py-2 shadow-floating',
         className,
       )}
       style={{ borderColor: tint('neutral', 18) }}
       aria-label="Voice call controls"
     >
-      {/* Status ------------------------------------------------------------- */}
+      {/* Voice is optional. Text remains the primary way to reply. */}
       <span
-        className="flex items-center gap-2 rounded-pill border px-3 py-1.5 text-meta"
+        className="flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-tiny"
         style={insetSurface(tone, 14)}
         role="status"
       >
@@ -141,7 +130,7 @@ export function VoiceControls({
           type="button"
           onClick={onStart}
           disabled={starting || ended}
-          className="sim-focusable sim-lift flex h-11 items-center gap-2 rounded-input px-4 text-body font-medium disabled:opacity-50"
+          className="sim-focusable sim-lift flex h-9 items-center gap-1.5 rounded-input px-3 text-meta font-medium disabled:opacity-50"
           style={{
             background:
               'linear-gradient(120deg, var(--accent-indigo), var(--accent-blue) 58%, var(--accent-mint))',
@@ -149,7 +138,7 @@ export function VoiceControls({
           }}
         >
           <MicIcon size={17} />
-          {starting ? 'Starting…' : 'Start voice session'}
+          {starting ? '啟動中…' : '啟用語音'}
         </button>
       ) : (
         <>
@@ -162,59 +151,9 @@ export function VoiceControls({
             fill={12}
           />
 
-          <button
-            type="button"
-            onPointerDown={() => {
-              if (pushToTalkMode) onPushToTalkDown();
-            }}
-            onPointerUp={() => {
-              if (pushToTalkMode) onPushToTalkUp();
-            }}
-            onPointerLeave={() => {
-              if (pushToTalkMode && pushToTalkHeld) onPushToTalkUp();
-            }}
-            onClick={() => {
-              if (!pushToTalkMode) onTogglePushToTalkMode();
-            }}
-            onDoubleClick={onTogglePushToTalkMode}
-            aria-pressed={pushToTalkMode}
-            aria-label={
-              pushToTalkMode
-                ? 'Push to talk — hold to speak. Double-click to switch back to open mic.'
-                : 'Switch to push to talk'
-            }
-            title={pushToTalkMode ? 'Hold to talk (double-click to leave push-to-talk)' : 'Push to talk'}
-            className="sim-focusable sim-lift flex h-11 items-center gap-2 rounded-input border px-3.5 text-meta"
-            style={insetSurface(pushToTalkHeld ? 'mint' : pushToTalkMode ? 'cyan' : 'neutral', pushToTalkHeld ? 20 : 11)}
-          >
-            <RadioIcon
-              size={17}
-              style={{ color: toneText(pushToTalkHeld ? 'mint' : pushToTalkMode ? 'cyan' : 'neutral') }}
-            />
-            <span style={{ color: toneText(pushToTalkHeld ? 'mint' : pushToTalkMode ? 'cyan' : 'neutral') }}>
-              {pushToTalkHeld ? 'Talking' : 'Push to talk'}
-            </span>
-          </button>
         </>
       )}
 
-      <ControlButton
-        label={speakerMuted ? 'Unmute speaker' : 'Mute speaker'}
-        icon={speakerMuted ? <SpeakerOffIcon size={18} /> : <SpeakerIcon size={18} />}
-        onClick={onToggleSpeaker}
-        tone={speakerMuted ? 'warning' : 'neutral'}
-        pressed={!speakerMuted}
-      />
-      <ControlButton
-        label="Audio device"
-        icon={<HeadphonesIcon size={18} />}
-        onClick={onOpenAudioDevice}
-      />
-      <ControlButton
-        label="Transcript"
-        icon={<TranscriptIcon size={18} />}
-        onClick={onOpenTranscript}
-      />
       <ControlButton
         label="Captions"
         icon={<CaptionsIcon size={18} />}
@@ -223,18 +162,34 @@ export function VoiceControls({
         tone={captionsEnabled ? 'blue' : 'neutral'}
       />
 
-      <div className="ml-auto">
-        <button
-          type="button"
-          onClick={onEndCall}
-          disabled={ended}
-          className="sim-focusable sim-lift flex h-11 items-center gap-2 rounded-input border px-4 text-body font-medium disabled:opacity-45"
-          style={insetSurface('danger', 14)}
-        >
-          <PhoneOffIcon size={17} style={{ color: toneText('danger') }} />
-          <span style={{ color: toneText('danger') }}>End call</span>
-        </button>
-      </div>
+      <details className="relative ml-auto">
+        <summary className="sim-focusable cursor-pointer list-none rounded-input border px-3 py-2 text-meta text-text-secondary" style={insetSurface('neutral', 9)}>
+          更多設定
+        </summary>
+        <div className="glass-strong absolute bottom-11 right-0 z-20 grid min-w-48 gap-1 rounded-card border p-2 shadow-floating" style={{ borderColor: tint('neutral', 18) }}>
+          <button type="button" onClick={onToggleSpeaker} className="sim-focusable rounded-input px-3 py-2 text-left text-meta text-text-secondary hover:bg-black/5">
+            {speakerMuted ? '開啟客戶語音' : '靜音客戶語音'}
+          </button>
+          <button type="button" onClick={onTogglePushToTalkMode} className="sim-focusable rounded-input px-3 py-2 text-left text-meta text-text-secondary hover:bg-black/5">
+            {pushToTalkMode ? '切換為開放麥克風' : '切換為按住說話'}
+          </button>
+          <button type="button" onClick={onOpenAudioDevice} className="sim-focusable rounded-input px-3 py-2 text-left text-meta text-text-secondary hover:bg-black/5">
+            音訊裝置
+          </button>
+          <button type="button" onClick={onOpenTranscript} className="sim-focusable rounded-input px-3 py-2 text-left text-meta text-text-secondary hover:bg-black/5">
+            匯出逐字稿
+          </button>
+        </div>
+      </details>
+
+      <ControlButton
+        label="結束練習"
+        icon={<PhoneOffIcon size={18} />}
+        onClick={onEndCall}
+        disabled={ended}
+        tone="danger"
+        fill={12}
+      />
     </div>
   );
 }

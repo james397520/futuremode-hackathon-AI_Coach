@@ -10,6 +10,8 @@ export interface AuthState {
   user: User | null;
   workspace: Workspace | null;
   workspaces: Workspace[];
+  /** The authorised role the user chose as their current work context. */
+  activeRole: Role | null;
   permissions: Set<Permission>;
   isLoading: boolean;
   /** True when the session is a demo/mock session rather than a real API session. */
@@ -20,6 +22,8 @@ interface AuthContextValue extends AuthState {
   can: (permission: Permission) => boolean;
   hasRole: (role: Role) => boolean;
   selectWorkspace: (workspaceId: string) => void;
+  /** Switches UI context only; it never grants a role the session does not hold. */
+  selectRole: (role: Role) => void;
   signOut: () => void;
 }
 
@@ -41,6 +45,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
  */
 const MOCK_ROLE_KEY = 'ai-coach:mock-role';
 const MOCK_WORKSPACE_KEY = 'ai-coach:mock-workspace';
+const ACTIVE_ROLE_KEY = 'ai-coach:active-role';
 
 const VALID_ROLES: readonly Role[] = ['trainee', 'coach', 'manager', 'admin', 'reviewer'];
 
@@ -53,22 +58,31 @@ function readMockRole(): Role | undefined {
   }
 }
 
-function useSessionSource(): AuthState & { setWorkspaceId: (id: string) => void; clear: () => void } {
+function useSessionSource(): AuthState & {
+  setWorkspaceId: (id: string) => void;
+  setActiveRole: (role: Role) => void;
+  clear: () => void;
+} {
   const [user, setUser] = useState<User | null>(null);
   const [workspaceId, setWorkspaceId] = useState<string>(MOCK_WORKSPACES[0]?.id ?? '');
+  const [activeRole, setActiveRole] = useState<Role | null>(null);
   const [isLoading, setLoading] = useState(true);
 
   useEffect(() => {
     // MOCK: resolve immediately from the fixture. Swap for `endpoints.me()`.
     const overrideRole = readMockRole();
-    setUser(
+    const resolvedUser =
       overrideRole
         ? { ...MOCK_CURRENT_USER, roles: [overrideRole] }
-        : MOCK_CURRENT_USER,
-    );
+        : MOCK_CURRENT_USER;
+    setUser(resolvedUser);
     try {
       const stored = window.localStorage.getItem(MOCK_WORKSPACE_KEY);
       if (stored && MOCK_WORKSPACES.some((w) => w.id === stored)) setWorkspaceId(stored);
+      const storedRole = window.localStorage.getItem(ACTIVE_ROLE_KEY);
+      if (VALID_ROLES.includes(storedRole as Role) && resolvedUser.roles.includes(storedRole as Role)) {
+        setActiveRole(storedRole as Role);
+      }
     } catch {
       /* ignore */
     }
@@ -81,26 +95,46 @@ function useSessionSource(): AuthState & { setWorkspaceId: (id: string) => void;
   );
 
   const permissions = useMemo(
-    () => permissionsForRoles(user?.roles ?? []),
-    [user],
+    () => permissionsForRoles(activeRole ? [activeRole] : []),
+    [activeRole],
   );
 
   return {
     user,
     workspace,
     workspaces: MOCK_WORKSPACES,
+    activeRole,
     permissions,
     isLoading,
     isMock: true,
     setWorkspaceId: (id: string) => {
       setWorkspaceId(id);
+      setActiveRole(null);
       try {
         window.localStorage.setItem(MOCK_WORKSPACE_KEY, id);
+        window.localStorage.removeItem(ACTIVE_ROLE_KEY);
       } catch {
         /* ignore */
       }
     },
-    clear: () => setUser(null),
+    setActiveRole: (role: Role) => {
+      if (!user?.roles.includes(role)) return;
+      setActiveRole(role);
+      try {
+        window.localStorage.setItem(ACTIVE_ROLE_KEY, role);
+      } catch {
+        /* ignore */
+      }
+    },
+    clear: () => {
+      setUser(null);
+      setActiveRole(null);
+      try {
+        window.localStorage.removeItem(ACTIVE_ROLE_KEY);
+      } catch {
+        /* ignore */
+      }
+    },
   };
 }
 
@@ -123,12 +157,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: source.user,
       workspace: source.workspace,
       workspaces: source.workspaces,
+      activeRole: source.activeRole,
       permissions,
       isLoading: source.isLoading,
       isMock: source.isMock,
       can,
       hasRole,
       selectWorkspace: source.setWorkspaceId,
+      selectRole: source.setActiveRole,
       signOut: source.clear,
     }),
     [source, permissions, can, hasRole],
