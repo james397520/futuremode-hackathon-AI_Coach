@@ -28,6 +28,10 @@ liveportrait:
   engine: fasterliveportrait_mlx
 
 musetalk:
+  # MEASURED, not assumed: on this machine class (M3 base, 10 GPU cores, 8 GB)
+  # q4 at batch 1 runs 62.6 s/frame against a 50 ms budget — ~1250x short. See
+  # BENCHMARK.md. The runtime probes the host and switches this off by itself;
+  # the settings below are what it uses on hardware that clears the budget.
   engine: musetalk_mlx
   variant: q4
   precision: q4

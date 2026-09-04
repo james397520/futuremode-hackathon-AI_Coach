@@ -20,6 +20,20 @@ def _engine_status(available: bool, name: str) -> str:
     return name if available else "unavailable"
 
 
+def _musetalk_status(fps: int, memory_mb: float) -> tuple[str, dict]:
+    """Report MuseTalk by measurement, not by whether it imports.
+
+    "installed" and "usable" are different answers on this hardware and the
+    distinction is the whole point of §89, so both are surfaced.
+    """
+    from app.musetalk.mlx_backend import probe
+
+    result = probe(fps=fps, memory_mb=memory_mb)
+    if not result.available:
+        return "unavailable", result.to_json()
+    return ("mlx" if result.usable else "installed_but_unusable"), result.to_json()
+
+
 @router.get("/health")
 async def health(request: Request) -> dict[str, Any]:
     platform = cached_platform()
@@ -34,7 +48,7 @@ async def health(request: Request) -> dict[str, Any]:
         "platform": str(platform.accelerator),
         "backend": str(profile.name),
         "liveportrait": _engine_status(platform.modules.get("mlx", False), "mlx"),
-        "musetalk": _engine_status(platform.modules.get("mlx", False), "mlx"),
+        "musetalk": _musetalk_status(profile.fps, platform.total_memory_mb)[0],
         "encoder": str(profile.encoder),
         "sessions": len(orchestrator.sessions) if orchestrator else 0,
     }
@@ -44,6 +58,8 @@ async def health(request: Request) -> dict[str, Any]:
 async def capabilities(request: Request) -> dict[str, Any]:
     platform = cached_platform()
     profile = choose_profile(platform)
+    musetalk_status, musetalk_detail = _musetalk_status(profile.fps, platform.total_memory_mb)
+    musetalk_usable = musetalk_status == "mlx"
     bench = benchmark_render_fps(width=profile.width, height=profile.height)
     # p95 rather than the mean: §57 records p95_frame_ms because a profile that
     # only holds on average is a profile that visibly stutters.
@@ -55,7 +71,7 @@ async def capabilities(request: Request) -> dict[str, Any]:
         "accelerator": str(platform.accelerator),
         "state_bank": True,
         "continuous_liveportrait": platform.modules.get("mlx", False),
-        "musetalk": platform.modules.get("mlx", False),
+        "musetalk": musetalk_usable,
         "webrtc": bool(platform.modules.get("aiortc", False)) and settings.webrtc,
         "transport": "websocket_frames",
         # Headroom-derived, then capped: rendering faster than the card refreshes
@@ -69,4 +85,6 @@ async def capabilities(request: Request) -> dict[str, Any]:
         "memory_mb": platform.total_memory_mb,
         "avatars": orchestrator.store.list_ids() if orchestrator else [],
         "modules": platform.modules,
+        # Surfaced so an operator can see *why* lip sync is off without reading logs.
+        "musetalk_probe": musetalk_detail,
     }
