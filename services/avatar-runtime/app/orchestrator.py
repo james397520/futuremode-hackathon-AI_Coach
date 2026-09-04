@@ -188,10 +188,7 @@ class AvatarSession:
         """
         async with self._lock:
             self._jitter.flush()
-            self._backend.push_audio_envelope(np.zeros(0, dtype=np.float32))
-            # Force the envelope to zero rather than letting it decay.
-            for _ in range(4):
-                self._backend.push_audio_envelope(np.zeros(self._samples_per_frame, np.float32))
+            self._backend.close_mouth()
             self.state = RuntimeState.LISTENING
             self._speaking_until = 0.0
         await self._publish(EventName.INTERRUPTED, {})

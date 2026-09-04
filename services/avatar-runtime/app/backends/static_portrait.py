@@ -104,6 +104,16 @@ class StaticPortraitBackend:
         self._mouth_open += alpha * (target - self._mouth_open)
         return self._mouth_open
 
+    def close_mouth(self) -> None:
+        """Force the mouth shut immediately (§15 barge-in).
+
+        Deliberately not "feed silence until it decays": at the release
+        coefficient a natural decay needs ~13 frames to reach closed, which at
+        20 fps is two thirds of a second of the figure still mouthing words
+        after the trainee has cut in. Barge-in means stop now.
+        """
+        self._mouth_open = 0.0
+
     def render(self, pose: RenderPose, *, mouth_open: float | None = None) -> np.ndarray:
         """Render one RGB uint8 frame for the given pose."""
         openness = self._mouth_open if mouth_open is None else float(mouth_open)
