@@ -7,9 +7,14 @@
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "api:dev": "cd apps/api && uvicorn app.main:app --reload --port 8000",
-    "infra:up": "docker compose up -d",
-    "infra:down": "docker compose down"
+    "api:dev": "cd apps/api && .venv/bin/uvicorn app.main:app --reload --port 8000",
+    "bootstrap": "bash scripts/bootstrap.sh",
+    "check:services": "bash scripts/bootstrap.sh --check-services",
+    "avatar:dev": "cd services/avatar-runtime && .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8765",
+    "inference:dev": "cd services/inference && .venv/bin/uvicorn app.main:app --reload --host 127.0.0.1 --port 8770",
+    "avatar:verify": "cd services/avatar-runtime && .venv/bin/python scripts/verify_install.py",
+    "avatar:bench": "cd services/avatar-runtime && .venv/bin/python scripts/benchmark.py",
+    "check:contracts": "bash scripts/check-contracts.sh"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

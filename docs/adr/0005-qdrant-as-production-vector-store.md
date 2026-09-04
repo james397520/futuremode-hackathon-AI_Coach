@@ -63,16 +63,15 @@ Concrete reasons for Qdrant over the alternatives:
 - **Hybrid search is native.** Part I §12.3 requires dense + keyword. Qdrant
   supports sparse vectors alongside dense in one collection, so hybrid retrieval
   does not need a second system with its own consistency problem.
-- **Self-hostable, and it is what we already run.** It is a container in
-  `docker-compose.yml` locally and can be deployed inside AUP unchanged.
-  No development-vs-production substitution.
+- **Self-hostable and available as a managed service.** Local development may
+  use the in-memory store; production uses a native or managed Qdrant endpoint.
 - **Horizontal scaling exists** — sharding and replication, satisfying §5.1
   without a rewrite.
 - **Snapshots and a real persistence story**, which matters when re-embedding a
   large knowledge base has a genuine dollar cost on the external-API embedding
   path.
 - **API-key auth**, so the store is not open on the network in any shared
-  environment. `QDRANT_API_KEY` is wired through config and compose.
+  environment. `QDRANT_API_KEY` is wired through configuration.
 
 Why the alternatives are POC-only:
 
@@ -116,10 +115,8 @@ Why the alternatives are POC-only:
   model produced its vectors. This is also the migration path a private-AUP
   deployment must take when moving off the external-API embedding model — see
   [ARCHITECTURE §5](../architecture.md#5-the-rag-pipeline).
-- **The Qdrant image ships no `curl` or `wget`**, so its container healthcheck
-  probes the HTTP port with bash's `/dev/tcp` instead of fetching `/readyz`.
-  This is documented at both call sites (`docker-compose.yml` and the CI
-  service container) because it looks like a mistake and is not.
+- **Health checks use Qdrant's `/readyz` endpoint.** Native and managed
+  deployments can probe it directly with the platform health-check mechanism.
 - **Payload indexes must actually be created.** A filtered search against an
   unindexed payload key still returns correct results — slowly — so the missing
   index is a performance bug that hides. The API creates them on startup, which

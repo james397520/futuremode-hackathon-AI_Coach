@@ -6,22 +6,22 @@
 
 ## 1. 頂層佈局
 
-比照成熟開源專案（一次 `git clone` 拿到全部：文件、版本、Docker、前後端），
+比照成熟開源專案（一次 `git clone` 拿到全部：文件、版本、原生服務設定、前後端），
 不拆成多個 repo。
 
 ```text
 futuremode_rmrf2/
 ├── README.md                 專案首頁（中文，3–5 分鐘看懂：是什麼／能做什麼／怎麼跑）
 ├── CONTRIBUTING.md
-├── docker-compose.yml        docker compose up -d 就能跑起整套本地環境
 ├── .env.example
 │
 ├── apps/
 │   ├── web/                  Next.js App Router 前端（唯一 user-facing app）
 │   └── api/                  Python FastAPI AI Orchestration API
 │
-├── services/
-│   └── inference/            私有 AI 推論服務（embedding / reranker，§72 AMD AUP）
+├── services/                 loopback-only 的獨立執行期服務（各自 venv，不進 pnpm workspace）
+│   ├── inference/            私有 AI 推論服務（embedding / reranker，§72 AMD AUP）
+│   └── avatar-runtime/       本地虛擬人物 Runtime（LivePortrait 表情 + MuseTalk 嘴型）
 │
 ├── packages/                 前後端共用的 JS/TS 套件（pnpm workspace）
 │   ├── shared/                前後端共用契約：Entity / Streaming Event / Enum
@@ -42,7 +42,7 @@ futuremode_rmrf2/
 ├── docs/                      規格、架構、部署、API、ADR、圖片
 ├── scripts/                   bootstrap / seed / reset / check-contracts 等操作腳本
 ├── infra/
-│   ├── docker/                各服務 Dockerfile + Postgres init
+│   ├── systemd/               API、worker、web、avatar、inference 的 Linux service 範本
 │   ├── nginx/                 邊界代理設定（TLS、WebSocket upgrade、COOP/COEP）
 │   └── kubernetes/            之後要上 K8s 時放 Helm chart（目前空）
 │
@@ -145,7 +145,34 @@ apps/api/app/
 | `ui` | Glass 元件庫（Radix + Tailwind） | 業務語意（Persona/Scenario…） |
 | `ai-runtime` | capability detection、Worker、WebGPU/WASM/Server backend | UI |
 
-## 5. 平行開發的檔案歸屬（避免衝突）
+## 5. `services/*` — 獨立執行期服務
+
+兩個服務都**只綁 loopback**，各自有獨立 venv，不屬於 pnpm workspace。
+它們是「側掛」的：任一個掛掉都不得中止訓練 session。
+
+```text
+services/
+├── inference/                私有 embedding / rerank；apps/api 是唯一 client
+│   └── app/{core,models,inference,preprocessing,postprocessing,api}/
+└── avatar-runtime/           本地 Digital Human（見 docs/spec 的 LivePortrait+MuseTalk 規格）
+    ├── app/expression/       Persona State → 表情（preset / hysteresis / 內插 / state bank）
+    ├── app/liveportrait/     表情、頭部、眼睛（engine port，lazy import）
+    ├── app/musetalk/         語音嘴型（engine port，lazy import）
+    ├── app/compositor/       只取 MuseTalk 的 mouth ROI，soft mask 融回 LivePortrait 臉
+    ├── app/backends/         mac_mlx / rtx_cuda / static_portrait
+    ├── app/stream/           Phase 1 WebSocket frames、Phase 2 WebRTC
+    └── avatars/              人物資產；沒有 license/consent.json 一律拒絕載入
+```
+
+規則：
+- **重相依一律 lazy import**。沒裝 MLX / CUDA / TensorRT 時，服務仍要能啟動並提供
+  static portrait fallback —— 這是 avatar 規格 §53 的硬性要求。
+- Avatar 的表情由自研 Expression Controller 決定，**不讓 LLM 直接改模型參數**。
+- 瀏覽器不知道底層是 MLX 還是 CUDA；只有 admin 看得到 runtime 細節。
+
+---
+
+## 6. 平行開發的檔案歸屬（避免衝突）
 
 | Owner | 可寫路徑 |
 |---|---|
@@ -156,4 +183,7 @@ apps/api/app/
 | API Platform | `apps/api/app/{main.py,core,api,db,domain}/**`, `apps/api/pyproject.toml` |
 | Agents & RAG | `apps/api/app/{agents,rag,services,ws,workers}/**`, `apps/api/tests/**` |
 | AI Runtime | `packages/ai-runtime/**` |
-| Infra & CI | `infra/**`, `.github/**`, 根目錄 dotfiles |
+| Inference Service | `services/inference/**` |
+| Avatar Runtime | `services/avatar-runtime/**` |
+| Web Avatar Client | `apps/web/src/features/avatar/**` |
+| Infra & CI | `infra/**`, `.github/**`, `scripts/**`, 根目錄 dotfiles |

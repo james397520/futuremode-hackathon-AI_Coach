@@ -80,7 +80,7 @@ That last row is a hard rule, not a preference. Part I §56 and Part II §70/§7
 require that OpenAI and ElevenLabs long-lived keys never reach the browser, and
 the paths are specified: `Browser → BFF → AI Orchestration → OpenAI`, and
 `Browser → Voice Session Service → ElevenLabs → streaming audio`. Keeping the
-credential-holding process in a different language and a different container
+credential-holding process in a different language and a different service
 than the one that renders HTML makes the boundary physical rather than a
 convention. There is no `NEXT_PUBLIC_OPENAI_KEY` to accidentally add, because
 the key is not in that process at all.
@@ -101,9 +101,8 @@ free.
 - **The credential boundary is physical.** A different process, image and
   language. The mistake of shipping a key to the browser is not one step away.
 - **Async workers are natural.** The `documents` / `evaluation` /
-  `maintenance` queues run the same code as the request path, from the same
-  image — see `infra/docker/worker.Dockerfile`, which shares the API's
-  dependency closure specifically so the RAG code cannot drift between them.
+  `maintenance` queues run the same virtualenv and code revision as the request
+  path, managed by `infra/systemd/ai-coach-worker.service`.
 - **Statelessness is easy to hold.** Session continuity is Postgres plus Redis,
   never process memory, so API replicas are interchangeable and a WebSocket
   reconnect can land anywhere (Part I §49.3).
@@ -127,8 +126,7 @@ free.
   the cookie and redirects. The shared secret is `JWT_SECRET`, and the API
   refuses to boot outside local with the placeholder value.
 - **Local development needs two processes.** `pnpm dev` and `pnpm api:dev`.
-  `scripts/bootstrap.sh` prints both, and the compose `app` profile runs
-  the whole thing in containers when you want the production shape.
+  `scripts/bootstrap.sh` prints both; production uses systemd services.
 - **Duplicated cross-cutting concerns.** CORS, security headers and rate limits
   need thinking about at the proxy, in Next.js and in FastAPI. This is
   documented rather than deduplicated, and it has a real gotcha:

@@ -729,7 +729,7 @@ disambiguates.
 | II | 50 | Audio architecture | `apps/web/src/features/simulation/hooks/useVoiceSession.ts` |
 | II | 51–62 | WebGPU strategy, tasks, worker, lifecycle, cache, fallback | `packages/ai-runtime/**`; [ADR-0004](adr/0004-webgpu-as-acceleration-layer.md) |
 | II | 63 | Backend architecture | `apps/api/app/{main.py,services}/**` |
-| II | 64 | Backend stack | `docker-compose.yml`; [ADR-0005](adr/0005-qdrant-as-production-vector-store.md), [ADR-0006](adr/0006-fastapi-alongside-nextjs.md) |
+| II | 64 | Backend stack | `.env.example`, `scripts/bootstrap.sh`, `infra/systemd/**`; [ADR-0005](adr/0005-qdrant-as-production-vector-store.md), [ADR-0006](adr/0006-fastapi-alongside-nextjs.md) |
 | II | 65 | RAG pipeline | `apps/api/app/rag/**`; this document, §5 |
 | II | 66, 67 | Multi-agent backend, customer agent state | `apps/api/app/agents/**` |
 | II | 68 | Streaming events | `apps/api/app/ws/**` |

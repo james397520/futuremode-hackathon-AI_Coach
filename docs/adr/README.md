@@ -18,6 +18,8 @@ new ADR that supersedes it, not an edit to the existing file.
 | [0006](0006-fastapi-alongside-nextjs.md) | FastAPI for AI orchestration, alongside Next.js | Part II §63, §64, §70, §71 |
 | [0007](0007-zustand-and-tanstack-query.md) | Zustand for session state, TanStack Query for server state | Part II §48.4, §48.5 |
 | [0008](0008-version-pinned-sessions.md) | A session pins the scenario and persona versions it ran against | Part I §54, §28, §30 |
+| [0009](0009-systemd-over-docker-deployment.md) | Host-native systemd units behind nginx, not Docker containers | Part II §63, §64, §72, §73; avatar spec §25 |
+| [0010](0010-avatar-runtime-decisions.md) | The local avatar runtime: LivePortrait expression, MuseTalk mouth, one backend API | Avatar spec §1–§3, §5, §17, §38, §53, §73, §74, §90; Part II §62 |
 
 ## Writing a new one
 

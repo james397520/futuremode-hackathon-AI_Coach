@@ -50,9 +50,9 @@ The things that had to exist before parallel work was possible at all.
 | Design tokens — light/dark CSS variables, Tailwind preset, aurora + dot matrix | `packages/design-tokens/src/**` | ✅ [ADR-0003](adr/0003-custom-design-system-over-shadcn-theme.md) |
 | Glass component library on Radix primitives | `packages/ui/src/components/**` | ✅ ~27 components |
 | Ownership map, so parallel agents do not collide | `docs/PROJECT_STRUCTURE.md` | ✅ authoritative |
-| Local stack — postgres/redis/qdrant/minio, healthchecked | `docker-compose.yml` | ✅ |
-| Container images — web standalone, api, worker, edge proxy | `infra/docker/**` | ✅ |
-| Bootstrap / reset / seed scripts | `scripts/**` | ✅ seed is defensive about `app.*` names still landing |
+| Native/managed services — PostgreSQL, Redis, optional Qdrant/S3 | `.env.example`, `scripts/bootstrap.sh` | ✅ |
+| Service units — API, worker, edge proxy | `infra/systemd/**`, `infra/nginx/**` | ✅ |
+| Bootstrap / seed scripts | `scripts/**` | ✅ seed is defensive about `app.*` names still landing |
 | CI — web, api, contracts, shell jobs | `.github/workflows/ci.yml` | ✅ ⚠️ requires a committed `pnpm-lock.yaml` (`pnpm install --frozen-lockfile`). It was absent when the workflow was written; if `git ls-files pnpm-lock.yaml` is empty, run `pnpm install` and commit. Called out in the workflow itself. |
 | Security workflow — dependency review, pip-audit, pnpm audit, gitleaks, CodeQL | `.github/workflows/security.yml` | ✅ automated floor only; see Phase 3 |
 | Architecture reference, ADRs | `docs/architecture.md`, `docs/adr/**` | ✅ |
@@ -97,7 +97,7 @@ Critical Compliance Risk + Trust >= 70 + Overall Score >= 80`.
 
 | Area | Status | Remaining |
 |---|---|---|
-| **`apps/api/app/main.py`** | ⬜ | The app factory itself: middleware chain, router mounting, `/health/live` + `/health/ready`. Both the API image's `HEALTHCHECK` and the compose `depends_on` chain expect `/health/ready` to verify Postgres, Redis and Qdrant |
+| **`apps/api/app/main.py`** | ✅ | App factory, middleware chain, router mounting, `/healthz` and `/readyz`; readiness checks only enabled services |
 | **Alembic migrations** | ⬜ | `database/migrations/`, `alembic.ini`. Models exist in `app/db/models/**`; nothing creates the schema. `bootstrap.sh` reports this clearly and skips |
 | **Router surface (§56)** | 🟡 `auth.py` only | 17 more router groups: workspaces, users, teams, knowledge_bases, documents, chunks, retrieval, questions, personas, scenarios, assignments, sessions, reports, security, audit, integrations, runtime |
 | **`pnpm-lock.yaml`** | ⚠️ verify | Must be committed for CI's `web` job and `pnpm audit` to run at all. One command, once: `pnpm install` |
@@ -105,7 +105,7 @@ Critical Compliance Risk + Trust >= 70 + Overall Score >= 80`.
 | **Web pages beyond the shell** | 🟡 | Built: login, workspace-select, dashboard, simulation library + setup. Missing: knowledge (list / documents / chunks / playground / mining), questions, personas, scenarios builder, training, performance, reports, team, security, integrations, settings |
 | **Local inference tasks** | 🟡 | `packages/ai-runtime` has capability detection, three backends, the worker, cache, manifest and telemetry, plus `tasks/safety-precheck.ts`. Missing: `tasks/embedding`, `tasks/intent-classification`, `tasks/reranking`, and real model manifests |
 | **STUN/TURN** | ⬜ | WebRTC media does not traverse the HTTP proxy. A voice path needs STUN/TURN deployed alongside; nginx handles signalling over `/ws` only |
-| **Tests** | ⬜ | `apps/api/tests/` does not exist. The CI `api` job runs pytest against real Postgres/Redis/Qdrant service containers specifically so the tenant-isolation tests (§74) are meaningful when they arrive |
+| **Tests** | 🟡 | `apps/api/tests/` covers agents, RAG boundaries and session behavior. CI provisions native PostgreSQL/Redis; Qdrant integration tests require an explicit endpoint. |
 
 ### What is currently mocked or faked — the honest list
 

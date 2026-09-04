@@ -47,8 +47,10 @@ The two halves are joined by three things and nothing else:
   streaming-event literals in `packages/shared/src/events.ts` against
   those in `apps/api/app/domain/events.py` and fails CI if they diverge.
 
-Root `package.json` provides thin conveniences (`pnpm api:dev`, `pnpm infra:up`)
-that shell out. It does not attempt to model Python dependencies.
+Root `package.json` provides thin conveniences (`pnpm api:dev`, `pnpm avatar:dev`,
+`pnpm bootstrap`, `pnpm check:contracts`) that shell out. It does not attempt to model
+Python dependencies. (An earlier `pnpm infra:up` wrapped docker-compose and went away
+with the move to systemd — see [ADR 0009](0009-systemd-over-docker-deployment.md).)
 
 ## Consequences
 
@@ -63,9 +65,8 @@ that shell out. It does not attempt to model Python dependencies.
   expects. Nobody learns a bespoke build system to change a file.
 - **CI parallelises naturally.** The `web` and `api` jobs share nothing, cache
   differently (pnpm store vs pip cache) and fail independently.
-- **Container builds stay simple.** `web.Dockerfile` needs the JS workspace;
-  `api.Dockerfile` needs `apps/api/pyproject.toml`. Neither drags the other's
-  toolchain into its image.
+- **Native builds stay simple.** The web and API retain independent dependency
+  graphs and can be built or restarted independently.
 - **Ownership maps cleanly.** `docs/PROJECT_STRUCTURE.md` §5 assigns subtrees to
   owners for parallel work, and the language boundary lines up with the
   ownership boundary.
@@ -79,9 +80,8 @@ that shell out. It does not attempt to model Python dependencies.
 - **Two dependency-update flows.** Dependabot/Renovate must be configured for
   both ecosystems; `.github/workflows/security.yml` runs both `pnpm audit` and
   `pip-audit` for the same reason.
-- **Two version pins to keep in step.** Node 20 appears in `.nvmrc`,
-  `web.Dockerfile` and `ci.yml`; Python 3.11 in `pyproject.toml`,
-  `api.Dockerfile`, `worker.Dockerfile` and `ci.yml`. Each site carries a
+- **Two version pins to keep in step.** Node 20 appears in `.nvmrc` and
+  `ci.yml`; Python 3.11 in `pyproject.toml` and `ci.yml`. Each site carries a
   "keep in sync with" comment. A shared version file would be tidier and was
   judged not worth another indirection.
 - **No shared task runner.** There is no single `make all`. `bootstrap.sh`

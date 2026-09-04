@@ -1,0 +1,25 @@
+[Unit]
+Description=AI Coach Private Inference Service (embedding / rerank)
+Documentation=file:///opt/ai-coach/docs/model.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=ai-coach
+Group=ai-coach
+WorkingDirectory=/opt/ai-coach/services/inference
+EnvironmentFile=/etc/ai-coach/ai-coach.env
+# Loopback only: this service sees raw document text and must never be reachable
+# from outside the host. apps/api is its only client.
+ExecStart=/opt/ai-coach/services/inference/.venv/bin/uvicorn app.main:app \
+    --host 127.0.0.1 --port 8770 --workers 1
+Restart=always
+RestartSec=5
+TimeoutStartSec=180
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
