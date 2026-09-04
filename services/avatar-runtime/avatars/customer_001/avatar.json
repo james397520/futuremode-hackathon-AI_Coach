@@ -1,0 +1,17 @@
+{
+  "avatar_id": "customer_001",
+  "display_name": "陳先生",
+  "description": "38 歲工程師，已婚兩名子女。理性、對價格敏感、以家庭為重、對業務話術存疑。AI Coach 保險銷售情境的預設客戶人物。",
+  "locale": "zh-TW",
+  "source": {
+    "image": "source/portrait.png",
+    "width": 1024,
+    "height": 1024,
+    "kind": "synthetic"
+  },
+  "stage": { "width": 512, "height": 512, "fps": 25 },
+  "expressions": ["neutral", "listening", "skeptical", "concerned", "frustrated", "interested"],
+  "default_expression": "neutral",
+  "modes": { "state_bank": true, "continuous": false },
+  "notes": "motion/ 與 loops/ 需先安裝 LivePortrait 引擎並執行 build_expression_bank.py 才會產生；未產生時 runtime 走 static portrait backend（avatar spec §53）。"
+}

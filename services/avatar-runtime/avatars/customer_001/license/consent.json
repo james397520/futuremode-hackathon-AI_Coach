@@ -1,0 +1,18 @@
+{
+  "likeness_kind": "synthetic",
+  "depicts_real_person": false,
+  "consent_required": false,
+  "consent_basis": "沒有可辨識的真人肖像。此圖由本專案的 source/generate_portrait.py 以幾何圖元程式化繪製，未使用任何照片、掃描、第三方素材或生成式模型輸出，因此不存在需要取得同意的對象。",
+  "owner": "AI Coach project",
+  "license": "與本專案原始碼相同",
+  "source_asset": "source/portrait.png",
+  "generator": "source/generate_portrait.py",
+  "created_at": "2026-09-05",
+  "third_party_assets": [],
+  "commercial_use": {
+    "portrait": "allowed",
+    "note": "此肖像本身可商用。但 LivePortrait 預設的 InsightFace 偵測模型為 non-commercial research only（avatar spec §74）——商業部署前必須替換該偵測模型並重新審核所有 model asset，這與本肖像的授權無關。"
+  },
+  "reviewed_by": null,
+  "reviewed_at": null
+}
