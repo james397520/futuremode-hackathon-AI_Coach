@@ -94,7 +94,7 @@ breaks the build here instead of being silently ignored.
 
 | `StreamingEvent` | Session state | Store effect | Visible in |
 |---|---|---|---|
-| `session.started` | → `ready` | clears error, sets `startedAtMs` | header state pill, timer |
+| `session.started` | → `ready` | clears error, sets `startedAtMs`, **resets the `seq` high-water mark** (a restart re-numbers from 1, so this event must never be judged stale) | header state pill, timer |
 | `session.paused` | → `paused` | records pause anchor | header pill, composer disabled + reason |
 | `session.resumed` | → `listening` | adds paused duration to the offset | header pill, composer enabled |
 | `session.completed` | → `completed` | clears partials, stores `evaluation_id` | `SessionCompleteSummary` (§29) |
@@ -115,7 +115,8 @@ breaks the build here instead of being silently ignored.
 
 Client → server commands (`ClientCommand`): `message.send`, `session.pause`,
 `session.resume`, `session.end`, `coach.request_hint`, `voice.push_to_talk`,
-`client.intent_hint`, `ack` (throttled, every 10th `seq`).
+`client.intent_hint`. `ack` is **not** sent from here — `ws-client` auto-acks
+every accepted event.
 
 ### Resilience rules (§62 / §94)
 
@@ -236,18 +237,23 @@ for ~16s, autopilot plays the scripted line so the demo drives itself.
 
 ---
 
-## 8. Assumptions about modules owned by other agents
+## 8. Seams onto modules owned by other agents (verified against the landed code)
 
-| Module | Assumed API |
+| Module | API used |
 |---|---|
-| `@ai-coach/ui` (via `components/kit.ts` — the single reconciliation point) | `cn`, `GlassShell`, `GlassCard{strong?}`, `GradientPill`, `Button`, `IconButton{label}`, `Textarea` (forwards ref), `Tooltip{content,children}`, `Modal{open,onClose,title}`, `Switch{checked,onCheckedChange}`, `PersonaAvatar{name,src?,size?,speaking?}`, `Avatar{name,src?,size?}`, `AiSparkle`, `Skeleton{className}` |
-| `@/lib/ws-client` | `createSessionSocket({ sessionId, onEvent, onStatusChange?, onSeqGap? }) → { send(cmd), close(), connected }` |
-| `@/lib/api-client` | `apiClient.get<T>(path)`, `apiClient.post<T>(path, body?)`; endpoints `GET /api/v1/sessions/{id}/bootstrap`, `GET /api/v1/evaluations/{id}`, `POST /api/v1/sessions/{id}/issues` |
+| `@ai-coach/ui` (only via `components/kit.ts` — the single seam) | `cn`, `GlassCard`, `GradientPill`, `Textarea`, `Tooltip`, `Modal`, `Avatar`, `PersonaAvatar`, `Skeleton` |
+| `@/lib/ws-client` | `createSessionSocket(sessionId, { onEvent, onStatus, onSeqGap })` → `StreamingClient`; then `connect()` / `send(ClientCommand)` / `close()`. The client owns reconnect+backoff, heartbeats, `seq` gap detection and auto-ack, so this feature never re-implements them. `WsStatus` `'open'` ⇒ online, `'reconnecting'` ⇒ header pill, `'failed'` ⇒ recoverable inline error. |
+| `@/lib/api-client` | `endpoints.getSession(id)` → `endpoints.getScenario` + `endpoints.getPersona` (parallel) compose `SessionBootstrap`; `endpoints.getReport(evaluationId)` for §29. `api.post('/api/sessions/{id}/issues', { body })` is best-effort telemetry with no typed helper yet — **the one endpoint this feature needs that `api-client` does not expose.** |
 | Tailwind preset | `bg-glass-card`, `bg-glass-strong`, `text-text-*`, `rounded-{card,card-sm,input,pill,avatar,shell}`, `shadow-{soft,floating}`, `text-{display,section,card-title,body,body-sm,meta,tiny}`, plus the plain classes `glass-card`, `glass-strong`, `dot-matrix` |
+
+One kit caveat worth knowing: `Avatar`'s `size` is typed `AvatarSize | number` but only the
+named scale is mapped to a class, so this feature always passes named sizes
+(`"sm"` in the transcript gutter, `"xl"` on the persona stage).
 
 Deliberate non-uses, with reasons, are documented at the top of
 `components/kit.ts`: `Progress` (§22 wants a 4px hairline, not a bar),
 `ScrollArea` (the transcript needs raw scroll-event + `scrollTop` control to
-yield to the reader), and the `framer-motion` presets (`apps/web/package.json`
-belongs to another owner, so §43 motion is implemented in CSS instead).
-Icons are local inline SVG for the same reason.
+yield to the reader), the `framer-motion` motion presets (§43 motion is CSS here,
+using the same numbers as `packages/ui/src/components/motion.tsx`, so the
+high-frequency transcript list stays off the animation runtime), and
+`lucide-react` (icons are local inline SVG).

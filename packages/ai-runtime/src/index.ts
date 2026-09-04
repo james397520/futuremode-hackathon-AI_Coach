@@ -1,3 +1,10 @@
+/// <reference types="@webgpu/types" />
+/// <reference path="./types/onnxruntime-web.d.ts" />
+// ^ 這兩行不是多餘的：本 package 的 tsconfig 用 `types` + `include` 就能編譯，
+//   但 consumer（apps/web）是直接編譯我們的 *原始碼*（tsconfig paths 指向 src），
+//   它的 program 不會自動帶入 @webgpu/types，也不會 include 我們的 ambient 宣告。
+//   從入口 reference 進來，任何 consumer 的 program 都能解析 GPU* 與 Ort.* 型別。
+
 /**
  * `@ai-coach/ai-runtime` — the client-side three-tier inference runtime.
  *

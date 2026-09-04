@@ -36,6 +36,18 @@ const deltaToneClass: Record<StatDeltaTone, string> = {
   neutral: 'text-text-tertiary',
 };
 
+/** 把字串形式的 delta 正規化成 StatDelta；方向由正負號推導。 */
+function normalizeDelta(delta: StatDelta | string): StatDelta {
+  if (typeof delta !== 'string') return delta;
+  const trimmed = delta.trim();
+  const direction: StatDeltaDirection = trimmed.startsWith('+')
+    ? 'up'
+    : trimmed.startsWith('-') || trimmed.startsWith('\u2212')
+      ? 'down'
+      : 'flat';
+  return { value: delta, direction };
+}
+
 function resolveTone(delta: StatDelta): StatDeltaTone {
   if (delta.tone != null) return delta.tone;
   if (delta.direction === 'up') return 'positive';
@@ -54,7 +66,13 @@ export interface StatTileProps extends React.HTMLAttributes<HTMLDivElement> {
   value: React.ReactNode;
   /** 單位 / 分母，例如 `%`、`/ 100`、`hrs`。以較小字級跟在數值後面。 */
   unit?: React.ReactNode;
-  delta?: StatDelta;
+  /**
+   * 結構化 delta，或直接給已格式化的字串（如 `"+4.2%"` / `"-3 pts"`）。
+   * 給字串時方向從正負號推導，符號不明時視為 flat。
+   */
+  delta?: StatDelta | string;
+  /** 指標的補充說明，顯示在數值下方（小字、次要色）。 */
+  hint?: React.ReactNode;
   /** 極簡趨勢圖插槽（折線 / bar）。禁止 pie / gauge（§99）。 */
   sparkline?: React.ReactNode;
   /** 右上角線性 icon。 */
@@ -72,7 +90,8 @@ export const StatTile = React.forwardRef<HTMLDivElement, StatTileProps>(function
     label,
     value,
     unit,
-    delta,
+    delta: deltaProp,
+    hint,
     sparkline,
     icon,
     footer,
@@ -84,6 +103,7 @@ export const StatTile = React.forwardRef<HTMLDivElement, StatTileProps>(function
   },
   ref,
 ) {
+  const delta = deltaProp != null ? normalizeDelta(deltaProp) : undefined;
   const tone = delta != null ? resolveTone(delta) : 'neutral';
 
   return (
@@ -139,6 +159,8 @@ export const StatTile = React.forwardRef<HTMLDivElement, StatTileProps>(function
           ) : null}
         </div>
       ) : null}
+
+      {hint != null ? <p className="text-meta text-text-tertiary">{hint}</p> : null}
 
       {sparkline != null ? <div className="mt-1 min-w-0">{sparkline}</div> : null}
       {footer != null ? <div className="mt-1 text-meta text-text-tertiary">{footer}</div> : null}

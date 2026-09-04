@@ -31,6 +31,8 @@ export interface SliderProps
   showValue?: boolean;
   /** 自訂數值顯示，例如 `(v) => \`${v}%\``。 */
   formatValue?: (value: number) => string | number;
+  /** label 下方的補充說明（§35 sliders 常要解釋這個維度的意思）。 */
+  hint?: React.ReactNode;
   /** 軌道兩端的說明文字，例如 low / high。 */
   minLabel?: React.ReactNode;
   maxLabel?: React.ReactNode;
@@ -45,6 +47,7 @@ export const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.R
   function Slider(
     {
       label,
+      hint,
       showValue = true,
       formatValue,
       minLabel,

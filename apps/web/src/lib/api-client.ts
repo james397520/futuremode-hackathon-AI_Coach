@@ -58,7 +58,9 @@ export class ApiError extends Error {
     this.name = 'ApiError';
     this.status = init.status;
     this.code = init.code;
-    this.recoverable = init.recoverable ?? init.status >= 500 || init.status === 429;
+    // 括號是必要的：`??` 與 `||` 不能混用而不加括號（TS5076）。
+    // 語意＝顯式給的優先，否則 5xx 與 429 視為可重試。
+    this.recoverable = init.recoverable ?? (init.status >= 500 || init.status === 429);
     this.details = init.details;
     this.requestId = init.requestId;
   }

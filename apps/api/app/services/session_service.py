@@ -42,7 +42,7 @@ from app.services.exceptions import (
     StateTransitionError,
     ValidationFailedError,
 )
-from app.services.repository import InMemoryRepository, Repository, RepositoryPort, field
+from app.services.repository import Repository, RepositoryPort, field
 from app.ws.events import EventEmitter, EventEmitterRegistry, now_ms
 
 log = structlog.get_logger(__name__)

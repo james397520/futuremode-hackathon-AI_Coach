@@ -12,6 +12,8 @@ from typing import Annotated, Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.domain.enums import Role, WorkspaceKind
+
 #: ``export type ID = string`` (entities.ts). UUIDv4 strings in practice.
 ID = str
 #: ``export type ISODateTime = string``; serialised by pydantic as RFC 3339.
@@ -66,6 +68,42 @@ class OrganizationScoped(DomainModel):
     tenant_id: ID
     created_at: ISODateTime
     updated_at: ISODateTime
+
+
+# ---------------------------------------------------------------------------
+# Tenancy entities (§10 / §53) — mirror of the top of ``entities.ts``
+# ---------------------------------------------------------------------------
+
+
+class Organization(DomainModel):
+    """The tenant itself. Its ``id`` is the ``tenant_id`` of everything below it."""
+
+    id: ID
+    name: str
+    created_at: ISODateTime
+
+
+class Workspace(OrganizationScoped):
+    """``Workspace extends Omit<TenantScoped, 'workspace_id'>`` (entities.ts)."""
+
+    name: str
+    kind: WorkspaceKind
+
+
+class Team(TenantScoped):
+    """§10 team, optionally grouped under a department."""
+
+    name: str
+    department: str | None = None
+
+
+class User(TenantScoped):
+    """§9 principal. ``email`` / ``display_name`` are PII and are never logged."""
+
+    email: str
+    display_name: str
+    roles: list[Role] = Field(default_factory=list)
+    team_ids: list[ID] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------

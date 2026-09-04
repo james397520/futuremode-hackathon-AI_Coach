@@ -27,7 +27,9 @@ from app.domain.common import (
     DomainModel,
     ISODateTime,
     Score100,
-    TenantScoped,
+    Team,
+    User,
+    Workspace,
 )
 from app.domain.enums import (
     ChunkStrategy,
@@ -65,7 +67,7 @@ from app.domain.persona import (
 )
 from app.domain.question import Question
 from app.domain.runtime import ComputeCapability, RuntimePolicy, RuntimeTelemetry
-from app.domain.scenario import Assignment, CustomSkill, Rubric, Scenario
+from app.domain.scenario import Assignment, CustomSkill, Scenario
 from app.domain.session import CoachInsight, TrainingSession, TranscriptTurn
 
 # ===========================================================================
@@ -132,13 +134,8 @@ class SessionIdentityResponse(DomainModel):
 # ===========================================================================
 
 
-class WorkspaceResponse(DomainModel):
-    id: ID
-    tenant_id: ID
-    name: str
-    kind: WorkspaceKind
-    created_at: ISODateTime
-    updated_at: ISODateTime
+class WorkspaceResponse(Workspace):
+    """Exactly the ``Workspace`` contract shape — no API-only additions."""
 
 
 class WorkspaceCreateRequest(DomainModel):
@@ -152,13 +149,12 @@ class WorkspaceUpdateRequest(DomainModel):
     kind: WorkspaceKind | None = None
 
 
-class UserResponse(TenantScoped):
-    """§53 ``User``. ``email`` is only returned to callers holding ``user.read``."""
+class UserResponse(User):
+    """``User`` plus two administrative fields the directory page needs.
 
-    email: str
-    display_name: str
-    roles: list[Role] = Field(default_factory=list)
-    team_ids: list[ID] = Field(default_factory=list)
+    ``email`` is only returned to callers holding ``user.read``.
+    """
+
     is_active: bool = True
     last_login_at: ISODateTime | None = None
 
@@ -184,9 +180,9 @@ class RoleAssignmentRequest(DomainModel):
     roles: list[Role] = Field(min_length=1)
 
 
-class TeamResponse(TenantScoped):
-    name: str
-    department: str | None = None
+class TeamResponse(Team):
+    """``Team`` plus the derived member count shown in the §35 filters."""
+
     member_count: int = Field(default=0, ge=0)
 
 

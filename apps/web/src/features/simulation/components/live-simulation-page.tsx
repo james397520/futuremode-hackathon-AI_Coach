@@ -53,6 +53,7 @@ import {
   useTimeline,
   useTurns,
   useVoiceMuted,
+  useCaptionsEnabled,
 } from '../store/session-store';
 import { AudioDevicePicker } from './audio-device-picker';
 import { ConversationPanel } from './conversation-panel';

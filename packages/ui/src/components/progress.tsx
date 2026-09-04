@@ -89,11 +89,21 @@ export interface StepProgressStep {
   id: string;
   label: React.ReactNode;
   description?: React.ReactNode;
-  status: StepStatus;
+  /**
+   * 每步狀態。省略時由 `StepProgress` 的 `current` index 推導
+   * （index < current → complete、= current → active、> current → pending），
+   * 這樣 wizard（§17）只要給 `current` 就好，不必自己算每一步。
+   */
+  status?: StepStatus;
 }
 
 export interface StepProgressProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   steps: readonly StepProgressStep[];
+  /**
+   * 目前所在步驟的 index（0-based）。用來推導沒有顯式 `status` 的步驟。
+   * §17 的 9-step wizard 與 §33 的流程都只需要這一個數字。
+   */
+  current?: number;
   /** vertical = pipeline 清單（§29）；horizontal = wizard 步驟條（§17）。 */
   orientation?: 'vertical' | 'horizontal';
   /** 標題，例如 `Document Processing`。 */
@@ -131,10 +141,30 @@ function StepIcon({ status }: { status: StepStatus }): React.ReactElement {
 
 export const StepProgress = React.forwardRef<HTMLDivElement, StepProgressProps>(
   function StepProgress(
-    { steps, orientation = 'vertical', title, showCount = true, className, ...props },
+    { steps, current, orientation = 'vertical', title, showCount = true, className, ...props },
     ref,
   ) {
-    const completed = steps.filter((step) => step.status === 'complete').length;
+    /**
+     * 把 `status` 補齊：顯式給的優先，否則從 `current` 推導。
+     * 兩者都沒有時全部視為 pending（呼叫端還沒開始這個流程）。
+     */
+    const resolved = React.useMemo(
+      () =>
+        steps.map((step, i) => {
+          const status: StepStatus =
+            step.status ??
+            (current === undefined
+              ? 'pending'
+              : i < current
+                ? 'complete'
+                : i === current
+                  ? 'active'
+                  : 'pending');
+          return { ...step, status };
+        }),
+      [steps, current],
+    );
+    const completed = resolved.filter((step) => step.status === 'complete').length;
 
     return (
       <div
@@ -163,7 +193,7 @@ export const StepProgress = React.forwardRef<HTMLDivElement, StepProgressProps>(
           aria-valuemax={steps.length}
           aria-valuenow={completed}
         >
-          {steps.map((step) => (
+          {resolved.map((step) => (
             <span
               key={step.id}
               className={cn('h-1 flex-1 rounded-pill', segmentFill[step.status])}
@@ -177,7 +207,7 @@ export const StepProgress = React.forwardRef<HTMLDivElement, StepProgressProps>(
             orientation === 'vertical' ? 'flex-col' : 'flex-row flex-wrap items-start',
           )}
         >
-          {steps.map((step) => (
+          {resolved.map((step) => (
             <li
               key={step.id}
               aria-current={step.status === 'active' ? 'step' : undefined}
