@@ -441,6 +441,53 @@ class ScenarioService(BaseService):
                 raise ValidationFailedError(f"{name} must be a list")
 
 
+# ---------------------------------------------------------------------------
+# Assignments
+#
+# `app/api/v1/routers/assignments.py` is mounted on this service but the
+# assignment operations were never written. They live here rather than in a
+# separate service because an assignment is a scenario handed to people —
+# it has no lifecycle of its own.
+# ---------------------------------------------------------------------------
+
+
+async def _list_assignments(
+    self: ScenarioService, *, params: Any = None, mine_only: bool = True
+) -> Any:
+    """§36. A caller without team-review rights only ever sees their own (§9.1)."""
+    from app.domain.common import Page
+
+    limit = int(getattr(params, "limit", 50) or 50)
+    offset = int(getattr(params, "offset", 0) or 0)
+
+    rows = await self.repo.list("Assignment", order_by="-created_at")
+    if mine_only:
+        user_id = self.user_id
+        def _mine(row: Any) -> bool:
+            users = getattr(row, "assignee_user_ids", None) or []
+            teams = getattr(row, "assignee_team_ids", None) or []
+            return user_id in users or bool(set(teams) & set(self.ctx.team_ids or ()))
+        rows = [row for row in rows if _mine(row)]
+
+    return Page(
+        items=rows[offset : offset + limit], total=len(rows), limit=limit, offset=offset
+    )
+
+
+async def _get_assignment(self: ScenarioService, assignment_id: str) -> Any:
+    from app.services.exceptions import NotFoundError
+
+    row = await self.repo.get("Assignment", assignment_id)
+    if row is None:
+        raise NotFoundError(f"assignment {assignment_id} not found")
+    self.assert_same_tenant(row, resource="assignment")
+    return row
+
+
+ScenarioService.list_assignments = _list_assignments      # type: ignore[attr-defined]
+ScenarioService.get_assignment = _get_assignment          # type: ignore[attr-defined]
+
+
 __all__ = [
     "DIFFICULTIES",
     "REQUIRED_FOR_PUBLISH",

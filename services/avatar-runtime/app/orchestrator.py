@@ -188,6 +188,42 @@ class AvatarSession:
         )
         return {"buffered_ms": self._jitter.buffered_ms, "primed": self._jitter.primed}
 
+    async def speak_text(self, text: str, *, rate_cps: float = 5.5) -> dict[str, Any]:
+        """Drive the mouth from text when there is no TTS audio.
+
+        This is **not** lip sync and does not claim to be: it synthesises a
+        syllable-rate envelope so the figure visibly speaks for about as long as
+        the line takes to say. Without it the avatar sits closed-mouthed through
+        the customer's entire reply, which reads as broken rather than as
+        "TTS is not configured".
+
+        `push_audio` remains the real path — when a TTS provider is wired in, its
+        PCM drives the same envelope and this is never called. CJK is counted per
+        character and latin per ~4, which is roughly syllable-equivalent.
+        """
+        stripped = text.strip()
+        if not stripped:
+            return {"speaking": False, "duration_ms": 0}
+
+        cjk = sum(1 for ch in stripped if "\u4e00" <= ch <= "\u9fff")
+        latin = len(stripped) - cjk
+        syllables = cjk + latin / 4.0
+        duration_s = max(0.6, min(30.0, syllables / max(1.0, rate_cps)))
+
+        sr = self._settings.feature_sample_rate
+        n = int(duration_s * sr)
+        t = np.arange(n, dtype=np.float32) / sr
+        # ~4.2 syllables/sec of amplitude modulation, with a slower prosody
+        # envelope over it so the line has phrasing rather than a flat buzz.
+        syllable = 0.5 + 0.5 * np.sin(2 * np.pi * 4.2 * t - np.pi / 2)
+        prosody = 0.65 + 0.35 * np.sin(2 * np.pi * 0.45 * t)
+        # Fade the tail so the mouth closes on the last word instead of clipping.
+        tail = np.clip((duration_s - t) / 0.25, 0.0, 1.0)
+        envelope = (syllable**2 * prosody * tail * 0.42).astype(np.float32)
+
+        await self.push_audio(envelope)
+        return {"speaking": True, "duration_ms": int(duration_s * 1000), "synthetic": True}
+
     async def interrupt(self) -> dict[str, Any]:
         """§15 barge-in: flush audio, close the mouth, return to LISTENING.
 

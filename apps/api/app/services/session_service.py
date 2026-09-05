@@ -827,7 +827,46 @@ SessionService.create_session = _create_session          # type: ignore[attr-def
 SessionService.end_session = SessionService.end          # type: ignore[attr-defined]
 SessionService.get_session = SessionService.get          # type: ignore[attr-defined]
 SessionService.get_transcript = SessionService.transcript  # type: ignore[attr-defined]
-SessionService.list_sessions = SessionService.list_for_user  # type: ignore[attr-defined]
+async def _list_sessions(
+    self: SessionService,
+    *,
+    params: Any = None,
+    user_id: str | None = None,
+    scenario_id: str | None = None,
+    status: Any = None,
+) -> Any:
+    """Paged session list for the router.
+
+    `list_for_user` returns a bare list and takes no filters; the route's
+    contract is a `Page` with scenario/status narrowing. §9.1: a caller without
+    transcript-review rights is pinned to their own sessions, which
+    `list_for_user` already enforces.
+    """
+    from app.domain.common import Page
+    from app.domain.session import TrainingSession
+
+    limit = int(getattr(params, "limit", 50) or 50)
+    offset = int(getattr(params, "offset", 0) or 0)
+
+    # Over-fetch by the offset so post-filtering still fills the page.
+    views = await self.list_for_user(user_id, limit=limit + offset + 50)
+    if scenario_id:
+        views = [v for v in views if getattr(v, "scenario_id", None) == scenario_id]
+    if status is not None:
+        wanted = getattr(status, "value", status)
+        views = [v for v in views if str(getattr(v, "status", "")) == str(wanted)]
+
+    window = views[offset : offset + limit]
+    items = [
+        TrainingSession.model_validate(
+            {k: v for k, v in view.model_dump().items() if k in TrainingSession.model_fields}
+        )
+        for view in window
+    ]
+    return Page(items=items, total=len(views), limit=limit, offset=offset)
+
+
+SessionService.list_sessions = _list_sessions             # type: ignore[attr-defined]
 SessionService.pause_session = SessionService.pause      # type: ignore[attr-defined]
 SessionService.post_message = SessionService.handle_message  # type: ignore[attr-defined]
 SessionService.resume_session = SessionService.resume    # type: ignore[attr-defined]

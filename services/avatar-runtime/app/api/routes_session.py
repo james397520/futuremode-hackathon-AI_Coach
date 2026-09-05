@@ -76,6 +76,23 @@ async def push_audio(session_id: str, request: Request) -> dict[str, Any]:
     return await session.push_audio(np.asarray(mono, dtype=np.float32))
 
 
+class SpeakRequest(BaseModel):
+    text: str
+    rate_cps: Annotated[float, Field(ge=1.0, le=20.0)] = 5.5
+
+
+@router.post("/{session_id}/speak")
+async def speak(session_id: str, request: Request, body: SpeakRequest) -> dict[str, Any]:
+    """Make the avatar visibly speak a line without TTS audio.
+
+    The fallback for a deployment with no voice provider: the mouth moves for
+    the length of the line so the figure is not sitting closed-mouthed through
+    the customer's reply. `POST /audio` is the real path when TTS exists.
+    """
+    session = request.app.state.orchestrator.get(session_id)
+    return await session.speak_text(body.text, rate_cps=body.rate_cps)
+
+
 @router.post("/{session_id}/interrupt")
 async def interrupt(session_id: str, request: Request) -> dict[str, Any]:
     """§44 / §15 barge-in."""

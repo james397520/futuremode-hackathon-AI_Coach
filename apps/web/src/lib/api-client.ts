@@ -123,6 +123,37 @@ interface RequestOptions {
   headers?: Record<string, string>;
 }
 
+/**
+ * What `POST /auth/login`, `POST /auth/workspace` and `GET /auth/me` return.
+ *
+ * Shape taken from the running API rather than guessed: the user carries the
+ * roles of the *selected* workspace, and `workspaces` lists what the account may
+ * switch to. `csrf_token` is re-issued on workspace selection, which is why a
+ * token captured at login stops working after switching.
+ */
+export interface AuthSession {
+  user: {
+    id: ID;
+    tenant_id: ID;
+    workspace_id: ID | null;
+    email: string;
+    display_name: string;
+    roles: string[];
+    team_ids: ID[];
+    locale: string;
+  };
+  workspaces: Array<{ id: ID; name: string; kind: string; roles: string[] }>;
+  csrf_token: string;
+  expires_at: string;
+}
+
+/** Read the double-submit CSRF cookie. Returns `{}` when there is no session. */
+function csrfHeader(): Record<string, string> {
+  if (typeof document === 'undefined') return {};
+  const match = document.cookie.match(/(?:^|;\s*)aicoach_csrf=([^;]+)/);
+  return match?.[1] ? { 'X-CSRF-Token': decodeURIComponent(match[1]) } : {};
+}
+
 async function request<T>(
   method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   path: string,
@@ -139,6 +170,10 @@ async function request<T>(
     headers: {
       Accept: 'application/json',
       ...(form ? {} : { 'Content-Type': 'application/json' }),
+      // Double-submit CSRF: the API sets `aicoach_csrf` as a *readable* cookie
+      // precisely so the client can echo it back in a header on mutating calls.
+      // Without this every POST/PATCH/DELETE comes back 403 `csrf_invalid`.
+      ...(method === 'GET' ? {} : csrfHeader()),
       ...headers,
     },
   };
@@ -237,11 +272,15 @@ export interface SessionReviewPayload {
 
 export const endpoints = {
   /* --- auth / workspace --- */
-  me: () => api.get<User>('/api/auth/me'),
-  workspaces: () => api.get<Workspace[]>('/api/workspaces'),
+  // Paths carry the `/v1` prefix the API actually mounts (`app/api/v1`).
+  // Without it every call 404s and the app silently stays on fixtures.
+  login: (email: string, password: string) =>
+    api.post<AuthSession>('/api/v1/auth/login', { body: { email, password } }),
+  me: () => api.get<AuthSession>('/api/v1/auth/me'),
+  workspaces: () => api.get<Workspace[]>('/api/v1/workspaces'),
   selectWorkspace: (workspaceId: ID) =>
-    api.post<{ ok: true }>('/api/workspaces/select', { body: { workspace_id: workspaceId } }),
-  logout: () => api.post<void>('/api/auth/logout'),
+    api.post<AuthSession>('/api/v1/auth/workspace', { body: { workspace_id: workspaceId } }),
+  logout: () => api.post<void>('/api/v1/auth/logout'),
 
   /* --- sessions (§69) --- */
   createSession: (input: CreateSessionInput) =>

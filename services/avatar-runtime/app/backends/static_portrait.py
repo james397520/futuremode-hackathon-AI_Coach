@@ -230,22 +230,64 @@ class StaticPortraitBackend:
         return out
 
     def _apply_mouth(self, img: np.ndarray, openness: float) -> np.ndarray:
-        """Open the mouth by darkening an ellipse that grows with the envelope."""
+        """Open the mouth.
+
+        The naive version — one dark ellipse with a linear falloff — reads as a
+        smudge or a moustache on a photographic portrait, because a real open
+        mouth is not a dark blob. Three things make it legible instead:
+
+        * the opening **drops downward** as the jaw does, rather than growing
+          symmetrically about the lip line;
+        * the upper teeth stay **light**, which is what the eye actually uses to
+          read a mouth as open;
+        * the edge is a smoothstep over a narrow band, so it has a boundary
+          instead of dissolving into the chin.
+        """
         if openness < 0.03:
             return img
         g = self._geom
-        ry = g.mouth_ry * (0.35 + 1.9 * openness)
-        rx = g.mouth_rx * (0.92 + 0.12 * openness)
-        d = ((self._xx - g.centre_x) / rx) ** 2 + ((self._yy - g.mouth_y) / ry) ** 2
-        inner = np.clip(1.0 - d, 0.0, 1.0)          # soft, so the edge is not a hard oval
-        if not np.any(inner > 0):
+        amount = min(1.0, openness)
+
+        # A jaw rotates about the hinge, so the opening's centre travels down and
+        # only the lower lip really moves.
+        centre_y = g.mouth_y + g.mouth_ry * 0.55 * amount
+        ry = g.mouth_ry * (0.18 + 1.05 * amount)
+        rx = g.mouth_rx * (0.86 + 0.10 * amount)
+
+        d = ((self._xx - g.centre_x) / rx) ** 2 + ((self._yy - centre_y) / ry) ** 2
+        # Smoothstep across a narrow band: a defined edge, still anti-aliased.
+        t = np.clip((1.0 - d) / 0.45, 0.0, 1.0)
+        mask = t * t * (3.0 - 2.0 * t)
+        if not np.any(mask > 0.01):
             return img
-        # Oral cavity: a desaturated dark tone derived from the local skin so it
-        # sits in the portrait's own palette rather than looking like a hole.
-        skin = self._sample_skin(img, g.mouth_y - g.mouth_ry * 3, g.centre_x)
-        cavity = skin * np.array([0.30, 0.20, 0.22], dtype=np.float32)
-        a = (inner * min(1.0, openness * 1.15))[..., None]
-        return img * (1.0 - a) + cavity * a
+
+        lip = self._sample_skin(img, g.mouth_y - g.mouth_ry * 2.2, g.centre_x)
+        # Oral shadow, derived from the sitter's own skin so it stays in palette
+        # instead of reading as a hole punched in the photo.
+        cavity = lip * np.array([0.26, 0.17, 0.18], dtype=np.float32)
+
+        out = img
+        alpha = (mask * (0.35 + 0.6 * amount))[..., None]
+        out = out * (1.0 - alpha) + cavity * alpha
+
+        # Upper teeth: a bright band inside the top of the opening. Without this
+        # the mouth reads as a hole; with it, as speech. Only once the opening is
+        # big enough to actually show them.
+        if amount > 0.22:
+            teeth_band = np.clip(
+                1.0 - ((self._yy - (centre_y - ry * 0.62)) / (ry * 0.34)) ** 2, 0.0, 1.0
+            )
+            teeth = mask * teeth_band * min(1.0, (amount - 0.22) * 2.6)
+            tone = np.clip(lip * 1.16 + 26.0, 0.0, 255.0)
+            out = out * (1.0 - teeth[..., None]) + tone * teeth[..., None]
+
+        # Lower lip catches light as it drops; a thin highlight under the opening
+        # keeps the chin from looking smeared.
+        rim = np.clip(
+            1.0 - ((self._yy - (centre_y + ry * 1.06)) / max(1.0, ry * 0.42)) ** 2, 0.0, 1.0
+        ) * np.clip(1.0 - ((self._xx - g.centre_x) / (rx * 0.94)) ** 2, 0.0, 1.0)
+        rim = (rim * 0.16 * amount)[..., None]
+        return out * (1.0 - rim) + np.clip(lip * 1.10, 0.0, 255.0) * rim
 
     @staticmethod
     def _apply_energy_tint(img: np.ndarray, pose: RenderPose) -> np.ndarray:
