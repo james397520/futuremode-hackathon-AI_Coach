@@ -559,21 +559,50 @@ launchd label `com.aicoach.local-tts`，KeepAlive，log `/tmp/ai-coach-local-tts
 
 Kokoro 的口音是大陸的，而且烤在權重裡改不動。BreezyVoice（台灣口音、Apache-2.0）當初因體積被否決——實查 Hugging Face：最小權重集 `llm.pt` 1.24 GB + `speech_tokenizer_v1.onnx` 523 MB + `flow.pt` 420 MB + `hift.pt` 82 MB + `campplus.onnx` 28 MB = **2.3 GB**，整包 repo 3.17 GB（207 檔），加 torch venv 約 1 GB；架構是 CosyVoice-300M 那系的自迴歸 LLM + flow matching，CPU RTF > 1。磁碟現在夠了（剩 7.5 GB），但 RTF 仍然出局。
 
-改用 **[`MediaTek-Research/Breeze2-VITS-onnx`](https://huggingface.co/MediaTek-Research/Breeze2-VITS-onnx)**：官方說明是「把 BreezyVoice 蒸餾成輕量 VITS」，繁體中文、目標是 Android。整包 **118 MB**（`breeze2-vits.onnx` 121 MB + `lexicon.txt` 2.5 MB + `tokens.txt`），比 Kokoro 的 382 MB 還小，而且 VITS 非自迴歸。
+改用 **[`MediaTek-Research/Breeze2-VITS-onnx`](https://huggingface.co/MediaTek-Research/Breeze2-VITS-onnx)**：官方說明是「把 BreezyVoice 蒸餾成輕量 VITS」，繁體中文、目標是 Android。整包 **124 MB**（`breeze2-vits.onnx` 121,082,293 B + `lexicon.txt` 2.5 MB + `tokens.txt` 331 B；`du` 顯示 118 MiB），比 Kokoro 的 380 MB 小三分之二，而且 VITS 非自迴歸。
 
-**沒有用 sherpa-onnx。** 這個 graph 自帶完整 metadata（`model_type=vits`、`sample_rate=22050`、`add_blank=1`、`n_speakers=1`、`punctuation`），直接跑本來就裝了的 `onnxruntime` 即可；引進 sherpa 只會多帶一份 onnxruntime，而且它自己的 G2P 會繞過本服務的 `normalize()` 與斷句。
+**先把模型問清楚再動手**（`InferenceSession.get_modelmeta()`，這些是可重現的事實）：
 
-**實測（暖機後，同一台 8 GB M3）**
+```
+model_type=vits  comment=vits-mr-run6  language=Chinese  jieba=1
+sample_rate=22050  add_blank=1  n_speakers=1
+punctuation=", . : ; ! ? ， 。 ： ； ！ ？ 、"
+in : x[N,L] int64 · x_length[N] int64 · noise_scale[1] · length_scale[1] · noise_scale_w[1] · sid[1] int64
+out: y[N,1,L] float
+```
 
-| | Breeze2-VITS | Kokoro |
+`tokens.txt` 50 個 token：blank `_`、六個標點 `，。！？—…`、21 聲母 + 16 韻母（ㄅ…ㄩ）、五個聲調符號 `ˉˊˇˋ˙`、一個空白。**是注音符號不是拼音**——這是台灣模型的第一個證據（大陸模型會用拼音）。`lexicon.txt` 67,999 條 `<詞> <注音…>`，詞長 1–10 字。
+
+**沒有用 sherpa-onnx。** cp312 的 macOS arm64 wheel 是有的（`sherpa-onnx` 2.1 MB + `sherpa-onnx-core` 9.5 MB），但：(a) 這個 graph 完全自述，六個輸入一個輸出，sherpa 在推論這端沒東西可加；(b) 它會再夾帶一份自己的 onnxruntime dylib，這台 swap 已吃掉 14 GB 的機器不需要第二份；(c) 它自己的 G2P 會**繞過**本服務既有的 `normalize()`（千分位、NT$）與斷句，而那是 Kokoro 這條路已經在用的。所以推論就是一次 `session.run`，G2P 自己寫。
+
+**Breeze 的 G2P**：`normalize()` → `cn2an` 把阿拉伯數字轉中文（token 表沒有數字也沒有拉丁字母，不轉就整段消失）→ 對詞典**最長詞優先比對**（10 字往下試到 1 字；單字 fallback 就是這迴圈的尾巴，因為常用字本身也是單字條目）→ 詞典與標點表都查不到的字**直接丟掉**（表情符號、英文單字不能讓整句啞掉）→ 其他標點映射到那六個裡最近的（`、；：` 和半形 `-` → `，`，`–―─～` → `—`，連續標點只留一個）→ 依 `add_blank=1` 交錯 blank：`[0, t₀, 0, t₁, …, 0]`。`sid` 固定 0，`speed` 變成 VITS 的倒數 `length_scale`。
+
+**實測（同一台 8 GB M3，單引擎單行程、暖機後，每句量 5 次）**
+
+| 句子 | 字 | breeze 音長 | breeze 合成 | breeze RTF | kokoro 音長 | kokoro 合成 | kokoro RTF |
+|---|---|---|---|---|---|---|---|
+| 這個我不太清楚啦…好不好？ | 24 | 4.4 s | 0.79 / 1.11 s | **0.18 / 0.25** | 5.55 s | 1.62 / 2.27 s | 0.29 / 0.41 |
+| 我比較想先知道…多少錢。 | 23 | 4.7 s | 0.99 / 1.21 s | **0.21 / 0.25** | 5.88 s | 3.52 / 18.1 s | 0.60 / 3.08 |
+| 好，那我們先看保障的部分。 | 13 | 2.1–2.4 s | 0.44 / 0.59 s | **0.21 / 0.24** | 3.40 s | 1.28 / 6.66 s | 0.38 / 1.96 |
+
+兩個數字＝「機器還算安靜時的最佳值 / 負載 17、swap 14.9 GB 時的中位數」。**Breeze 比 Kokoro 快，不是慢**（早先寫的「RTF 略高」是把 §16.15 在安靜機器上量的 Kokoro 數字拿來對比新量的 Breeze，不是同時量的）。而右邊三個中位數才是重點：Kokoro 的工作集被換出去之後就崩了（3.08 RTF＝合成比講還慢三倍），Breeze 的 0.25 幾乎沒動。差別就是常駐大小。
+
+| | breeze | kokoro |
 |---|---|---|
-| 「這個我不太清楚啦…好不好？」 | 4.44 s 音長 | 5.55 s |
-| 「我比較想先知道…多少錢。」 | 4.67 s | 5.88 s |
-| 「好，那我們先看保障的部分。」 | 2.07 s | 3.40 s |
-| RTF | 0.31–0.42 | 0.22–0.28 |
-| 本機辨識回測（`tools/mac-stt`） | 3/3 可懂 | 3/3 可懂 |
+| 權重 | 124 MB | 380 MB |
+| 載入 | 0.7 s | 2.7 s |
+| 服務 peak RSS（`ru_maxrss`） | **266 MB**（只載它） | 446 MB（兩顆都載） |
+| 取樣率 | 22.05 kHz | 24 kHz |
+| 聲音 | 1（女聲，不能選） | 100（男女可選） |
+| 語速 | 24 字唸 4.4 s | 同句 5.55 s（慢 20–35%） |
 
-語速比 Kokoro 快約 25%，聽感更像講話而不是念稿；RTF 略高但仍遠低於 1。
+（§16.15 量 Kokoro 單獨常駐是 545–615 MB；上面 446 MB 是**兩顆都載**時量的，比它還小只代表這種 swap 壓力下能同時常駐的頁本來就更少。這些是地板不是天花板，別拿來說「兩顆比一顆省」。）
+
+**可懂度**：服務吐出的 MP3 丟回 `tools/mac-stt`（zh-TW、on-device）逐字比對——breeze 0–1 / 55 字、kokoro 0–1 / 55 字，**CER 0–1.8%，差異在雜訊裡，不要拿來排名**。Breeze 每次跑不一樣（VITS 取樣隨機），同一批檔案量兩次一次 0/55 一次 1/55；再拿 Breeze 同三句連跑 4 次（直接吃引擎）是 4/220＝1.8%，錯的都是「講回→想回」「啦→啊」這種辨識端混淆，不是吞字。
+
+**架構：`app/engine.py` 拆成 `app/engines/`**，`main.py` 從此不認識任何一顆模型的名字——`base.py`（`TtsEngine` Protocol、共用的 `normalize()`/斷句/0.18 s 段間靜音）、`kokoro.py`、`breeze.py`、`taiwan_readings.py`，`__init__.py` 是一張 `{名字 → (權重在不在, 不載入也能列出的聲音, 怎麼建)}` 的表。**權重 lazy 載**：開機只載預設引擎，另一顆等第一個指名它的請求才載；Kokoro 的 100 支聲音靠讀 `.npz` 的 zip 目錄列出來，不必為了 `/healthz` 載 325 MB。
+
+**兩件量了才知道的事**：(a) **Breeze 很小聲**——同句 peak 0.075 / RMS 0.011，Kokoro 是 0.44 / 0.06，差約 14 dB，不補增益在雲端聲音旁邊等於聽不到；引擎固定乘 5.0（`LOCAL_TTS_BREEZE_GAIN`），撞到 0.95 會自己收手。(b) **它是隨機的**，同句兩次不會一樣，Kokoro 則是決定性的。
 
 **它是台灣的「聲音」，配的卻是大陸的「讀音」。** 這是實查 `lexicon.txt` 得到的結論，不是聽感：詞表 68,000 條裡 47,098 條是詞，而**詞條是簡體**（`一丁点儿`、`一个`、`一丝不挂`），讀音照大陸標準——研究 ㄐㄧㄡˉ、星期 ㄑㄧˉ、質 ㄓˋ、髮 ㄈㄚˋ、危 ㄨㄟˉ、企 ㄑㄧˇ、液 ㄧㄝˋ、崖 ㄧㄚˊ。而且因為詞條是簡體，繁體的多字詞大多查不到（垃圾、法國、企業、品質、說服 都沒有詞條），退回逐字讀音，連破音字判斷都放棄了——`長期` 因此被讀成 ㄓㄤˇ ㄑㄧˉ（生長的長）。
 
@@ -590,11 +619,22 @@ Kokoro 的口音是大陸的，而且烤在權重裡改不動。BreezyVoice（�
 
 原詞典的讀音，台灣的辨識器根本聽不懂——這比任何聽感描述都硬。
 
-**一個必須知道的限制：這個 checkpoint 只有一個 speaker，而且是女聲**（實測中位基頻 248 Hz，對照 Kokoro 女聲 zf_001 的 264 Hz；男聲一般 85–155 Hz）。所以「說：本地」現在不分男女都是同一個女聲，67 歲的王國棟也是。`/speak` 不會默默吃掉 `gender`/`voice`，而是在 `X-Voice-Ignored` 標頭講清楚。要有男女之分，目前只能：(a) demo 用雲端 ElevenLabs 的 Yui/Ian，(b) 男性 persona 退回 Kokoro `zm_010`（男聲，但口音是大陸的）。這是產品取捨，還沒決定。
+**一個必須知道的限制：這個 checkpoint 只有一個 speaker，而且是女聲**（實測中位基頻 248–251 Hz，兩次獨立量測，對照 Kokoro 女聲 zf_001 的 264 Hz；男聲一般 85–155 Hz）。所以「說：本地」現在不分男女都是同一個女聲，67 歲的王國棟也是。`/speak` 不會默默吃掉 `gender`/`voice`，而是在 `X-Voice-Ignored` 標頭講清楚。要有男女之分，目前只能：(a) demo 用雲端 ElevenLabs 的 Yui/Ian，(b) 男性 persona 退回 Kokoro `zm_010`（男聲，但口音是大陸的）。這是產品取捨，還沒決定。
 
-**授權未明。** HF 上這個 repo 沒有 license 欄位，README 也沒寫。BreezyVoice 本身是 Apache-2.0，蒸餾產物大機率跟隨，但不能假設——商用前必須向 MediaTek Research 確認。
+**授權：查遍了，是「沒寫」，不是「限制商用」。**（商用**開放風險**）
+- `huggingface.co/MediaTek-Research/Breeze2-VITS-onnx`：API metadata 只有 `"tags":["onnx","region:us"]`，**沒有 `license` 欄位、沒有 `cardData`**；模型卡 8 行（Overview / Features），**沒有 License 段落**；5 個 commit 從頭到尾沒出現過授權檔（不是加了又刪）。
+- `Breeze2-android-demo`（已轉向 `mtkresearch/BreezeApp`）：README 白紙黑字寫 "The license for this project is pending determination"、掛 `License: Pending` 徽章，但 repo 裡又躺著一份完整 Apache-2.0 `LICENSE`，GitHub API 也報 `Apache-2.0`——**自相矛盾，而且它講的是 App，完全沒提內附的 TTS 權重**。
+- `github.com/mtkresearch/BreezyVoice`：`LICENSE` 是 Apache-2.0 原文（copyright 行還是 `[yyyy] [name of copyright owner]` 樣板），README 對授權隻字未提，只說 "partially derived from CosyVoice"；`huggingface.co/MediaTek-Research/BreezyVoice` front-matter 是 `license: apache-2.0`，上游 CosyVoice-300M 也是 apache-2.0。
 
-**安裝／啟動**：`pnpm tts:install` 會一併抓 Breeze 的三個檔；`LOCAL_TTS_ENGINE=kokoro` 可以切回去，Breeze 權重不在時服務照樣用 Kokoro 起來並在 `/healthz` 說明。
+**結論：這顆權重本身沒有任何可引用的授權條款。** 上游 BreezyVoice 的 Apache-2.0 是**另一個 repo** 的授權，套到蒸餾出來的 onnx 上是推論不是事實，不要寫成事實。出貨前二選一：(a) 到該 HF repo 開 Community discussion 請 MediaTek 補 license tag，留下可引用的公開紀錄；(b) `LOCAL_TTS_ENGINE=kokoro` 退回授權明確的 Apache-2.0（Kokoro 完全沒動，100 支聲音、男女可選都在）。Demo／內部評估先用沒問題。
+
+**接線**：`apps/api/app/ws/voice.py` **一個字都沒改**——實際用 `LocalHttpTts` 打過，它送的 `{text, speed, format, gender, voice}` 新服務照收，回 22.05 kHz 單聲道 64 kb/s MP3（`ffprobe` 驗過可解碼），`apps/api/tests/test_local_tts.py` 10 條照過。`/healthz` 頂層 key（`status/model/voices/device/rtf_last`）維持原樣描述**預設**引擎，所以 `probe_local_tts` 不用改；另外多了 `engine`、`single_speaker`、`sample_rate`、`engine_fallback`、`engines:{名字:{state: loaded|available|missing|error,…}}`。
+
+**安裝／啟動**：`pnpm tts:install` 會一併抓 Breeze 的三個檔（`fetch_model.sh breeze|kokoro` 可分開抓，三個檔一樣 sha256 鎖定，落在 `models/breeze2-vits/`；舊安裝只補抓 124 MB，不會重抓 380 MB）。`LOCAL_TTS_ENGINE=kokoro` 可以切回去；Breeze 權重不在時服務照樣用 Kokoro 起來，`/healthz` 的 `engine_fallback` 寫明退的理由，**不會掛**。
+
+**樣本**：`/tmp/local-tts-samples-tw/` — `svc_{breeze,kokoro}_{1,2,3}.mp3` + `.hdr`（走服務，標頭有 `X-Engine`/`X-Rtf`/`X-Voice-Ignored`）、`word_{breeze,kokoro}_<詞>.mp3`（十個分辨詞）、`probe_{研究,垃圾}_{lexicon,taiwan}.wav`（讀音對照，覆寫表加進來之前錄的）、`api_adapter.mp3`（`LocalHttpTts` 實打回來那段）。
+
+**還沒做的**：`taiwan_readings.py` 那 61 條讀音**沒有母語者逐條驗收過**。`tests/test_taiwan_readings.py` 能擋住打錯字（驗出廠讀音、覆寫後讀音、符號都在 `tokens.txt` 裡、沒有無效條目、不相干的保險詞彙一個都沒被動到），但擋不住「我以為台灣是這樣唸」。表外的詞也仍然是大陸讀音。出貨前找一位台灣母語者把 61 條唸一遍。
 
 
 ## 18. 30 秒 Demo（情境三）所需的三個機制
