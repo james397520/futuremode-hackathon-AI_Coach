@@ -8,7 +8,8 @@
  *   ready       → "Local AI · GPU accelerated"
  *   loading     → "Preparing customer…"
  *   degraded    → "Reduced video quality"
- *   unavailable → "Portrait mode" (NOT "error" — nothing is broken, §53)
+ *   unavailable → "3D virtual human (local render)" when the VRM is on screen,
+ *                 else "Portrait mode" (NOT "error" — nothing is broken, §53)
  *
  * An admin (`runtime.view_telemetry`) additionally gets the engineering row:
  * backend id, measured fps, A/V drift, dropped frames and the last §76 code.
@@ -38,7 +39,16 @@ interface Label {
   tone: ToneKey;
 }
 
-function traineeLabel(status: AvatarRuntimeStatus, backend: string | null): Label {
+function traineeLabel(
+  status: AvatarRuntimeStatus,
+  backend: string | null,
+  renderer: 'frames' | 'vrm' | 'portrait',
+): Label {
+  // The 3D character is drawn locally whenever the runtime is not streaming, so
+  // it is the truth for every non-live rung of the ladder.
+  if (renderer === 'vrm' && status !== 'ready' && status !== 'degraded') {
+    return { text: '3D 虛擬人（本機渲染）', tone: 'indigo' };
+  }
   switch (status) {
     case 'ready':
       return { text: acceleratedLabel(backend), tone: 'mint' };
@@ -71,6 +81,7 @@ function acceleratedLabel(backend: string | null): string {
 export function RuntimeBadge({ className, compact = false, onMedia = false }: RuntimeBadgeProps) {
   const status = useAvatarStore((s) => s.status);
   const backend = useAvatarStore((s) => s.backend);
+  const renderer = useAvatarStore((s) => s.renderer);
   const frames = useAvatarStore((s) => s.frames);
   const drift = useAvatarStore((s) => s.avDriftMs);
   const capabilities = useAvatarStore((s) => s.capabilities);
@@ -78,7 +89,7 @@ export function RuntimeBadge({ className, compact = false, onMedia = false }: Ru
   const degradedComponent = useAvatarStore((s) => s.degradedComponent);
   const canSeeTelemetry = useCan('runtime.view_telemetry');
 
-  const label = traineeLabel(status, backend);
+  const label = traineeLabel(status, backend, renderer);
   const showDetail = canSeeTelemetry && !compact && status !== 'unknown';
 
   const dotColor = onMedia

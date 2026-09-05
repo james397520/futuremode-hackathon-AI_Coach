@@ -410,6 +410,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                 {/* §24 — the persona visual is enlarged in voice mode. */}
                 <PersonaStage
                   personaName={bootstrap.persona.name}
+                  personaGender={bootstrap.persona.gender}
                   subtitle={bootstrap.persona.subtitle ?? bootstrap.persona.occupation}
                   avatarUrl={bootstrap.persona.avatarUrl}
                   personaState={personaState}

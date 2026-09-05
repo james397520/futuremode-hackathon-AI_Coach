@@ -60,6 +60,7 @@ export function createMockBootstrap(sessionId: string, mode: SessionMode = 'trai
       occupation: '軟體工程師',
       background: '已婚，兩名小孩（6 歲 / 3 歲），家中主要收入來源，有房貸。',
       subtitle: '既有客戶 · 家庭保障',
+      gender: 'male',
       traitSummary: ['Rational', 'Price-sensitive', 'Family-oriented', 'Skeptical'],
       language: 'zh-TW',
     },

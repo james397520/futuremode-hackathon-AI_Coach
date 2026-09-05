@@ -25,7 +25,9 @@ export interface CitationChipProps {
 
 export function CitationChip({ citation, defaultOpen = false, className }: CitationChipProps) {
   const [open, setOpen] = useState(defaultOpen);
-  const page = citation.page ? `p.${citation.page}` : null;
+  // Bare number: the label in front of it already says 頁碼, so a `p.` prefix
+  // read as "頁碼 p.12".
+  const page = citation.page ? String(citation.page) : null;
   const summary = [citation.document_name, page].filter(Boolean).join(' · ');
 
   return (
@@ -38,7 +40,7 @@ export function CitationChip({ citation, defaultOpen = false, className }: Citat
         style={insetSurface('cyan', open ? 16 : 10)}
       >
         <BookIcon size={12} style={{ color: toneText('cyan') }} />
-        <span className="text-text-tertiary">Source</span>
+        <span className="text-text-tertiary">來源</span>
         <span className="truncate" style={{ color: toneText('cyan') }}>
           {summary}
         </span>
@@ -56,16 +58,16 @@ export function CitationChip({ citation, defaultOpen = false, className }: Citat
         >
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-tiny text-text-tertiary">
             <span>
-              Version <span className="text-text-secondary">v{citation.document_version}</span>
+              版本 <span className="text-text-secondary">v{citation.document_version}</span>
             </span>
             {citation.section ? (
               <span>
-                Section <span className="text-text-secondary">{citation.section}</span>
+                章節 <span className="text-text-secondary">{citation.section}</span>
               </span>
             ) : null}
             {page ? (
               <span>
-                Page <span className="text-text-secondary">{page}</span>
+                頁碼 <span className="text-text-secondary">{page}</span>
               </span>
             ) : null}
             <span>
@@ -92,7 +94,7 @@ export function CitationChip({ citation, defaultOpen = false, className }: Citat
           </blockquote>
 
           <div className="text-tiny text-text-tertiary">
-            Chunk <span className="tabular-nums">{citation.chunk_id}</span>
+            片段 <span className="tabular-nums">{citation.chunk_id}</span>
           </div>
         </div>
       ) : null}

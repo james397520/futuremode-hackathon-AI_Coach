@@ -142,16 +142,22 @@
   --header-height: 54px;
   --content-width: 680px;
 
-  /* ---- Typography (§7) ---- */
+  /* ---- Typography (§7) ----
+   * Lifted one step across the whole ramp (tiny 11→12, body 14→15, display
+   * 32→36) with looser leading. The UI is Traditional Chinese: CJK glyphs fill
+   * their box edge to edge with no ascender/descender whitespace, so at the
+   * same nominal size they read smaller and denser than Latin. 11–13px carried
+   * ~70% of all text (198× tiny, 310× body-sm, 360× body) and was reported as
+   * "too small, too much text". Keep in step with tailwind-preset.ts fontSize. */
   --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --text-display: 32px/40px;
-  --text-page-title: 18px/26px;
-  --text-section: 16px/24px;
-  --text-card-title: 14px/21px;
-  --text-body: 14px/22px;
-  --text-body-sm: 13px/19px;
-  --text-meta: 12px/17px;
-  --text-tiny: 11px/15px;
+  --text-display: 36px/44px;
+  --text-page-title: 22px/30px;
+  --text-section: 18px/27px;
+  --text-card-title: 16px/24px;
+  --text-body: 15px/24px;
+  --text-body-sm: 14px/22px;
+  --text-meta: 13px/19px;
+  --text-tiny: 12px/18px;
   --tracking-display: -0.02em;
   --tracking-heading: -0.015em;
 

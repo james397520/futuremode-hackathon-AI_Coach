@@ -10,6 +10,8 @@ caller holds ``persona:read_hidden`` (see ``app.core.deps``).
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field
 
 from app.domain.common import ID, DomainModel, Score100, TenantScoped
@@ -113,6 +115,9 @@ class Persona(TenantScoped):
     hidden: PersonaHiddenState | None = None
     voice: PersonaVoiceConfig
     avatar_url: str | None = None
+    # Presentation gender: picks the 3D avatar body on the web. Optional because
+    # older rows predate the field; the web falls back to a name/voice heuristic.
+    gender: Literal["male", "female", "other"] | None = None
 
     def public_view(self) -> Persona:
         """Copy with ``hidden`` removed (§16.3) — what a trainee is allowed to see."""

@@ -26,16 +26,16 @@ export interface AudioDevicePickerProps {
 }
 
 const PERMISSION_COPY: Record<MicPermission, { tone: 'mint' | 'warning' | 'danger' | 'neutral'; text: string }> = {
-  unknown: { tone: 'neutral', text: 'Microphone access has not been checked yet.' },
-  prompt: { tone: 'warning', text: 'Your browser will ask for microphone access when the session starts.' },
-  granted: { tone: 'mint', text: 'Microphone access granted.' },
+  unknown: { tone: 'neutral', text: '尚未檢查麥克風權限。' },
+  prompt: { tone: 'warning', text: '練習開始時，瀏覽器會詢問是否允許使用麥克風。' },
+  granted: { tone: 'mint', text: '已取得麥克風權限。' },
   denied: {
     tone: 'danger',
-    text: 'Microphone permission is blocked. Allow it in your browser’s site settings, then reload — you can keep training with the text composer in the meantime.',
+    text: '麥克風權限已被封鎖。請在瀏覽器的網站設定中允許後重新載入——在此之前仍可用文字輸入繼續練習。',
   },
   unsupported: {
     tone: 'danger',
-    text: 'This browser cannot capture audio. The text composer works normally.',
+    text: '這個瀏覽器無法擷取音訊。文字輸入仍可正常使用。',
   },
 };
 
@@ -83,7 +83,7 @@ export function AudioDevicePicker({
   const copy = PERMISSION_COPY[permission];
 
   return (
-    <Modal open={open} onClose={onClose} title="Audio device">
+    <Modal open={open} onClose={onClose} title="音訊裝置">
       <div className="grid gap-4">
         <div
           className="rounded-card-sm border p-3 text-body-sm"
@@ -97,14 +97,14 @@ export function AudioDevicePicker({
               className="sim-focusable mt-2 block rounded-pill px-3 py-1.5 text-meta"
               style={insetSurface('blue', 14)}
             >
-              <span style={{ color: toneText('blue') }}>Allow microphone</span>
+              <span style={{ color: toneText('blue') }}>允許使用麥克風</span>
             </button>
           ) : null}
         </div>
 
         <section>
           <div className="flex items-center justify-between">
-            <h4 className="text-card-title text-text-primary">Microphone</h4>
+            <h4 className="text-card-title text-text-primary">麥克風</h4>
             <button
               type="button"
               onClick={onRefresh}
@@ -112,13 +112,13 @@ export function AudioDevicePicker({
               style={insetSurface('neutral', 8)}
             >
               <RestartIcon size={12} />
-              Refresh
+              重新整理
             </button>
           </div>
           <div className="mt-2 grid gap-2">
             {inputs.length === 0 ? (
               <p className="text-body-sm text-text-tertiary">
-                No microphones listed. Device names appear once permission is granted.
+                尚未列出任何麥克風。授權後才會顯示裝置名稱。
               </p>
             ) : (
               inputs.map((device) => (
@@ -133,17 +133,17 @@ export function AudioDevicePicker({
           </div>
           {micLive ? (
             <p className="mt-2 text-tiny text-text-tertiary">
-              Switching microphone restarts the capture chain — you will not lose the session.
+              切換麥克風會重新啟動收音，練習不會中斷。
             </p>
           ) : null}
         </section>
 
         <section>
-          <h4 className="text-card-title text-text-primary">Speaker</h4>
+          <h4 className="text-card-title text-text-primary">喇叭</h4>
           <div className="mt-2 grid gap-2">
             {outputs.length === 0 ? (
               <p className="text-body-sm text-text-tertiary">
-                This browser does not expose output devices — your system default is used.
+                這個瀏覽器不提供輸出裝置清單——將使用系統預設裝置。
               </p>
             ) : (
               outputs.map((device) => (
@@ -165,7 +165,7 @@ export function AudioDevicePicker({
             className="sim-focusable rounded-input px-4 py-2 text-body"
             style={insetSurface('neutral', 10)}
           >
-            Done
+            完成
           </button>
         </div>
       </div>

@@ -58,3 +58,7 @@ class Persona(
         JSONB, nullable=False, default=dict, comment="PersonaVoiceConfig (§22/§71)"
     )
     avatar_url: Mapped[str | None] = mapped_column(Text, default=None)
+    # Presentation gender (male / female / other) — selects the 3D avatar body.
+    # Declared here because the repository drops any key without a column
+    # (`pinned_snapshot` was lost exactly that way); see migration 0002.
+    gender: Mapped[str | None] = mapped_column(String(16), default=None)

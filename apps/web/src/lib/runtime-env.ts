@@ -61,3 +61,11 @@ export const hasBackend: boolean = API_BASE_URL.length > 0;
  * behaviour made a scripted persona indistinguishable from the live model.
  */
 export const shouldUseMockStream: boolean = read(process.env.NEXT_PUBLIC_USE_MOCK, '') === '1';
+
+/**
+ * The 3D VRM persona (`features/avatar/vrm`) is **on by default** and renders
+ * locally in WebGL whenever the Avatar Runtime is not streaming frames.
+ * `NEXT_PUBLIC_AVATAR_3D=0` forces the CSS portrait instead — for low-end review
+ * machines, screenshots, and CI, where a WebGL context is either slow or absent.
+ */
+export const AVATAR_3D_ENABLED: boolean = read(process.env.NEXT_PUBLIC_AVATAR_3D, '1') !== '0';

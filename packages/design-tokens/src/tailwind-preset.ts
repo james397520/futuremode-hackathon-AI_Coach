@@ -80,15 +80,17 @@ export const aiCoachPreset: Partial<Config> = {
         card: 'var(--blur-card)',
       },
       fontFamily: { sans: 'var(--font-sans)' },
+      // Mirrors --text-* in tokens.css (Tailwind cannot read the shorthand var);
+      // change both together.
       fontSize: {
-        display: ['32px', { lineHeight: '40px', letterSpacing: '-0.02em', fontWeight: '600' }],
-        'page-title': ['18px', { lineHeight: '26px', letterSpacing: '-0.02em', fontWeight: '600' }],
-        section: ['16px', { lineHeight: '24px', letterSpacing: '-0.015em', fontWeight: '600' }],
-        'card-title': ['14px', { lineHeight: '21px', fontWeight: '600' }],
-        body: ['14px', { lineHeight: '22px' }],
-        'body-sm': ['13px', { lineHeight: '19px' }],
-        meta: ['12px', { lineHeight: '17px', fontWeight: '500' }],
-        tiny: ['11px', { lineHeight: '15px', fontWeight: '500' }],
+        display: ['36px', { lineHeight: '44px', letterSpacing: '-0.02em', fontWeight: '600' }],
+        'page-title': ['22px', { lineHeight: '30px', letterSpacing: '-0.02em', fontWeight: '600' }],
+        section: ['18px', { lineHeight: '27px', letterSpacing: '-0.015em', fontWeight: '600' }],
+        'card-title': ['16px', { lineHeight: '24px', fontWeight: '600' }],
+        body: ['15px', { lineHeight: '24px' }],
+        'body-sm': ['14px', { lineHeight: '22px' }],
+        meta: ['13px', { lineHeight: '19px', fontWeight: '500' }],
+        tiny: ['12px', { lineHeight: '18px', fontWeight: '500' }],
       },
       spacing: {
         rail: 'var(--rail-width)',

@@ -21,6 +21,8 @@ import type {
   TranscriptTurn,
 } from '@ai-coach/shared';
 
+import type { AvatarBodyGender } from '@/features/avatar';
+
 import type { PersonaStateSnapshot, TimelineMarker } from '../lib/types';
 import { CoachCard } from './coach-card';
 import { cn } from './kit';
@@ -47,6 +49,7 @@ export interface PersonaColumnProps {
   restrictedTopics?: string[];
 
   personaName: string;
+  personaGender?: AvatarBodyGender;
   personaSubtitle?: string;
   personaAvatarUrl?: string;
 
@@ -93,6 +96,7 @@ export function PersonaColumn(props: PersonaColumnProps) {
     learningObjectives,
     restrictedTopics,
     personaName,
+    personaGender,
     personaSubtitle,
     personaAvatarUrl,
     speaking,
@@ -138,6 +142,7 @@ export function PersonaColumn(props: PersonaColumnProps) {
 
       <PersonaStage
         personaName={personaName}
+        personaGender={personaGender}
         subtitle={personaSubtitle}
         avatarUrl={personaAvatarUrl}
         speaking={speaking}

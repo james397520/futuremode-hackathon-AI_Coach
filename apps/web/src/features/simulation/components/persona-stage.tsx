@@ -14,7 +14,7 @@
 import type { ReactNode } from 'react';
 import type { PersonaSimulationState } from '@ai-coach/shared';
 
-import { AvatarStage } from '@/features/avatar';
+import { AvatarStage, type AvatarBodyGender } from '@/features/avatar';
 import { auroraGlow, INK, onMediaSurface } from '../lib/tone';
 import { LiveDot } from './atoms';
 import { ChevronRightIcon, MicIcon, SparkleIcon } from './icons';
@@ -22,6 +22,8 @@ import { cn } from './kit';
 
 export interface PersonaStageProps {
   personaName: string;
+  /** Picks the 3D body (male / female suit). Resolved by the page from the persona. */
+  personaGender?: AvatarBodyGender;
   /** e.g. `陳先生 · Mortgage Insurance` second line. */
   subtitle?: string;
   avatarUrl?: string;
@@ -47,6 +49,7 @@ export interface PersonaStageProps {
 
 export function PersonaStage({
   personaName,
+  personaGender,
   subtitle,
   avatarUrl,
   eyebrow = '客戶模擬',
@@ -81,6 +84,7 @@ export function PersonaStage({
           */}
           <AvatarStage
             personaName={personaName}
+            {...(personaGender === undefined ? {} : { personaGender })}
             {...(avatarUrl === undefined ? {} : { portraitUrl: avatarUrl })}
             {...(sessionId === undefined ? {} : { sessionId })}
             personaState={personaState}

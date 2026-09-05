@@ -343,3 +343,37 @@ TypeError: meth() got multiple values for argument 'event'
 1. 這是第二次被 structlog 咬（前一次是 §11.5 的 `dict_tracebacks` 吃掉 traceback）。任何 `log.<level>(msg, **payload)` 只要 payload 可能含 `event`，就會炸。值得加一條 lint 或在 sink 統一過濾保留字。
 2. `ws.turn_failed` 原本只記 `repr(exc)`，看不到堆疊。已改為 `exc_info=exc`（在 §11.5 修好 ConsoleRenderer 之後才真的能用）。
 
+## 14. 中文化、效能與 3D 虛擬人（本輪）
+
+### 14.1 已中文化的畫面
+模擬設定頁、對談頁（工具列、客戶狀態卡、目標進度卡、情境卡、教練卡、時間軸、標題列、對話框：逐字稿／回報問題／知識庫參考／音訊裝置／字幕／引用來源）、儀表板（含 KPI fixture 標籤與星期）。學員自己的泡泡預設名稱 `'You'` → `'你'`。
+- 新增 `trainingTypeLabel()`（`features/simulation/lib/labels.ts`）：`training_type` 是自由字串不是 enum，原本把 `objection_handling` 這種 slug 直接印在 UI 上。
+- 儀表板問候語原本永遠是 "Good evening"；改為依時段（早安／午安／晚安）。
+- `EXPRESSION_LABEL`（avatar）與 `MARKER_LABEL`（時間軸）兩張英文對照表翻為中文。
+- **其餘頁面**（knowledge／personas／questions／reports／scenarios／security／settings／team／integrations／performance／training）仍是中英夾雜，已建立獨立任務卡處理，規則與參考詞彙寫在卡片內。
+
+### 14.2 「網頁很卡」的兩個真兇
+1. `POST /api/v1/runtime/telemetry` **每一次都 422**：前端把 `RuntimeTelemetryDetail` 整個攤平送出，而後端 `RuntimeTelemetryRequest` 要的是 `{ telemetry: RuntimeTelemetry }`，且 nested model `extra="forbid"`——admin 專用欄位（`worker_status`/`fallback_count`/`inferences`/`updated_at`）一律被拒。這是每次 runtime 狀態變動都會打的熱路徑。修法在 `packages/ai-runtime/src/telemetry.ts`：只投影出契約欄位並包在 `telemetry` 底下。
+2. React duplicate key：`marker()` 的 id 是 `${seq}-${kind}-${label}`，同一事件的兩個同技能分數標記會撞。`pushCapped()` 加上可選 `dedupeKey`，時間軸五處呼叫都傳 `(m) => m.id`。
+驗證方式要注意：Browser pane 的 `read_console_messages` **會累積整個分頁歷史**，重載也不清。要判斷「還在發生嗎」必須開全新分頁（`tabs_create`）再看。
+
+### 14.3 開發伺服器一直「無故消失」的真因
+API 與 avatar runtime 三次在沒有任何關閉紀錄的情況下消失，log 直接斷在正常請求上。原因不是程式：用 `nohup … & disown` 在一般 Bash 呼叫裡啟動的程序，會在工具呼叫結束後被沙盒回收。**改用 Bash 工具的 `run_in_background: true` 啟動**，它會被當成正式背景任務追蹤。已寫入 memory。
+
+### 14.4 3D 虛擬人（進行中，由 agent 實作）
+素材在 `封存/`：Three.js + three-vrm 概念驗證，兩個 VRM（`avatar_a_suit` 女／`avatar_m_suit` 男）、ARKit 52 維 blendshape 契約、`arkitToVrm()`、情緒疊加層、idle（眨眼／眼球／頭部微動）、口型包絡。
+設計決定：
+- 模型複製到 `apps/web/public/models/avatar_{female,male}_suit.vrm`；`封存/` 保持原樣當參考。
+- 新程式在 `apps/web/src/features/avatar/vrm/`（`vrm-stage.tsx` 以 `next/dynamic` ssr:false 載入、`expression-to-vrm.ts`、`idle.ts`、`lipsync.ts`）。VRM 只是 **同一份 store 狀態的另一種渲染**：訂閱 `useAvatarStore` 的 `expression`（心情）與 `speaking`（口型），不碰 runtime 狀態梯。
+- **Persona 沒有性別欄位**——契約層補 `gender?: 'male'|'female'|'other'`（shared TS、Pydantic、ORM 欄位＋alembic、seed、fixtures），前端 `resolvePersonaGender()` 以名字（先生／小姐／太太）與 voice_id 當 fallback。注意 repository 會靜默丟掉 ORM 沒有的欄位（`pinned_snapshot` 的教訓）。
+- 兩個鬆散 GLB（`封存/*.glb`，31MB、README 未引用）已 gitignore；`封存/public`（含 33MB 模型）有提交。
+
+### 14.5 字級階梯整體放大（「字太小、字過多」）
+全站 ~70% 的文字落在 11–14px（`tiny` 198 處、`body-sm` 310 處、`body` 360 處）。中文字形沒有升降部留白、把字框填滿，同名目字級看起來比拉丁字小且擠。整條階梯抬一級並放寬行高：display 32→36、page-title 18→22、section 16→18、card-title 14→16、body 14→15、body-sm 13→14、meta 12→13、tiny 11→12。
+- 字級有**兩份來源**：`tokens.css` 的 `--text-*`（shorthand `14px/22px`，Tailwind 讀不了）與 `tailwind-preset.ts` 的 `fontSize`（寫死 px）。兩邊已同步改，並互相加註「要一起改」。專案內沒有任何 `text-[Npx]` 任意值，preset 就是唯一實際生效的來源。
+- **preset 只在 dev server 啟動時載入**，改完必須重啟 `next dev`；Tailwind 不會監看 config 的依賴模組。若量到的 computed font-size 沒變，先想到這一點。
+
+### 14.6 API 再次無故退出 → 監督迴圈
+即使以 tracked 背景模式啟動，API 仍在 06:14Z 於一連串正常請求後 `exit 1`、無 traceback；同為 uvicorn 的 avatar runtime（13:25 同樣方式啟動）活著，排除整批 `pkill`。根因未定。
+新增 `scripts/dev/run-api.sh`：從根 `.env` 載入設定、`while` 迴圈啟動 uvicorn、每次啟動與退出（含 exit code、UTC 時間）記到 `/tmp/ai-coach-api-exits.log`。下次死掉會留下證據，且 2 秒內自動復活。用 `run_in_background: true` 執行它。
+

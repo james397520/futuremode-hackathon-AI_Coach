@@ -319,6 +319,7 @@ PERSONA: dict[str, Any] = {
     "name": "陳先生",
     "version": 1,
     "status": "published",
+    "gender": "male",
     "age": 38,
     "occupation": "軟體工程師",
     "industry": "半導體 / 電子製造",

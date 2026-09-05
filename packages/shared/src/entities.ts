@@ -145,7 +145,15 @@ export interface Persona extends TenantScoped {
   hidden?: PersonaHiddenState;
   voice: PersonaVoiceConfig;
   avatar_url?: string;
+  /**
+   * Presentation gender — chooses the 3D avatar body (male / female suit).
+   * Optional: older rows have none, and the web falls back to a name / voice
+   * heuristic (`features/avatar/lib/persona-gender.ts`).
+   */
+  gender?: PersonaGender;
 }
+
+export type PersonaGender = 'male' | 'female' | 'other';
 
 export interface PersonaVoiceConfig {
   provider: 'openai' | 'elevenlabs' | 'none';

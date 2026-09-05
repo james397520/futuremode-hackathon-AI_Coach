@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Persona, PersonaTraits, Scenario, SessionMode, TrainingSession } from '@ai-coach/shared';
 
+import { resolvePersonaGender } from '@/features/avatar';
 import { endpoints } from '@/lib/api-client';
 
 import { hasBackend } from '../lib/env';
@@ -94,6 +95,7 @@ function composeBootstrap(
       // Never leak `persona.hidden` into the trainee's view (§16.3).
       subtitle: [persona.occupation, persona.industry].filter(Boolean).join(' · ') || undefined,
       avatarUrl: persona.avatar_url,
+      gender: resolvePersonaGender(persona),
       traitSummary: summariseTraits(persona.traits),
       language: persona.language,
     },

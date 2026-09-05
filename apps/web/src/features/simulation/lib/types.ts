@@ -50,6 +50,8 @@ export interface SessionBootstrap {
     background?: string;
     subtitle?: string;
     avatarUrl?: string;
+    /** Already resolved to a 3D body — the page never re-derives it. */
+    gender: 'male' | 'female';
     traitSummary: string[];
     language: string;
   };

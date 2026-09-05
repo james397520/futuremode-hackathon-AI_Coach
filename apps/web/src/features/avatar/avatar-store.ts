@@ -55,6 +55,13 @@ export interface AvatarStoreState {
   portraitUrl: string | null;
 
   transport: 'none' | 'ws-frames' | 'webrtc' | 'mock';
+  /**
+   * What is actually painted on the stage right now. Orthogonal to `status`:
+   * the ladder says whether the *runtime* is live, this says which surface won —
+   * runtime frames, the local 3D VRM, or the CSS portrait. The badge reads it so
+   * it never calls a rendered 3D character "靜態頭像".
+   */
+  renderer: 'frames' | 'vrm' | 'portrait';
   speaking: boolean;
   buffering: boolean;
 
@@ -79,6 +86,7 @@ export interface AvatarStoreActions {
   setCapabilities: (capabilities: AvatarCapabilities) => void;
   setRuntimeSession: (sessionId: string | null, portraitUrl?: string) => void;
   setTransport: (transport: AvatarStoreState['transport']) => void;
+  setRenderer: (renderer: AvatarStoreState['renderer']) => void;
   setSpeaking: (speaking: boolean) => void;
   setBuffering: (buffering: boolean) => void;
   setExpression: (expression: AvatarExpressionState) => void;
@@ -100,6 +108,7 @@ const INITIAL_STATE: AvatarStoreState = {
   runtimeSessionId: null,
   portraitUrl: null,
   transport: 'none',
+  renderer: 'portrait',
   speaking: false,
   buffering: false,
   expression: EXPRESSION_PRESETS.neutral,
@@ -131,6 +140,8 @@ export const useAvatarStore = create<AvatarStoreState & AvatarStoreActions>((set
     })),
 
   setTransport: (transport) => set({ transport }),
+
+  setRenderer: (renderer) => set((state) => (state.renderer === renderer ? {} : { renderer })),
 
   setSpeaking: (speaking) => set({ speaking }),
 

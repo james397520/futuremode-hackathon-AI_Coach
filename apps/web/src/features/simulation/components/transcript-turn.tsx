@@ -173,7 +173,7 @@ export function TranscriptTurnRow({
   startedAtMs,
   personaName,
   personaAvatarUrl,
-  traineeName = 'You',
+  traineeName = '你',
   className,
 }: TranscriptTurnRowProps) {
   const { turn, insight, finding, streamingText, streaming } = item;

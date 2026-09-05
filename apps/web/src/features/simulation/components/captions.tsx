@@ -36,7 +36,7 @@ export interface CaptionsProps {
 export function Captions({
   enabled,
   personaName,
-  traineeName = 'You',
+  traineeName = '你',
   live,
   previous,
   captionLanguage,
@@ -54,11 +54,11 @@ export function Captions({
     <div
       className={cn('rounded-card border p-4', className)}
       style={insetSurface('neutral', 8)}
-      aria-label="Live captions"
+      aria-label="即時字幕"
     >
       <div className="flex items-center gap-2">
         <CaptionsIcon size={13} className="text-text-tertiary" />
-        <span className="text-tiny uppercase tracking-[0.08em] text-text-tertiary">Captions</span>
+        <span className="text-tiny uppercase tracking-[0.08em] text-text-tertiary">字幕</span>
         {captionLanguage ? (
           <span className="text-tiny text-text-tertiary">· {captionLanguage}</span>
         ) : null}

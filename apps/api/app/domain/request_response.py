@@ -12,6 +12,8 @@ models in the sibling modules. Rules:
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field
 
 from app.domain.analytics import (
@@ -415,6 +417,7 @@ class PersonaCreateRequest(DomainModel):
     hidden: PersonaHiddenState | None = None
     voice: PersonaVoiceConfig
     avatar_url: str | None = None
+    gender: Literal["male", "female", "other"] | None = None
 
 
 class PersonaUpdateRequest(DomainModel):
@@ -427,6 +430,7 @@ class PersonaUpdateRequest(DomainModel):
     hidden: PersonaHiddenState | None = None
     voice: PersonaVoiceConfig | None = None
     avatar_url: str | None = None
+    gender: Literal["male", "female", "other"] | None = None
 
 
 class PersonaResponse(Persona):

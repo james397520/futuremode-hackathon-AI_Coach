@@ -34,7 +34,7 @@ export function TranscriptDialog({
   items,
   startedAtMs,
   personaName,
-  traineeName = 'You',
+  traineeName = '你',
   onCopy,
   onDownload,
 }: TranscriptDialogProps) {
@@ -211,16 +211,15 @@ export interface KnowledgeReferenceDialogProps {
  */
 export function KnowledgeReferenceDialog({ open, onClose, citations }: KnowledgeReferenceDialogProps) {
   return (
-    <Modal open={open} onClose={onClose} title="Knowledge reference">
+    <Modal open={open} onClose={onClose} title="知識庫參考">
       <div className="grid gap-3">
         <p className="text-body-sm text-text-secondary">
-          Approved material the knowledge agent has retrieved during this session. Every claim traces
-          back to a document version, page and section.
+          本次練習中知識代理檢索到的核准資料。每一項主張都可追溯到文件版本、頁碼與章節。
         </p>
         <div className="sim-scroll max-h-[60vh] overflow-y-auto">
           {citations.length === 0 ? (
             <p className="text-body-sm text-text-tertiary">
-              Nothing retrieved yet — sources appear as the conversation touches the knowledge base.
+              尚未檢索到任何資料——當對話觸及知識庫內容時，來源會出現在這裡。
             </p>
           ) : (
             <CitationList citations={citations} />

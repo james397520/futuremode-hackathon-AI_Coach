@@ -28,6 +28,13 @@ export {
   toRuntimeStatePayload,
 } from './lib/expression';
 export { useMockAvatarDriver, MOCK_AVATAR_DEMO_SEQUENCE } from './mock/mock-avatar-runtime';
+export {
+  resolvePersonaGender,
+  genderFromName,
+  genderFromVoiceId,
+  type AvatarBodyGender,
+  type GenderSource,
+} from './lib/persona-gender';
 export type {
   AvatarCapabilities,
   AvatarErrorCode,

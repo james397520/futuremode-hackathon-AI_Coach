@@ -15,6 +15,12 @@
  *   unavailable → the §53 fallback, driven by the mocked persona state so the
  *                 card still reacts to the conversation.
  *
+ * Every non-live rung has a second rendering: the local 3D VRM character
+ * (`../vrm/vrm-stage`), chosen by the persona's gender and driven by the very
+ * same `expression` / `speaking` store slice. It is on by default
+ * (`NEXT_PUBLIC_AVATAR_3D=0` turns it off) and falls back to the CSS portrait
+ * when WebGL or the model load fails — the status ladder never sees any of it.
+ *
  * §72: no alpha. The runtime sends an opaque frame and the stage owns the
  * background, so the picture never composites against an undefined ground.
  *
@@ -24,19 +30,32 @@
  * hidden live region — never as an alert, because none of these states is an
  * emergency.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import type { PersonaSimulationState } from '@ai-coach/shared';
 
+import { AVATAR_3D_ENABLED } from '@/lib/runtime-env';
+
 import { useAvatarStore } from '../avatar-store';
-import { EXPRESSION_LABEL } from '../lib/expression';
-import { cn, tint } from '../lib/tone';
+import { EXPRESSION_LABEL, EXPRESSION_TONE } from '../lib/expression';
+import type { AvatarBodyGender } from '../lib/persona-gender';
+import { cn, onMediaSurface, tint, toneVar } from '../lib/tone';
 import { useMockAvatarDriver } from '../mock/mock-avatar-runtime';
 import { useAvatarFrames } from '../use-avatar-frames';
 import { useAvatarSession } from '../use-avatar-session';
 import type { AvatarRuntimeStatus } from '../types';
+import type { VrmStageStatus } from '../vrm/vrm-stage';
 import { AvatarFallback } from './avatar-fallback';
 import { AvatarStyles } from './avatar-styles';
 import { RuntimeBadge } from './runtime-badge';
+
+/**
+ * `three` + `@pixiv/three-vrm` are ~700KB; they load only when a stage mounts
+ * in a browser, never in the initial chunk and never on the server.
+ */
+const VrmStage = dynamic(() => import('../vrm/vrm-stage').then((m) => m.VrmStage), {
+  ssr: false,
+});
 
 export interface AvatarStageProps {
   /** Training session id. Absent (or empty) means "no session yet": no runtime call is made. */
@@ -44,6 +63,11 @@ export interface AvatarStageProps {
   /** Prepared avatar asset (§7). Defaults to `NEXT_PUBLIC_AVATAR_ID`. */
   avatarId?: string;
   personaName: string;
+  /**
+   * Which 3D body to load. Resolved upstream by `resolvePersonaGender`
+   * (explicit contract field → name → voice → female).
+   */
+  personaGender?: AvatarBodyGender;
   /** Scenario portrait, used when the runtime has none of its own. */
   portraitUrl?: string;
   /** The live persona state — the single source of expression truth (§8/§13). */
@@ -65,7 +89,14 @@ export interface AvatarStageProps {
   className?: string;
 }
 
-function statusAnnouncement(status: AvatarRuntimeStatus, personaName: string): string {
+function statusAnnouncement(
+  status: AvatarRuntimeStatus,
+  personaName: string,
+  vrmOnScreen: boolean,
+): string {
+  if (vrmOnScreen && (status === 'unavailable' || status === 'unknown')) {
+    return `${personaName} 以 3D 虛擬人呈現。語音與對話不受影響。`;
+  }
   switch (status) {
     case 'ready':
       return `${personaName} 現在以即時虛擬人影像呈現。`;
@@ -84,6 +115,7 @@ export function AvatarStage({
   sessionId,
   avatarId,
   personaName,
+  personaGender = 'female',
   portraitUrl,
   personaState = null,
   speaking,
@@ -148,11 +180,34 @@ export function AvatarStage({
   const live = status === 'ready' && (transport === 'ws-frames' || transport === 'webrtc');
   const effectivePortrait = runtimePortrait ?? portraitUrl ?? null;
 
+  // The 3D character: wanted on every non-live rung, shown once its model is
+  // in, replaced by the portrait if WebGL or the load fails. `failed` is sticky
+  // for this mount — retrying a broken GPU every render would just flicker.
+  const [vrmStatus, setVrmStatus] = useState<VrmStageStatus>('loading');
+  const wantVrm = AVATAR_3D_ENABLED && !live && vrmStatus !== 'failed';
+  const vrmOnScreen = wantVrm && vrmStatus === 'ready';
+  const onVrmStatus = useCallback((next: VrmStageStatus, reason?: string) => {
+    setVrmStatus(next);
+    if (next === 'failed' && reason) {
+      // Not an avatar-runtime failure, so not `fail()`: the ladder is untouched.
+      console.warn('[avatar] 3D persona unavailable, using portrait:', reason);
+    }
+  }, []);
+
+  // Tell the badge which surface won, so it never calls a rendered 3D
+  // character "靜態頭像".
+  useEffect(() => {
+    useAvatarStore
+      .getState()
+      .setRenderer(live ? 'frames' : vrmOnScreen ? 'vrm' : 'portrait');
+  }, [live, vrmOnScreen]);
+  useEffect(() => () => useAvatarStore.getState().setRenderer('portrait'), []);
+
   // One announcement per status change, not per render.
   const [announcement, setAnnouncement] = useState('');
   useEffect(() => {
-    setAnnouncement(statusAnnouncement(status, personaName));
-  }, [status, personaName]);
+    setAnnouncement(statusAnnouncement(status, personaName, vrmOnScreen));
+  }, [status, personaName, vrmOnScreen]);
 
   const canvasLabel = useMemo(() => {
     const activity = speaking
@@ -178,8 +233,10 @@ export function AvatarStage({
         className={cn('avatar-canvas absolute inset-0', !live && 'invisible')}
       />
 
-      {/* Everything that is not a live frame. */}
-      {!live ? (
+      {/* Everything that is not a live frame. The portrait stays mounted under
+          the 3D canvas until the model has painted, so the swap is a fade-in,
+          not a blank. */}
+      {!live && !vrmOnScreen ? (
         <AvatarFallback
           personaName={personaName}
           portraitUrl={effectivePortrait}
@@ -188,6 +245,35 @@ export function AvatarStage({
           speaking={speaking}
           listening={listening}
         />
+      ) : null}
+
+      {wantVrm ? (
+        <VrmStage
+          gender={personaGender}
+          ariaLabel={canvasLabel}
+          speaking={speaking}
+          onStatus={onVrmStatus}
+          className={cn(
+            'absolute inset-0 transition-opacity duration-500',
+            vrmOnScreen ? 'opacity-100' : 'opacity-0',
+          )}
+        />
+      ) : null}
+
+      {/* The expression caption the portrait carries, kept over the 3D view so
+          the mood is still legible without reading a face. */}
+      {vrmOnScreen ? (
+        <span
+          className="absolute left-4 top-14 inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 text-tiny backdrop-blur"
+          style={onMediaSurface()}
+        >
+          <span
+            aria-hidden="true"
+            className="inline-block size-1.5 rounded-pill"
+            style={{ backgroundColor: toneVar(EXPRESSION_TONE[expression.name]) }}
+          />
+          {EXPRESSION_LABEL[expression.name]}
+        </span>
       ) : null}
 
       {/* Warm-up shimmer — only while the runtime is genuinely loading models. */}
