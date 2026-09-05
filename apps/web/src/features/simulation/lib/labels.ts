@@ -70,6 +70,38 @@ export const PHASE_LABEL: Record<ScenarioPhase, string> = {
   objection_handling: '異議處理', closing: '收尾', ended: '已結束',
 };
 
+/**
+ * Every `IntentLabel` the API can emit (`app/agents/intent.py`), in Chinese.
+ *
+ * The chip used to run the raw slug through `humaniseSlug`, which turned
+ * `incomplete` into "Incomplete" and `product_explanation` into "Product
+ * Explanation" — English words appearing in an otherwise Chinese UI, and
+ * internal vocabulary at that. Unknown values still fall back to the slug
+ * rather than being hidden: a missing translation should be visible, not
+ * silently swallowed.
+ */
+export const INTENT_LABEL: Record<string, string> = {
+  greeting: '寒暄',
+  small_talk: '閒聊',
+  question: '提問',
+  needs_probe: '需求探詢',
+  product_explanation: '商品說明',
+  price_objection: '價格異議',
+  objection_other: '其他異議',
+  empathy_response: '同理回應',
+  closing_attempt: '嘗試成交',
+  agreement: '認同',
+  off_topic: '離題',
+  direct_answer_request: '索取標準答案',
+  persona_break: '試圖跳出角色',
+  prompt_injection: '注入嘗試',
+  unauthorized_knowledge: '索取未授權資料',
+  incomplete: '話沒說完',
+  ambiguous: '語意不明',
+  exit_intent: '想結束',
+  other: '其他',
+};
+
 export const PHASE_ORDER: readonly ScenarioPhase[] = [
   'opening',
   'needs_discovery',
@@ -95,6 +127,22 @@ export const COMPLIANCE_TYPE_LABEL: Record<ComplianceFindingType, string> = {
   false_promise: '不實承諾', misleading_statement: '誤導性陳述', unsupported_claim: '無佐證主張',
   privacy_issue: '隱私問題', unauthorized_advice: '未授權建議', sensitive_information: '敏感資訊',
   missing_disclosure: '缺少揭露', prompt_injection: '提示注入', restricted_topic: '受限制主題',
+};
+
+/** Reviewer workflow states on a compliance finding. */
+export const REVIEWER_STATUS_LABEL: Record<string, string> = {
+  open: '待處理',
+  acknowledged: '已確認',
+  resolved: '已處理',
+  dismissed: '已排除',
+};
+
+/** Where the avatar/inference ran for this session. */
+export const RUNTIME_LABEL: Record<string, string> = {
+  server: '伺服器',
+  browser: '瀏覽器',
+  webgpu: '瀏覽器 WebGPU',
+  wasm: '瀏覽器 WASM',
 };
 
 /**

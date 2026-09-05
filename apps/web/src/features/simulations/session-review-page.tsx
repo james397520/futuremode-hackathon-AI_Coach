@@ -25,6 +25,11 @@ import { personaById } from '@/lib/fixtures/personas';
 import { scenarioById } from '@/lib/fixtures/scenarios';
 import { userById } from '@/lib/fixtures/identity';
 import { useCan } from '@/lib/auth-context';
+import {
+  COMPLIANCE_TYPE_LABEL,
+  REVIEWER_STATUS_LABEL,
+  RUNTIME_LABEL,
+} from '@/features/simulation/lib/labels';
 import { formatDate, titleize } from '@/lib/utils';
 
 type ReviewTab = 'report' | 'transcript' | 'timeline' | 'compliance';
@@ -93,7 +98,7 @@ export function SessionReviewPage({ sessionId }: { sessionId: string }) {
             <ModePill mode={session.mode} />
             <Pill tone="neutral" size="sm">Scenario v{session.scenario_version}</Pill>
             <Pill tone="neutral" size="sm">Persona v{session.persona_version}</Pill>
-            <Pill tone="neutral" size="sm">{titleize(session.runtime)}</Pill>
+            <Pill tone="neutral" size="sm">{RUNTIME_LABEL[session.runtime] ?? titleize(session.runtime)}</Pill>
             <RiskPill risk={evaluation.compliance_status} />
             <Pill tone="neutral" size="sm">{formatDate(session.started_at)}</Pill>
           </>
@@ -287,9 +292,13 @@ export function SessionReviewPage({ sessionId }: { sessionId: string }) {
               {findings.map((finding) => (
                 <li key={finding.id} className="rounded-card-sm border border-border-soft bg-glass-card p-4">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Pill tone="neutral" size="sm">{titleize(finding.type)}</Pill>
+                    <Pill tone="neutral" size="sm">
+                      {COMPLIANCE_TYPE_LABEL[finding.type] ?? titleize(finding.type)}
+                    </Pill>
                     <RiskPill risk={finding.severity} />
-                    <Pill tone="neutral" size="sm">{titleize(finding.reviewer_status)}</Pill>
+                    <Pill tone="neutral" size="sm">
+                      {REVIEWER_STATUS_LABEL[finding.reviewer_status] ?? titleize(finding.reviewer_status)}
+                    </Pill>
                     {finding.policy_rule ? (
                       <span className="text-tiny text-text-tertiary">{finding.policy_rule}</span>
                     ) : null}
