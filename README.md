@@ -208,7 +208,7 @@ python -m http.server 8765 --directory docs
 | Jease | LLM | GTA Robotics 共同創辦人暨技術長；European Innovation Academy 2024；FAST PROCESSING DATA TECH INC. 與 Dirui Energy 資訊顧問 |
 | Gino | Vision |  |
 | Jessie | UI/UX | 紐約 ADC 年度獎銅獎；德國紅點設計獎 Best of Best；Yodex 新世代設計產學合作獎銅獎 |
-| James | Repo Owner | 待補充 |
+| James | Repo Owner | 資深 AI 工程師； 超低功耗模型設計; AI系統優化與開發 |
 
 ## License
 
