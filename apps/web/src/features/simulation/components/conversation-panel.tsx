@@ -85,6 +85,9 @@ export interface ConversationPanelProps {
   onReportIssue: () => void;
   onOpenAudioDevice: () => void;
 
+  /** Hide the pause/restart/captions/transcript/… quick-actions row (default shown). */
+  showQuickActions?: boolean;
+
   className?: string;
 }
 
@@ -267,6 +270,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
     onOpenTranscript,
     onReportIssue,
     onOpenAudioDevice,
+    showQuickActions = true,
     className,
   } = props;
 
@@ -312,20 +316,22 @@ export function ConversationPanel(props: ConversationPanelProps) {
           ) : null}
         </div>
 
-        <QuickActions
-          className="px-1.5 pb-3"
-          mode={mode}
-          status={status}
-          training={training}
-          onPauseResume={onPauseResume}
-          onRestart={onRestart}
-          onEnd={onEnd}
-          captionsEnabled={captionsEnabled}
-          onToggleCaptions={onToggleCaptions}
-          onOpenTranscript={onOpenTranscript}
-          onReportIssue={onReportIssue}
-          onOpenAudioDevice={onOpenAudioDevice}
-        />
+        {showQuickActions ? (
+          <QuickActions
+            className="px-1.5 pb-3"
+            mode={mode}
+            status={status}
+            training={training}
+            onPauseResume={onPauseResume}
+            onRestart={onRestart}
+            onEnd={onEnd}
+            captionsEnabled={captionsEnabled}
+            onToggleCaptions={onToggleCaptions}
+            onOpenTranscript={onOpenTranscript}
+            onReportIssue={onReportIssue}
+            onOpenAudioDevice={onOpenAudioDevice}
+          />
+        ) : null}
 
         <AffectNudge
           reading={affectReading}

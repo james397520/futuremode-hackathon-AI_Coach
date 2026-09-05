@@ -16,15 +16,22 @@
  * 2. TTS 只借一個真實 session 呼叫 /sessions/{id}/speak（本地 Breeze 女聲），
  *    對話本身仍照劇本；session 或 TTS 不可用時虛擬人改用計時器動嘴，錄影不會停。
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   AgentName,
   CoachInsight,
   ComplianceFinding,
+  PersonaEmotion,
   PersonaSimulationState,
+  ScenarioPhase,
   SessionState,
   TranscriptTurn,
 } from '@ai-coach/shared';
+import type {
+  PersonaStateSnapshot,
+  TimelineMarker,
+  TimelineMarkerKind,
+} from '@/features/simulation/lib/types';
 import { SessionHeader } from '@/features/simulation/components/session-header';
 import { TrainingGrid } from '@/features/simulation/components/training-grid';
 import { ConversationPanel } from '@/features/simulation/components/conversation-panel';
@@ -72,6 +79,11 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   const [activeAgent, setActiveAgent] = useState<AgentName | null>(null);
   const [agentAtMs, setAgentAtMs] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
+  // Live persona-column data — evolves as the conversation advances, exactly as
+  // the real page's cards expect (phase progress, state timeline, mastery).
+  const [pstate, setPstate] = useState<PersonaSimulationState>(() => baseState(script));
+  const [history, setHistory] = useState<PersonaStateSnapshot[]>([]);
+  const [markers, setMarkers] = useState<TimelineMarker[]>([]);
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -82,6 +94,38 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   const startedRef = useRef(false); // the auto-run has begun (once per mount)
   const rootRef = useRef<HTMLDivElement>(null); // scopes DOM control of the real composer
   const resumeRef = useRef(0); // beat index to resume at after the trainee line is sent
+  const pstateRef = useRef<PersonaSimulationState>(baseState(script)); // mirror for merge
+
+  // Advance the persona state + push a history snapshot + a timeline marker, so
+  // PersonaColumn's cards (目標達成進度 / 狀態時間軸 / 情境進度) move exactly as the
+  // real page drives them. Never changes the card logic — only feeds it data.
+  const evolve = useCallback(
+    (
+      patch: Partial<PersonaSimulationState>,
+      marker?: { kind: TimelineMarkerKind; label: string; emotion?: PersonaEmotion },
+    ) => {
+      const next = { ...pstateRef.current, ...patch };
+      pstateRef.current = next;
+      const atMs = Math.max(0, Date.now() - startRef.current);
+      setPstate(next);
+      setHistory((h) => [...h, { atMs, state: next }]);
+      if (marker) {
+        setMarkers((m) => [
+          ...m,
+          {
+            id: `mk${seqRef.current++}`,
+            atMs,
+            kind: marker.kind,
+            label: marker.label,
+            emotion: marker.emotion ?? next.emotion,
+            phase: next.scenario_phase,
+          },
+        ]);
+      }
+    },
+    [],
+  );
+  const clamp = (n: number) => Math.max(0, Math.min(100, n));
 
   const nextTs = useCallback(() => seqRef.current++ * 1000, []);
   const after = useCallback((ms: number, fn: () => void) => {
@@ -172,8 +216,31 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
         },
       ]);
       speakLine(beat.text);
+      // Drive the persona-column cards: a cited reply reads as progress into the
+      // presentation phase and lifts interest/trust; a plain reply nudges it.
+      if (beat.citations?.length) {
+        evolve(
+          {
+            emotion: 'interested',
+            interest: clamp(pstateRef.current.interest + 8),
+            trust: clamp(pstateRef.current.trust + 6),
+            scenario_phase: 'presentation',
+            compliance_risk: 'safe',
+          },
+          { kind: 'key_response', label: '引用核准資料回應', emotion: 'interested' },
+        );
+      } else {
+        evolve(
+          {
+            emotion: 'curious',
+            interest: clamp(pstateRef.current.interest + 4),
+            trust: clamp(pstateRef.current.trust + 3),
+          },
+          { kind: 'state_transition', label: '客戶回應' },
+        );
+      }
     },
-    [nextTs, speakLine],
+    [nextTs, speakLine, evolve],
   );
 
   // Always points at the latest `play`, so the composer-driven trainee send can
@@ -205,9 +272,13 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
       if (!clean) return;
       addTrainee(clean);
       setStatus('processing');
+      // The first trainee turn moves the scenario out of the opening phase.
+      if (pstateRef.current.scenario_phase === 'opening') {
+        evolve({ scenario_phase: 'needs_discovery' });
+      }
       after(600, () => playRef.current(resumeRef.current));
     },
-    [addTrainee, after],
+    [addTrainee, after, evolve],
   );
 
   // The auto-player: walk every beat with human-readable pacing. No input.
@@ -216,6 +287,16 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
       if (i >= script.beats.length) {
         setActiveAgent(null);
         setStatus('completed');
+        evolve(
+          {
+            emotion: 'reassured',
+            trust: clamp(pstateRef.current.trust + 8),
+            resistance: clamp(pstateRef.current.resistance - 10),
+            scenario_phase: 'closing',
+            compliance_risk: 'safe',
+          },
+          { kind: 'state_transition', label: '對話收尾', emotion: 'reassured' },
+        );
         return;
       }
       const beat = script.beats[i];
@@ -262,6 +343,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
       }
 
       if (beat.speaker === 'coach') {
+        setStatus('persona_speaking'); // keep the composer locked while AI works
         setActiveAgent('coach');
         setAgentAtMs(Date.now());
         after(TYPING_MS, () => {
@@ -278,6 +360,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
               requested: false,
             },
           ]);
+          evolve({ patience: clamp(pstateRef.current.patience - 4) }, { kind: 'missed_signal', label: beat.title });
           setActiveAgent(null);
           after(AFTER_EVENT_MS, () => play(i + 1));
         });
@@ -285,15 +368,26 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
       }
 
       // compliance
+      setStatus('persona_speaking'); // keep the composer locked while AI works
       setActiveAgent('compliance');
       setAgentAtMs(Date.now());
       after(TYPING_MS, () => {
         setFindings((p) => [...p, { ...beat.finding, timestamp_ms: nextTs() }]);
+        evolve(
+          {
+            emotion: 'skeptical',
+            resistance: clamp(pstateRef.current.resistance + 8),
+            trust: clamp(pstateRef.current.trust - 4),
+            compliance_risk: beat.finding.severity,
+            scenario_phase: 'objection_handling',
+          },
+          { kind: 'compliance_warning', label: '合規警示', emotion: 'skeptical' },
+        );
         setActiveAgent(null);
         after(AFTER_EVENT_MS, () => play(i + 1));
       });
     },
-    [script, after, addPersona, fillComposer, nextTs],
+    [script, after, addPersona, fillComposer, nextTs, evolve],
   );
 
   useEffect(() => {
@@ -308,6 +402,10 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
     startedRef.current = true;
     startRef.current = Date.now();
     setElapsedMs(0);
+    pstateRef.current = baseState(script);
+    setPstate(pstateRef.current);
+    setHistory([]);
+    setMarkers([]);
     setStatus('ready');
     const opening = script.opening;
     if (opening.speaker === 'persona') {
@@ -343,15 +441,18 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
     setTurns([]);
     setInsights([]);
     setFindings([]);
+    setHistory([]);
+    setMarkers([]);
+    pstateRef.current = baseState(script);
+    setPstate(pstateRef.current);
     setSpeaking(false);
     setActiveAgent(null);
     setStatus('connecting');
     // The avatar is already on screen on a replay, so onPersonaVisible will not
     // fire again — start again on a short delay directly.
     after(800, begin);
-  }, [clearTimers, begin, after]);
+  }, [clearTimers, begin, after, script]);
 
-  const personaState = useMemo(() => baseState(script), [script]);
   const noop = useCallback(() => {}, []);
   const traineeTurns = turns.filter((t) => t.speaker === 'trainee').length;
 
@@ -418,6 +519,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
               onOpenTranscript={noop}
               onReportIssue={noop}
               onOpenAudioDevice={noop}
+              showQuickActions={false}
             />
           }
           right={
@@ -445,12 +547,12 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
               timeLimitSeconds={script.timeLimitSeconds}
               remainingMs={Math.max(0, script.timeLimitSeconds * 1000 - elapsedMs)}
               overtime={false}
-              scenarioPhase="opening"
+              scenarioPhase={pstate.scenario_phase}
               turns={turns}
-              personaState={personaState}
-              personaStateUpdating={false}
-              personaHistory={[]}
-              timelineMarkers={[]}
+              personaState={pstate}
+              personaStateUpdating={activeAgent === 'customer'}
+              personaHistory={history}
+              timelineMarkers={markers}
               startedAtMs={startRef.current}
               elapsedMs={elapsedMs}
               coachInsights={insights}
