@@ -10,7 +10,7 @@
  * 顯示這裡寫死的 text，不管使用者打了什麼，避免錄影時打錯字）；其餘 beat 在
  * 前一個 trainee beat 之後自動依序播出，中間有打字延遲。
  */
-import type { Citation, ComplianceFinding } from '@ai-coach/shared';
+import type { Citation, ComplianceFinding, Difficulty } from '@ai-coach/shared';
 
 export type DemoBeat =
   | {
@@ -47,6 +47,10 @@ export interface DemoScript {
   personaAge: number;
   /** 建立 TTS 用 session 的真實情境 id（僅供語音合成，對話仍照劇本）。 */
   ttsScenarioId: string;
+  difficulty: Difficulty;
+  personaOccupation: string;
+  learningObjectives: string[];
+  restrictedTopics: string[];
   /** 客戶第一句（伺服器直接播的固定開場）。 */
   opening: DemoBeat;
   beats: DemoBeat[];
@@ -94,6 +98,10 @@ export const DEMO_CLARIFY: DemoScript = {
   personaGender: 'female',
   personaAge: 29,
   ttsScenarioId: '9061e279791b5ba08f9b02f4a36d5075',
+  difficulty: 'easy',
+  personaOccupation: '29 歲・第一次買保險',
+  learningObjectives: ['辨識模糊提問並主動反問釐清', '用知識庫佐證定期與終身壽險差異', '避免對理賠作出保證'],
+  restrictedTopics: [],
   capabilities: ['模糊意圖 → 反問釐清', 'Enterprise RAG 引用', '即時合規攔截'],
   opening: {
     speaker: 'persona',
@@ -164,6 +172,10 @@ export const DEMO_REDIRECT: DemoScript = {
   personaGender: 'male',
   personaAge: 67,
   ttsScenarioId: 'a3d5670bbc0858b3a4a0f6a1a9749bfe',
+  difficulty: 'medium',
+  personaOccupation: '67 歲・退休國中老師',
+  learningObjectives: ['把離題溫和收斂回保單盤點', '用團保知識點出保障缺口', '避免保證費率或給付'],
+  restrictedTopics: ['颱風', '選舉', '政治', '股市預測'],
   capabilities: ['超綱話題 → 溫和收斂', '團保知識引用', '缺口試算', '即時合規攔截'],
   opening: {
     speaker: 'persona',
