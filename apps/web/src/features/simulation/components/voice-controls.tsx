@@ -134,7 +134,7 @@ export function VoiceControls({
           style={{
             background:
               'linear-gradient(120deg, var(--accent-indigo), var(--accent-blue) 58%, var(--accent-mint))',
-            color: 'var(--bg-canvas-soft)',
+            color: 'var(--text-on-media)',
           }}
         >
           <MicIcon size={17} />

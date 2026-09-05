@@ -26,6 +26,12 @@
   --text-primary: #18233c;
   --text-secondary: #566177;
   --text-tertiary: #8791a5;
+  /* Text drawn over media — the persona stage's photo and aurora. It follows the
+   * *media*, not the theme, so it stays light in both. Using `--bg-canvas-soft`
+   * for this (as the stage originally did) inverts in dark mode and paints dark
+   * text onto a dark stage. */
+  --text-on-media: #f8faff;
+  --text-on-media-dim: rgba(248, 250, 255, 0.78);
 
   /* ---- Accents ---- */
   --accent-indigo: #6f63f6;
@@ -116,6 +122,9 @@
   --text-primary: #f2f5fc;
   --text-secondary: #b8c2d4;
   --text-tertiary: #8390a7;
+  /* Deliberately the same as light: see the note above. */
+  --text-on-media: #f8faff;
+  --text-on-media-dim: rgba(248, 250, 255, 0.78);
 
   --accent-indigo: #877bff;
   --accent-blue: #5db8f4;

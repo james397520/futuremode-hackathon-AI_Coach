@@ -70,7 +70,7 @@ function ActionButton({
         style={{
           background:
             'linear-gradient(120deg, var(--accent-indigo), var(--accent-blue) 58%, var(--accent-cyan))',
-          color: 'var(--bg-canvas-soft)',
+          color: 'var(--text-on-media)',
         }}
       >
         {icon}

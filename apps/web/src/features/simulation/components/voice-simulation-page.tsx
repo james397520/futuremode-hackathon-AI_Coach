@@ -278,7 +278,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
             className="sim-focusable sim-lift mx-auto mt-5 flex items-center gap-2 rounded-input px-4 py-2.5 text-body font-medium"
             style={{
               background: 'linear-gradient(120deg, var(--accent-indigo), var(--accent-blue))',
-              color: 'var(--bg-canvas-soft)',
+              color: 'var(--text-on-media)',
             }}
           >
             <RestartIcon size={16} />

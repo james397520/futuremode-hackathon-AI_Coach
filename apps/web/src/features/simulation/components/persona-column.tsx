@@ -122,7 +122,7 @@ export function PersonaColumn(props: PersonaColumnProps) {
 
   return (
     <aside
-      className={cn('sim-scroll grid h-full min-h-0 content-start gap-4 overflow-y-auto pb-4 pr-1', className)}
+      className={cn('sim-scroll grid h-full min-h-0 content-start gap-4 overflow-y-auto overflow-x-hidden pb-4 pr-1', className)}
       aria-label="AI persona"
     >
       <ScenarioCard

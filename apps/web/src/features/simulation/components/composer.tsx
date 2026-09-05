@@ -186,7 +186,7 @@ export function Composer({
           className="sim-focusable sim-lift flex h-10 shrink-0 items-center gap-2 rounded-input px-4 text-body font-medium disabled:cursor-not-allowed disabled:opacity-45"
           style={{
             background: 'linear-gradient(120deg, var(--accent-indigo), var(--accent-blue) 62%, var(--accent-cyan))',
-            color: 'var(--bg-canvas-soft)',
+            color: 'var(--text-on-media)',
           }}
         >
           <SendIcon size={16} />

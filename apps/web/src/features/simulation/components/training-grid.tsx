@@ -40,7 +40,12 @@ export function TrainingGrid({ left, right, variant = 'training', className }: T
       <div className="flex h-full min-h-0 min-w-0 flex-col gap-4 overflow-hidden">{left}</div>
 
       {/* 8–16px float-out on large screens (§14.1). */}
-      <div className="h-full min-h-0 min-w-0 overflow-hidden xl:-mr-2 xl:-mt-2 2xl:-mr-4 2xl:-mt-3">{right}</div>
+      {/* The persona column scrolls itself (`overflow-y-auto` inside), so this
+          wrapper only needs to establish the height chain. It used to add
+          negative margins for the §14.1 "card floats past the container" depth,
+          together with `overflow-hidden` on the same element — which clipped
+          exactly the bleed it was creating, cutting the bottom card off. */}
+      <div className="h-full min-h-0 min-w-0">{right}</div>
     </div>
   );
 }

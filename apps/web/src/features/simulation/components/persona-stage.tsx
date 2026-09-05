@@ -105,19 +105,19 @@ export function PersonaStage({
             <div className="min-w-0">
               <p
                 className="text-tiny uppercase tracking-[0.1em]"
-                style={{ color: 'color-mix(in srgb, var(--bg-canvas-soft) 82%, transparent)' }}
+                style={{ color: 'var(--text-on-media-dim)' }}
               >
                 {eyebrow}
               </p>
               <p
                 className="truncate text-card-title"
-                style={{ color: 'var(--bg-canvas-soft)' }}
+                style={{ color: 'var(--text-on-media)' }}
               >
                 {personaName}
                 {subtitle ? (
                   <span
                     className="font-normal"
-                    style={{ color: 'color-mix(in srgb, var(--bg-canvas-soft) 76%, transparent)' }}
+                    style={{ color: 'var(--text-on-media-dim)' }}
                   >
                     {' · '}
                     {subtitle}
@@ -133,7 +133,7 @@ export function PersonaStage({
                 className="sim-focusable flex shrink-0 items-center gap-1 rounded-pill px-2.5 py-1 text-tiny backdrop-blur"
                 style={{
                   backgroundColor: 'color-mix(in srgb, var(--bg-canvas-soft) 24%, transparent)',
-                  color: 'var(--bg-canvas-soft)',
+                  color: 'var(--text-on-media)',
                 }}
               >
                 Profile

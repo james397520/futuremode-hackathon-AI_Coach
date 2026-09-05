@@ -183,7 +183,7 @@ export function ReportIssueDialog({ open, onClose, onSubmit }: ReportIssueDialog
             className="sim-focusable flex items-center gap-2 rounded-input px-4 py-2 text-body font-medium disabled:opacity-60"
             style={{
               background: 'linear-gradient(120deg, var(--accent-indigo), var(--accent-blue))',
-              color: 'var(--bg-canvas-soft)',
+              color: 'var(--text-on-media)',
             }}
           >
             <FlagIcon size={15} />

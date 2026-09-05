@@ -64,7 +64,10 @@ export function SegmentedControl<T extends string = string>({
       aria-label={ariaLabel}
       onKeyDown={onKeyDown}
       className={cn(
-        'inline-flex items-center gap-0.5 rounded-pill border border-border-soft p-0.5',
+        // `max-w-full` + `min-w-0`: as a bare `inline-flex` this sized to its
+        // content and refused to shrink, so in a narrow panel the last option
+        // ("System" in the appearance switcher) was clipped by the container.
+        'inline-flex max-w-full min-w-0 items-center gap-0.5 rounded-pill border border-border-soft p-0.5',
         'bg-[color:color-mix(in_srgb,var(--text-tertiary)_8%,transparent)]',
         className,
       )}
@@ -82,7 +85,9 @@ export function SegmentedControl<T extends string = string>({
             tabIndex={selected ? 0 : -1}
             onClick={() => onValueChange(o.value)}
             className={cn(
-              'inline-flex select-none items-center justify-center gap-1.5 rounded-pill font-medium',
+              // `min-w-0` lets an option give up width; the label truncates
+              // instead of pushing its siblings out of the track.
+              'inline-flex min-w-0 select-none items-center justify-center gap-1.5 rounded-pill font-medium',
               'transition-colors duration-[var(--dur-hover)] ease-out-soft motion-reduce:transition-none',
               'disabled:pointer-events-none disabled:opacity-50',
               '[&_svg]:size-4 [&_svg]:shrink-0',
@@ -103,7 +108,7 @@ export function SegmentedControl<T extends string = string>({
                 {o.icon}
               </span>
             ) : null}
-            {iconOnly ? null : o.label}
+            {iconOnly ? null : <span className="truncate">{o.label}</span>}
             {iconOnly && o.srLabel == null && typeof o.label !== 'string' ? (
               <span className="sr-only">{o.label}</span>
             ) : null}
