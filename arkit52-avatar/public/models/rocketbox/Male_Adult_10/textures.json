@@ -1,0 +1,12 @@
+{
+  "fbx": "Male_Adult_10_facial.fbx",
+  "textures": {
+    "m024_body_color": "jpg",
+    "m024_body_normal": "jpg",
+    "m024_body_specular": "jpg",
+    "m024_head_color": "jpg",
+    "m024_head_normal": "jpg",
+    "m024_head_specular": "jpg",
+    "m024_opacity_color": "png"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "fbx": "Female_Adult_03_facial.fbx",
+  "textures": {
+    "f003_body_color": "jpg",
+    "f003_body_normal": "jpg",
+    "f003_body_specular": "jpg",
+    "f003_head_color": "jpg",
+    "f003_head_normal": "jpg",
+    "f003_head_specular": "jpg",
+    "f003_opacity_color": "png"
+  }
+}

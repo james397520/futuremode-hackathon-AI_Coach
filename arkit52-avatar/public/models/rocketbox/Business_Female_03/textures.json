@@ -1,0 +1,16 @@
+{
+  "fbx": "Business_Female_03_facial.fbx",
+  "textures": {
+    "f016_body_color": "jpg",
+    "f016_body_normal": "jpg",
+    "f016_body_specular": "jpg",
+    "f016_head_color": "jpg",
+    "f016_head_normal": "jpg",
+    "f016_head_specular": "jpg",
+    "f016_opacity_color": "png",
+    "f016_head_color_40": "jpg",
+    "f016_head_color_65": "jpg",
+    "f016_opacity_color_40": "png",
+    "f016_opacity_color_65": "png"
+  }
+}

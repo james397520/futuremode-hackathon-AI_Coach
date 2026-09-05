@@ -1,0 +1,39 @@
+{
+  "_comment": "動作的中文名稱與分類。key 是檔名;單一檔案含多個動作時用「檔名#clip名稱」。沒列到的檔案會自動歸到「其他」、標籤用檔名,所以之後從 Mixamo 抓新動作丟進來就能直接用,要中文名再補進這裡。",
+  "categories": {
+    "idle": "待機",
+    "gesture": "手勢",
+    "move": "走動",
+    "sport": "運動",
+    "other": "其他"
+  },
+  "defaultMotion": "Idle.fbx",
+  "labels": {
+    "Idle.fbx":                      ["站立待機", "idle"],
+    "Standing W_Briefcase Idle.fbx": ["拿公事包待機", "idle"],
+    "Catwalk Idle To Twist R.fbx":   ["待機轉身", "idle"],
+    "基本動作.glb#idle":              ["輕微待機", "idle"],
+
+    "Waving.fbx":                    ["揮手", "gesture"],
+    "Standing Greeting.fbx":         ["打招呼", "gesture"],
+    "Clapping.fbx":                  ["拍手", "gesture"],
+    "Quick Informal Bow.fbx":        ["點頭鞠躬", "gesture"],
+    "Shaking Hands 2.fbx":           ["握手", "gesture"],
+    "Talking On Phone.fbx":          ["講電話", "gesture"],
+    "Dismissing Gesture.fbx":        ["揮手示意", "gesture"],
+    "基本動作.glb#agree":             ["點頭同意", "gesture"],
+    "基本動作.glb#headShake":         ["搖頭", "gesture"],
+
+    "Start Walking.fbx":             ["起步走", "move"],
+    "Walking Left Turn.fbx":         ["邊走左轉", "move"],
+    "Left Turn.fbx":                 ["向左轉", "move"],
+    "Right Turn.fbx":                ["向右轉", "move"],
+    "Right Turn W_ Briefcase.fbx":   ["向右轉(公事包)", "move"],
+    "基本動作.glb#walk":              ["走路", "move"],
+    "基本動作.glb#run":               ["跑步", "move"],
+
+    "森巴舞.fbx":                     ["森巴舞", "other"],
+    "基本動作.glb#sad_pose":          ["沮喪姿勢", "other"],
+    "基本動作.glb#sneak_pose":        ["潛行姿勢", "other"]
+  }
+}
