@@ -508,3 +508,52 @@ key 缺 `voices_read`，列不出 voice 清單；改用 ElevenLabs 內建（prem
 用 `AVSpeechSynthesisVoice.speechVoices()` 直接問系統：這台 Mac **180 支語音全是 `default`（精簡）品質，enhanced 0、premium 0**。美佳是 `com.apple.voice.compact.zh-TW.Meijia`；Eddy/Flo/Grandma/Grandpa/Reed/Rocko/Sandy/Shelley 是 `com.apple.eloquence.*`——舊 Eloquence 引擎。iPhone 出廠就帶進階版美佳，所以聽感差一個等級。
 - 下載：系統設定 → 輔助使用 → 朗讀內容 → 系統語音 → 管理語音 → 中文（台灣）→ 下載「美佳（進階）」／「美佳（高級）」（Apple 只提供部分聲音的進階版；沒有中文男聲的進階版時，只能用美佳或雲端）。無 CLI 可下載。
 - 下載後 `say`、`speechSynthesis`、`AVSpeechSynthesizer` 都會多出該聲音；前端 `pickVoice` 已改成**依名稱中的 進階／高級／Enhanced／Premium 排序優先**，Eloquence 聲音排最後，不用再改設定。
+
+### 16.15 本地 TTS 模型（`services/local-tts`）
+「說：本地」現在有真正的**本地模型**可用，不只是 macOS 系統語音。
+
+**選了什麼：`hexgrad/Kokoro-82M-v1.1-zh`**（Apache-2.0，8,200 萬參數，24 kHz），跑在 CPU `onnxruntime`（不裝 torch）。
+- 為什麼：這台 M3 只有 8 GB RAM、裝之前 5.2 GB 可用磁碟。整套 venv 239 MB + 權重 380 MB（onnx 325 MB、聲音包 54 MB、vocab）= **約 620 MB**；常駐 RSS 545–615 MB，峰值 666 MB。25 字一句 **RTF ≈ 0.22**（4 執行緒），一句 1.3–1.7 秒出完整音檔。
+- 品質驗證：三句樣本（女 `zf_001`、男 `zm_010`）丟回 Mac 本機辨識（`tools/mac-stt`）**6/6 逐字正確**。口音偏大陸標準普通話（訓練集是 100 位大陸專業配音），但台灣用語（保單、方案、啦、好不好）都唸得對。
+- 聲音：聲音包 103 支，其中中文 100 支（`zf_001`–`zf_099`、`zm_009`–`zm_100`），另 3 支英文聲音因沒載英文 G2P 不列出。預設女 `zf_001`、男 `zm_010`（模型卡自己的示範聲音）；`voice` 指定名稱優先於 `gender`。
+
+**被拒絕的：`MediaTek-Research/BreezyVoice`**（Apache-2.0，台灣口音，本來是第一順位）。查 Hugging Face 檔案清單：`llm.pt` 1.24 GB + `speech_tokenizer_v1.onnx` 523 MB + `flow.pt` 420 MB + `hift.pt` 82 MB + `campplus.onnx` 28 MB = **2.3 GB 權重**（加 ttsfrd 資源 3.2 GB），再加 torch/torchaudio/whisper 的 venv 約 1 GB，總計 3.3 GB 超過 3 GB 預算、會把可用磁碟壓到 1.9 GB；且它是 CosyVoice-300M 架構（自迴歸 LLM + flow matching），CPU 上 RTF 公認 > 1，8 GB 記憶體同時載 LLM+flow+tokenizer 也不保險。**沒有下載實測**，是按公開檔案大小與架構拒絕的——若日後換 16 GB 以上的機器，它仍是台灣口音的首選。XTTS（CPML 非商用）與 CC-BY-NC 類模型不考慮。
+
+**實測（`POST /speak`，format=mp3，經 ffmpeg 轉檔，服務暖機後）**
+
+| 句子 | 字數 | 音長 | 女聲 首位元組=總長 | 男聲 首位元組=總長 | RTF |
+|---|---|---|---|---|---|
+| 這個我不太清楚啦，我們還是講回我這個保單好不好？ | 24 | 5.55 s | 1.68 s* | 1.68 s | 0.22–0.28 |
+| 我比較想先知道這個方案一個月實際會多花多少錢。 | 23 | 5.9 s | 1.62 s | 1.41 s | 0.22–0.23 |
+| 好，那我們先看保障的部分。 | 13 | 3.4 s | 0.87 s | 0.86 s | 0.22 |
+
+\* 冷啟動第一句曾量到 6.5 s（onnxruntime 對新長度配置記憶體），所以載入時改用一句 25 字的句子暖機，`/healthz` 在暖機完成前回 503。回應不是串流，首位元組＝整句完成；比 ElevenLabs flash 的 0.3 s 慢約 1.3 s，但零成本、離線、文字不出機器。長段落 130 字 → 28.5 s 音檔 6.7 s 合成（RTF 0.235）。執行緒 2/4/8 = 6.9 s / 2.2 s / 2.0 s（同機有其他負載時量的），8 執行緒只快 10% 還吃到效率核，維持 4。
+
+樣本：`/tmp/local-tts-samples/{female,male}_{1,2,3}.mp3`（`*.hdr` 是回應標頭，含 `X-Rtf` / `X-Synth-Ms`）。
+
+**安裝／啟動**
+```bash
+pnpm tts:install        # = scripts/dev/install-local-tts-service.sh：建 .venv、抓權重、註冊 launchd
+scripts/dev/install-local-tts-service.sh --status | --uninstall
+curl -s 127.0.0.1:8795/healthz
+```
+launchd label `com.aicoach.local-tts`，KeepAlive，log `/tmp/ai-coach-local-tts.log`（structlog JSON，只記字數與時間，不記文字）。`ensure-services.sh`（`pnpm dev` 的 predev）會一起帶起來。venv 與 `models/` 都在 `.gitignore`。權重下載 `services/local-tts/scripts/fetch_model.sh` 有 sha256 鎖定。注意：這台機器對 PyPI 官方 CDN 只有 ~30 KB/s（GitHub 5 MB/s），首次建 venv 若卡住，加 `--index-url https://mirrors.aliyun.com/pypi/simple`。
+
+**接線**
+- API：`LOCAL_TTS_URL`（預設 `http://127.0.0.1:8795`）、`TTS_PROVIDER` 多了 `local`。`app/ws/voice.py` 新增 `LocalHttpTts`（同 `ElevenLabsTts` 介面，persona `gender` → 服務的 `gender`，`speed` 夾在 0.7–1.2）、`FallbackTts`、`probe_local_tts`、`build_tts(engine)`。
+- `POST /sessions/{id}/speak?engine=auto|cloud|local`：`local` 先打本地模型，服務不在時退回 ElevenLabs；`Content-Type` 照實際回來的編碼（本地 mp3，雲端 mp3），`X-Tts-Provider` 說誰講的。兩邊都掛時回 502，而不是空的 200。
+- `GET /sessions/stt/capabilities` 多了 `tts: {default, local: {available, model, voices}}`（探測 1 秒上限）。
+- 前端：`speakTurn` 在引擎 `system` 時，若能力回報本地模型可用就先 `synthesizeSpeech(..., 'local')`，失敗才落到 `speechSynthesis`；「說：本地」pill 的 tooltip 依可用性顯示「本地模型」或「系統語音」。
+- 測試：`apps/api/tests/test_local_tts.py`（stub HTTP client，10 條）、`services/local-tts/tests/test_engine.py`。
+
+**已知限制**
+- 口音偏大陸；少數字的讀音跟台灣習慣不同（pypinyin 詞典，如「和」「垃圾」）。
+- 數字：`1,200` 千分位會被唸成「一，二百」，服務先把千分位逗號去掉、`NT$`/`NTD`/`TWD` 換成「新台幣」再送 G2P；其他數字、％、日期交給 misaki 內的 cn2an，混合格式偶有唸錯，重要金額請在 persona 文案裡寫成中文。
+- 中文句子裡的英文單字會被略過（未載英文 G2P；載了要多 espeak-ng）。
+- 模型在 ~100 音素以上會趕拍、吞字（模型卡自己承認），服務按句號切句、超過 120 音素再按逗號切，並套用模型卡的長度→速度曲線；每段之間補 0.18 s 靜音。沒有標點的長句會變成一口氣。
+- 沒有串流：一句要等合成完才開始播。
+
+## 18. 30 秒 Demo（情境三）所需的三個機制
+1. **客戶先開口**：`SessionService.speak_opening_line()` 在首次連線 `mark_ready` 後，把 `opening_context` 裡最後一段「…」引句當作客戶第 0 輪送出並持久化；session 已有任何回合就不做（重連不會重複）。四個情境的 opening_context 都寫成「他坐下來第一句話是：「…」」的格式，所以全部受惠。副作用：回合計數會把這一輪算進去（UI 顯示 Turn 1 / 30）。
+2. **低耐心 persona 回覆精簡**：`CustomerTurnRequest` 依 `traits.patience < 35` 加 `reply_length` 指令（兩句、40 字內）。這是角色特性，順便讓對話框不需捲動。
+3. **皺眉 → 提示卡**（`affect-nudge.tsx`）：用瀏覽器端臉部讀數（每 250ms），負向標籤（angry/sad/fearful/disgusted/contempt）信心 ≥ 0.55 **持續 1.5 秒**且輪到學員說話時，在**輸入框正上方**出現「這句不好接？我可以給你一個回應方向，不會替你講。」按「給我方向」走既有 `coach.request_hint`；30 秒內只出現一次、15 秒自動收、評測模式不顯示、**不說出偵測到的情緒**。實測皺眉到出現 2.9 秒。
