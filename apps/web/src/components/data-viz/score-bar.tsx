@@ -6,10 +6,10 @@ import { cn, clamp } from '@/lib/utils';
  * always present (§47 "no color-only status").
  */
 export function scoreBand(score: number): { label: string; token: string } {
-  if (score >= 85) return { label: 'Strong', token: 'var(--success)' };
-  if (score >= 75) return { label: 'Solid', token: 'var(--accent-blue)' };
-  if (score >= 65) return { label: 'Developing', token: 'var(--warning)' };
-  return { label: 'Needs work', token: 'var(--danger)' };
+  if (score >= 85) return { label: '優秀', token: 'var(--success)' };
+  if (score >= 75) return { label: '穩健', token: 'var(--accent-blue)' };
+  if (score >= 65) return { label: '發展中', token: 'var(--warning)' };
+  return { label: '待加強', token: 'var(--danger)' };
 }
 
 export function ScoreBar({
@@ -57,13 +57,13 @@ export function ScoreBar({
             aria-hidden
             className="absolute top-0 h-full w-px bg-text-tertiary/60"
             style={{ left: `${clamp(threshold)}%` }}
-            title={`Pass threshold ${threshold}`}
+            title={`及格門檻 ${threshold}`}
           />
         ) : null}
       </div>
       {confidence !== undefined ? (
         <p className="mt-1 text-tiny text-text-tertiary">
-          Model confidence {Math.round(confidence * 100)}%
+          模型信心 {Math.round(confidence * 100)}%
         </p>
       ) : null}
     </div>

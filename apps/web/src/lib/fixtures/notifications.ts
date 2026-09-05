@@ -49,7 +49,7 @@ export const MOCK_NOTIFICATIONS: AppNotification[] = [
     id: 'ntf_02',
     kind: 'review_required',
     title: '20 AI-generated questions await review',
-    body: 'Generated from Product SOP v3 and 2026 Premium Bands. Nothing is published until a reviewer approves it.',
+    body: '依據商品 SOP v3 與 2026 保費級距表生成；審核者核准前不會發布。',
     at: '2026-03-18T09:10:00.000Z',
     read: false,
     href: '/questions?status=generated',
@@ -68,7 +68,7 @@ export const MOCK_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'ntf_04',
     kind: 'knowledge_updated',
-    title: 'Product SOP v3 re-indexed',
+    title: '商品 SOP v3 已重新索引',
     body: '128 documents · 4,820 chunks. Retrieval is live for all scenarios using this knowledge base.',
     at: '2026-03-18T09:12:00.000Z',
     read: true,

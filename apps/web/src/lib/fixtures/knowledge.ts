@@ -10,7 +10,7 @@ export const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   {
     id: 'kb_product_sop',
     ...SCOPE,
-    name: 'Product SOP & 商品條款',
+    name: '商品 SOP 與商品條款',
     description: '壽險、重疾、醫療三大主約與附約的核保與話術 SOP，含 2026 保費級距表。',
     status: 'published',
     document_count: 128,
@@ -108,7 +108,7 @@ export const MOCK_DOCUMENTS: KnowledgeDocument[] = [
     id: 'doc_ci_definitions',
     ...SCOPE,
     knowledge_base_id: 'kb_product_sop',
-    filename: 'Critical-Illness-Definitions-2026.docx',
+    filename: '重大疾病定義-2026.docx',
     source_kind: 'docx',
     size_bytes: 1_884_400,
     state: 'embedding',
@@ -149,7 +149,7 @@ export const MOCK_DOCUMENTS: KnowledgeDocument[] = [
     id: 'doc_forbidden_phrases',
     ...SCOPE,
     knowledge_base_id: 'kb_compliance',
-    filename: 'Forbidden-Phrases-2026.txt',
+    filename: '禁用話術清單-2026.txt',
     source_kind: 'txt',
     size_bytes: 18_240,
     state: 'ready',
@@ -286,7 +286,7 @@ export const MOCK_CITATIONS: Citation[] = [
   {
     chunk_id: 'chk_0182',
     document_id: 'doc_sop_v3',
-    document_name: 'Product SOP v3',
+    document_name: '商品 SOP v3',
     document_version: 3,
     page: 12,
     section: '3.2 重大疾病定義與等待期',
@@ -298,7 +298,7 @@ export const MOCK_CITATIONS: Citation[] = [
   {
     chunk_id: 'chk_0183',
     document_id: 'doc_sop_v3',
-    document_name: 'Product SOP v3',
+    document_name: '商品 SOP v3',
     document_version: 3,
     page: 13,
     section: '3.3 團保與個人保單比較',
@@ -309,7 +309,7 @@ export const MOCK_CITATIONS: Citation[] = [
   {
     chunk_id: 'chk_0411',
     document_id: 'doc_premium_2026',
-    document_name: '2026 Premium Bands',
+    document_name: '2026 保費級距表',
     document_version: 2,
     page: 4,
     section: '保費級距表 — 重大疾病主約',
@@ -320,7 +320,7 @@ export const MOCK_CITATIONS: Citation[] = [
   {
     chunk_id: 'chk_0904',
     document_id: 'doc_forbidden_phrases',
-    document_name: 'Forbidden Phrases 2026',
+    document_name: '禁用話術清單 2026',
     document_version: 5,
     section: '禁用話術清單',
     similarity: 0.74,

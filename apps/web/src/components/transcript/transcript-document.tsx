@@ -8,12 +8,12 @@ import { cn, formatClock, titleize } from '@/lib/utils';
 import { CitationList } from './citation-list';
 
 const SPEAKER_LABEL: Record<SpeakerKind, string> = {
-  trainee: 'You',
-  persona: 'Customer',
+  trainee: '你',
+  persona: '客戶',
   coach: 'AI Coach',
-  system: 'System',
-  compliance: 'Compliance',
-  knowledge: 'Knowledge',
+  system: '系統',
+  compliance: '合規',
+  knowledge: '知識庫',
 };
 
 const ANNOTATION_SPEAKERS: SpeakerKind[] = ['coach', 'compliance', 'knowledge', 'system'];
@@ -27,13 +27,13 @@ const ANNOTATION_SPEAKERS: SpeakerKind[] = ['coach', 'compliance', 'knowledge', 
  */
 export function TranscriptDocument({
   turns,
-  personaName = 'Customer',
-  traineeName = 'You',
+  personaName = '客戶',
+  traineeName = '你',
   /** Turn ids to highlight — used when arriving from an evidence link. */
   highlightTurnIds,
   className,
   liveRegion = false,
-  emptyMessage = 'The transcript will appear here as the conversation happens.',
+  emptyMessage = '對話開始後，逐字稿會顯示在這裡。',
 }: {
   turns: TranscriptTurn[];
   personaName?: string;
@@ -55,12 +55,12 @@ export function TranscriptDocument({
     speaker === 'persona' ? personaName : speaker === 'trainee' ? traineeName : SPEAKER_LABEL[speaker];
 
   return (
-    <section className={cn('transcript-doc overflow-hidden', className)} aria-label="Session transcript">
+    <section className={cn('transcript-doc overflow-hidden', className)} aria-label="練習逐字稿">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border-soft px-5 py-3.5">
         <div>
-          <h3 className="text-card-title">Transcript</h3>
+          <h3 className="text-card-title">逐字稿</h3>
           <p className="text-tiny text-text-tertiary">
-            {turns.length} turns · document view with inline coach and compliance annotations
+            {turns.length} 個回合 · 文件視圖，內嵌教練與合規註記
           </p>
         </div>
         <label className="flex cursor-pointer items-center gap-2 text-body-sm text-text-secondary">
@@ -70,7 +70,7 @@ export function TranscriptDocument({
             onChange={(event) => setShowAnnotations(event.target.checked)}
             className="h-4 w-4 rounded accent-accent-indigo"
           />
-          Show annotations
+          顯示註記
         </label>
       </header>
 
@@ -138,7 +138,7 @@ export function TranscriptDocument({
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     {turn.intent ? (
                       <Pill tone="neutral" size="sm">
-                        Intent · {titleize(turn.intent)}
+                        意圖 · {titleize(turn.intent)}
                       </Pill>
                     ) : null}
 
@@ -155,13 +155,13 @@ export function TranscriptDocument({
                     ) : null}
 
                     {turn.state_delta?.emotion ? (
-                      <Pill tone="info" size="sm">Emotion → {titleize(turn.state_delta.emotion)}</Pill>
+                      <Pill tone="info" size="sm">情緒 → {titleize(turn.state_delta.emotion)}</Pill>
                     ) : null}
                     {turn.state_delta?.scenario_phase ? (
-                      <Pill tone="neutral" size="sm">Phase → {titleize(turn.state_delta.scenario_phase)}</Pill>
+                      <Pill tone="neutral" size="sm">階段 → {titleize(turn.state_delta.scenario_phase)}</Pill>
                     ) : null}
                     {turn.state_delta?.trust !== undefined ? (
-                      <Pill tone="neutral" size="sm">Trust {turn.state_delta.trust}</Pill>
+                      <Pill tone="neutral" size="sm">信任度 {turn.state_delta.trust}</Pill>
                     ) : null}
                     {turn.state_delta?.compliance_risk ? (
                       <Pill
@@ -174,7 +174,7 @@ export function TranscriptDocument({
                         }
                         size="sm"
                       >
-                        Risk · {titleize(turn.state_delta.compliance_risk)}
+                        風險 · {titleize(turn.state_delta.compliance_risk)}
                       </Pill>
                     ) : null}
                   </div>

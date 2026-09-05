@@ -139,7 +139,7 @@ export const MOCK_PERSONAS: Persona[] = [
   {
     id: 'per_bank_walkin',
     ...SCOPE,
-    name: '林小姐 (Bank walk-in)',
+    name: '林小姐（銀行臨櫃客戶）',
     gender: 'female',
     version: 3,
     status: 'published',

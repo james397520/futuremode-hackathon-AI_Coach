@@ -67,7 +67,7 @@ export const MOCK_QUESTIONS: Question[] = [
     required_keywords: ['90'],
     forbidden_claims: [],
     compliance_rules: [],
-    explanation: 'Product SOP v3 §3.2：等待期為契約生效日起算九十日。',
+    explanation: '商品 SOP v3 §3.2：等待期為契約生效日起算九十日。',
     tags: ['critical_illness', 'waiting_period'],
     version: 2,
     status: 'published',

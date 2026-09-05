@@ -124,7 +124,7 @@ export interface LeaderboardRow {
 
 export const TEAM_LEADERBOARD: LeaderboardRow[] = [
   { user_id: 'usr_chang', display_name: 'Chang Wei-Ting', team_name: 'Taipei North', overall_score: 82, improvement: 6.4, sessions: 27, weakest_skill: 'compliance', readiness: 'developing' },
-  { user_id: 'usr_hsu', display_name: 'Hsu Mei-Ling', team_name: 'Taipei North', overall_score: 89, improvement: 3.1, sessions: 34, weakest_skill: 'closing_ability', readiness: 'ready' },
+  { user_id: 'usr_hsu', display_name: '許美玲', team_name: 'Taipei North', overall_score: 89, improvement: 3.1, sessions: 34, weakest_skill: 'closing_ability', readiness: 'ready' },
   { user_id: 'usr_kuo', display_name: 'Kuo Chia-Hao', team_name: 'Taichung', overall_score: 63, improvement: -1.8, sessions: 11, weakest_skill: 'needs_discovery', readiness: 'at_risk' },
   { user_id: 'usr_yeh', display_name: 'Yeh Shu-Chen', team_name: 'Taichung', overall_score: 91, improvement: 1.2, sessions: 41, weakest_skill: 'product_knowledge', readiness: 'ready' },
   { user_id: 'usr_tsai', display_name: 'Tsai Ming-Hui', team_name: 'Bank Desk', overall_score: 78, improvement: 5.5, sessions: 19, weakest_skill: 'empathy', readiness: 'developing' },
@@ -140,10 +140,10 @@ export interface KnowledgeGap {
 }
 
 export const KNOWLEDGE_GAPS: KnowledgeGap[] = [
-  { topic: '等待期與除外責任', document_name: 'Critical Illness Definitions 2026', miss_rate: 0.42, affected_users: 16, linked_skill: 'compliance' },
-  { topic: '團保與個人保單差異', document_name: 'Product SOP v3 §3.3', miss_rate: 0.31, affected_users: 12, linked_skill: 'professional_knowledge' },
-  { topic: '保障缺口計算', document_name: '2026 Premium Bands', miss_rate: 0.27, affected_users: 9, linked_skill: 'needs_discovery' },
-  { topic: '禁用話術清單', document_name: 'Forbidden Phrases 2026', miss_rate: 0.24, affected_users: 21, linked_skill: 'compliance' },
+  { topic: '等待期與除外責任', document_name: '重大疾病定義 2026', miss_rate: 0.42, affected_users: 16, linked_skill: 'compliance' },
+  { topic: '團保與個人保單差異', document_name: '商品 SOP v3 §3.3', miss_rate: 0.31, affected_users: 12, linked_skill: 'professional_knowledge' },
+  { topic: '保障缺口計算', document_name: '2026 保費級距表', miss_rate: 0.27, affected_users: 9, linked_skill: 'needs_discovery' },
+  { topic: '禁用話術清單', document_name: '禁用話術清單 2026', miss_rate: 0.24, affected_users: 21, linked_skill: 'compliance' },
 ];
 
 export interface ScenarioMastery {

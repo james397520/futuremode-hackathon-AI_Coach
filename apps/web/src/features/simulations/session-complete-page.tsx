@@ -16,15 +16,8 @@ import { MOCK_COACH_INSIGHTS, sessionById } from '@/lib/fixtures/sessions';
 import { documentById } from '@/lib/fixtures/knowledge';
 import { questionById } from '@/lib/fixtures/questions';
 import { scenarioById } from '@/lib/fixtures/scenarios';
+import { DIFFICULTY_LABEL } from '@/features/simulation/lib/labels';
 import { formatDuration, titleize } from '@/lib/utils';
-
-/** Difficulty slugs as the setup page already shows them; `titleize` is the fallback. */
-const DIFFICULTY_LABEL: Record<string, string> = {
-  beginner: '初階',
-  intermediate: '中階',
-  advanced: '進階',
-  expert: '專家',
-};
 
 /**
  * §58-8 Session Completion (§29 Part I) and §33 closed-loop adaptive learning.
@@ -177,7 +170,7 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
                     {scenarioById(DEMO_RECOMMENDATION.next_scenario_id)?.name ?? DEMO_RECOMMENDATION.next_scenario_id}
                   </p>
                   <p className="text-tiny text-text-tertiary">
-                    建議難度：{DIFFICULTY_LABEL[DEMO_RECOMMENDATION.suggested_difficulty] ?? titleize(DEMO_RECOMMENDATION.suggested_difficulty)}
+                    建議難度：{DIFFICULTY_LABEL[DEMO_RECOMMENDATION.suggested_difficulty as keyof typeof DIFFICULTY_LABEL] ?? titleize(DEMO_RECOMMENDATION.suggested_difficulty)}
                   </p>
                 </div>
                 <Button variant="primary" size="sm" asChild>

@@ -17,6 +17,10 @@ import type {
 
 import type { ToneKey } from './tone';
 
+// The enum → Chinese maps themselves live in `lib/enum-labels` so `components/`
+// can use them too (via `titleize`); this module keeps the tones and the rest.
+export { COMPLIANCE_RISK_LABEL, EMOTION_LABEL, INTENT_LABEL, PHASE_LABEL, SKILL_LABEL } from '@/lib/enum-labels';
+
 /** §23 session states — user-facing wording (`Live`, `Thinking`) over raw enum names. */
 export const SESSION_STATE_LABEL: Record<SessionState, string> = {
   idle: '準備開始', connecting: '連線中', ready: '進行中', listening: '聆聽中',
@@ -36,12 +40,6 @@ export const SESSION_STATE_TONE: Record<SessionState, ToneKey> = {
   reconnecting: 'warning',
   completed: 'success',
   error: 'danger',
-};
-
-/** §31 / §40 — simulated persona emotion, never inferred from a real face or voice. */
-export const EMOTION_LABEL: Record<PersonaEmotion, string> = {
-  neutral: '平靜', curious: '好奇', skeptical: '懷疑', frustrated: '挫折',
-  interested: '有興趣', reassured: '安心', ready: '準備好',
 };
 
 export const EMOTION_TONE: Record<PersonaEmotion, ToneKey> = {
@@ -65,43 +63,6 @@ export const EMOTION_LADDER: readonly PersonaEmotion[] = [
   'ready',
 ];
 
-export const PHASE_LABEL: Record<ScenarioPhase, string> = {
-  opening: '開場', needs_discovery: '需求探索', presentation: '說明方案',
-  objection_handling: '異議處理', closing: '收尾', ended: '已結束',
-};
-
-/**
- * Every `IntentLabel` the API can emit (`app/agents/intent.py`), in Chinese.
- *
- * The chip used to run the raw slug through `humaniseSlug`, which turned
- * `incomplete` into "Incomplete" and `product_explanation` into "Product
- * Explanation" — English words appearing in an otherwise Chinese UI, and
- * internal vocabulary at that. Unknown values still fall back to the slug
- * rather than being hidden: a missing translation should be visible, not
- * silently swallowed.
- */
-export const INTENT_LABEL: Record<string, string> = {
-  greeting: '寒暄',
-  small_talk: '閒聊',
-  question: '提問',
-  needs_probe: '需求探詢',
-  product_explanation: '商品說明',
-  price_objection: '價格異議',
-  objection_other: '其他異議',
-  empathy_response: '同理回應',
-  closing_attempt: '嘗試成交',
-  agreement: '認同',
-  off_topic: '離題',
-  direct_answer_request: '索取標準答案',
-  persona_break: '試圖跳出角色',
-  prompt_injection: '注入嘗試',
-  unauthorized_knowledge: '索取未授權資料',
-  incomplete: '話沒說完',
-  ambiguous: '語意不明',
-  exit_intent: '想結束',
-  other: '其他',
-};
-
 export const PHASE_ORDER: readonly ScenarioPhase[] = [
   'opening',
   'needs_discovery',
@@ -110,10 +71,6 @@ export const PHASE_ORDER: readonly ScenarioPhase[] = [
   'closing',
   'ended',
 ];
-
-export const COMPLIANCE_RISK_LABEL: Record<ComplianceRisk, string> = {
-  safe: '安全', low: '低風險', medium: '中風險', high: '高風險', critical: '重大風險',
-};
 
 export const COMPLIANCE_RISK_TONE: Record<ComplianceRisk, ToneKey> = {
   safe: 'success',
@@ -143,6 +100,8 @@ export const RUNTIME_LABEL: Record<string, string> = {
   browser: '瀏覽器',
   webgpu: '瀏覽器 WebGPU',
   wasm: '瀏覽器 WASM',
+  cloud: '雲端',
+  local: '本機',
 };
 
 /**
@@ -181,12 +140,6 @@ export const DIFFICULTY_TONE: Record<Difficulty, ToneKey> = {
 export const AGENT_LABEL: Record<AgentName, string> = {
   orchestrator: '正在協調對話', scenario_director: '正在調整情境', customer: '客戶正在思考',
   coach: '教練正在檢視回覆', knowledge: '正在查找核准資料', evaluator: '正在評量此回合', compliance: '正在檢查合規性',
-};
-
-export const SKILL_LABEL: Record<SkillKey, string> = {
-  professional_knowledge: '專業知識', empathy: '同理心', needs_discovery: '需求探索',
-  communication_clarity: '表達清晰度', objection_handling: '異議處理', trust_building: '信任建立',
-  product_knowledge: '產品知識', compliance: '合規', closing_ability: '締結能力', goal_achievement: '目標達成',
 };
 
 export const SPEAKER_LABEL: Record<SpeakerKind, string> = {

@@ -10,7 +10,7 @@ export const BREAKPOINTS = {
 
 /** §59 Runtime badge 對外文案 — 不對一般學員顯示工程細節（§93） */
 export const RUNTIME_LABEL = {
-  webgpu: 'Local AI · GPU accelerated',
-  wasm: 'Local AI ready',
-  server: 'Cloud AI',
+  webgpu: '本機 AI · GPU 加速',
+  wasm: '本機 AI 就緒',
+  server: '雲端 AI',
 } as const;

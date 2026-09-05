@@ -134,7 +134,7 @@ export const MOCK_ASSIGNMENT_PROGRESS: AssignmentProgress[] = [
     assignment_id: 'asg_503',
     scenario_id: 'scn_needs_discovery',
     scenario_name: '首次面談 — 需求探索基本功',
-    persona_name: '林小姐 (Bank walk-in)',
+    persona_name: '林小姐（銀行臨櫃客戶）',
     difficulty: 'easy',
     mode: 'training',
     mandatory: false,

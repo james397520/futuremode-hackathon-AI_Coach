@@ -87,7 +87,7 @@ export const MOCK_USERS: User[] = [
     id: 'usr_hsu',
     ...SCOPE,
     email: 'hsu.mei@hexagon-life.example',
-    display_name: 'Hsu Mei-Ling',
+    display_name: '許美玲',
     roles: ['trainee'],
     team_ids: ['team_taipei_north'],
     created_at: daysAgo(150),

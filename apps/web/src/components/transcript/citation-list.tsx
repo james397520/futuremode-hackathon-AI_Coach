@@ -35,8 +35,8 @@ export function CitationList({
               {citation.section ? <span className="truncate">{citation.section}</span> : null}
               {showScores ? (
                 <span className="tabular-nums">
-                  sim {citation.similarity.toFixed(2)}
-                  {citation.rerank_score !== undefined ? ` · rerank ${citation.rerank_score.toFixed(2)}` : ''}
+                  相似度 {citation.similarity.toFixed(2)}
+                  {citation.rerank_score !== undefined ? ` · 重排序 ${citation.rerank_score.toFixed(2)}` : ''}
                 </span>
               ) : null}
             </p>

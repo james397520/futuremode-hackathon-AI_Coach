@@ -1,3 +1,4 @@
+import { enumLabel } from '@/lib/enum-labels';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -57,11 +58,17 @@ export function formatDate(iso?: string): string {
   if (!iso) return '—';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
-/** Turn a SkillKey / enum value into a display label. */
+/**
+ * Turn a SkillKey / enum value into a display label. Known contract enums
+ * resolve to their Chinese label (`lib/enum-labels`); anything else is Title
+ * Cased so an unknown slug stays visible rather than vanishing.
+ */
 export function titleize(key: string): string {
+  const known = enumLabel(key);
+  if (known) return known;
   return key
     .split(/[_\s-]+/)
     .filter(Boolean)
