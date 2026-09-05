@@ -8,7 +8,7 @@
 <meta property="og:title" content="SkillCoach — 企業與教育全情境模擬培訓平台">
 <meta property="og:description" content="自適應角色扮演 × 即時語音 3D 虛擬人 × 企業知識 RAG × 實證績效評估">
 <meta property="og:type" content="website">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23000'/%3E%3Ctext x='32' y='42' font-family='Arial' font-weight='700' font-size='30' fill='%23fff' text-anchor='middle'%3ESC%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'><defs><linearGradient id='fL' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='%23ddd6fe'/><stop offset='100%' stop-color='%238b5cf6'/></linearGradient><linearGradient id='fD' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='%237c3aed'/><stop offset='100%' stop-color='%234c1d95'/></linearGradient></defs><g transform='translate(120,120) rotate(0)'><polygon points='0,-104 -8.4,-43.2 2.5,-15.8' fill='url(%23fL)'/><polygon points='0,-104 2.5,-15.8 8.4,-43.2' fill='url(%23fD)'/></g><g transform='translate(120,120) rotate(45)'><polygon points='0,-104 -8.4,-43.2 2.5,-15.8' fill='url(%23fL)'/><polygon points='0,-104 2.5,-15.8 8.4,-43.2' fill='url(%23fD)'/></g><g transform='translate(120,120) rotate(90)'><polygon points='0,-104 -8.4,-43.2 2.5,-15.8' fill='url(%23fL)'/><polygon points='0,-104 2.5,-15.8 8.4,-43.2' fill='url(%23fD)'/></g><g transform='translate(120,120) rotate(135)'><polygon points='0,-104 -8.4,-43.2 2.5,-15.8' fill='url(%23fL)'/><polygon points='0,-104 2.5,-15.8 8.4,-43.2' fill='url(%23fD)'/></g><g transform='translate(120,120) rotate(180)'><polygon points='0,-104 -8.4,-43.2 2.5,-15.8' fill='url(%23fL)'/><polygon points='0,-104 2.5,-15.8 8.4,-43.2' fill='url(%23fD)'/></g><g transform='translate(120,120) rotate(225)'><polygon points='0,-104 -8.4,-43.2 2.5,-15.8' fill='url(%23fL)'/><polygon points='0,-104 2.5,-15.8 8.4,-43.2' fill='url(%23fD)'/></g><g transform='translate(120,120) rotate(270)'><polygon points='0,-104 -8.4,-43.2 2.5,-15.8' fill='url(%23fL)'/><polygon points='0,-104 2.5,-15.8 8.4,-43.2' fill='url(%23fD)'/></g><g transform='translate(120,120) rotate(315)'><polygon points='0,-104 -8.4,-43.2 2.5,-15.8' fill='url(%23fL)'/><polygon points='0,-104 2.5,-15.8 8.4,-43.2' fill='url(%23fD)'/></g></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
@@ -46,7 +46,8 @@
   nav{position:sticky;top:0;z-index:10;backdrop-filter:blur(12px);background:rgba(10,10,10,.75);border-bottom:1px solid var(--line)}
   nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
   .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em}
-  .logo i{width:28px;height:28px;border-radius:8px;background:#fff;color:#000;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800}
+  .logo i{width:26px;height:26px;display:grid;place-items:center;font-style:normal}
+  .logo i svg{width:100%;height:100%;display:block}
   nav ul{display:flex;gap:28px;list-style:none;margin:0;padding:0;font-size:14px;color:var(--fg-2)}
   nav ul a:hover{color:var(--fg)}
   @media(max-width:760px){nav ul{display:none}}
@@ -203,7 +204,7 @@
 
 <nav>
   <div class="wrap">
-    <a class="logo" href="#top"><i>SC</i>SkillCoach</a>
+    <a class="logo" href="#top"><i><svg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg' role='img' aria-label='SkillCoach logo'><defs><linearGradient id='nL' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='#ddd6fe'/><stop offset='100%' stop-color='#8b5cf6'/></linearGradient><linearGradient id='nD' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='#7c3aed'/><stop offset='100%' stop-color='#4c1d95'/></linearGradient></defs><g transform="translate(120,120) rotate(0)"><polygon points="0,-104 -8.4,-43.2 2.5,-15.8" fill="url(#nL)"/><polygon points="0,-104 2.5,-15.8 8.4,-43.2" fill="url(#nD)"/></g><g transform="translate(120,120) rotate(45)"><polygon points="0,-104 -8.4,-43.2 2.5,-15.8" fill="url(#nL)"/><polygon points="0,-104 2.5,-15.8 8.4,-43.2" fill="url(#nD)"/></g><g transform="translate(120,120) rotate(90)"><polygon points="0,-104 -8.4,-43.2 2.5,-15.8" fill="url(#nL)"/><polygon points="0,-104 2.5,-15.8 8.4,-43.2" fill="url(#nD)"/></g><g transform="translate(120,120) rotate(135)"><polygon points="0,-104 -8.4,-43.2 2.5,-15.8" fill="url(#nL)"/><polygon points="0,-104 2.5,-15.8 8.4,-43.2" fill="url(#nD)"/></g><g transform="translate(120,120) rotate(180)"><polygon points="0,-104 -8.4,-43.2 2.5,-15.8" fill="url(#nL)"/><polygon points="0,-104 2.5,-15.8 8.4,-43.2" fill="url(#nD)"/></g><g transform="translate(120,120) rotate(225)"><polygon points="0,-104 -8.4,-43.2 2.5,-15.8" fill="url(#nL)"/><polygon points="0,-104 2.5,-15.8 8.4,-43.2" fill="url(#nD)"/></g><g transform="translate(120,120) rotate(270)"><polygon points="0,-104 -8.4,-43.2 2.5,-15.8" fill="url(#nL)"/><polygon points="0,-104 2.5,-15.8 8.4,-43.2" fill="url(#nD)"/></g><g transform="translate(120,120) rotate(315)"><polygon points="0,-104 -8.4,-43.2 2.5,-15.8" fill="url(#nL)"/><polygon points="0,-104 2.5,-15.8 8.4,-43.2" fill="url(#nD)"/></g></svg></i>SkillCoach</a>
     <ul>
       <li><a href="#problem">痛點</a></li>
       <li><a href="#innovation">創新</a></li>
