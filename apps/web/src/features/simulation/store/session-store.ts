@@ -100,6 +100,10 @@ export interface VoiceSliceState {
    * microphone, a muted one, an expired session and a rate limit — every one of
    * which happened. So each utterance reports where it got to.
    */
+  /** ElevenLabs expressiveness knobs. High stability / zero style = flat, no drift. */
+  ttsTuning: { stability: number; similarity: number; style: number; speed: number };
+  /** OS voice knobs. */
+  systemTuning: { rate: number; pitch: number };
   sttStatus: {
     phase: 'idle' | 'transcribing' | 'done' | 'empty' | 'error';
     provider?: string;
@@ -173,6 +177,8 @@ export const initialVoiceState: VoiceSliceState = {
   speechEngine: 'auto',
   sttEngine: 'auto',
   sttStatus: { phase: 'idle', at: 0 },
+  ttsTuning: { stability: 0.75, similarity: 0.75, style: 0, speed: 1 },
+  systemTuning: { rate: 1, pitch: 1 },
 };
 
 export function createInitialData(sessionId: ID, mode: SessionMode = 'training'): SimulationData {

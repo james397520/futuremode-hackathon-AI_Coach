@@ -624,6 +624,22 @@ class ScoreDelta(DomainModel):
     confidence: Confidence
 
 
+class SessionSpeakRequest(DomainModel):
+    """``POST /api/sessions/{id}/speak`` - synthesise one persona line.
+
+    Tuning fields are optional per-request overrides of the persona's voice
+    config; the client remembers the trainee's sliders and sends them each time.
+    """
+
+    text: str = Field(min_length=1, max_length=1200)
+    stability: float | None = Field(default=None, ge=0.0, le=1.0)
+    similarity: float | None = Field(default=None, ge=0.0, le=1.0)
+    style: float | None = Field(default=None, ge=0.0, le=1.0)
+    speed: float | None = Field(default=None, ge=0.7, le=1.2)
+    voice_id: str | None = Field(default=None, max_length=64)
+    model_id: str | None = Field(default=None, max_length=64)
+
+
 class SessionTranscribeResponse(DomainModel):
     """``POST /api/sessions/{id}/transcribe`` — one utterance, one string.
 

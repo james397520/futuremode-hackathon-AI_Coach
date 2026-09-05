@@ -358,6 +358,24 @@ export const endpoints = {
       { form },
     );
   },
+  /**
+   * One persona line → MP3 from the cloud voice. Raw fetch rather than
+   * `request()`: the body is audio, not JSON. Same cookie + CSRF discipline.
+   */
+  synthesizeSpeech: async (
+    sessionId: ID,
+    text: string,
+    tuning: { stability: number; similarity: number; style: number; speed: number },
+  ): Promise<Blob> => {
+    const response = await fetch(new URL(`/api/v1/sessions/${sessionId}/speak`, API_BASE_URL), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...csrfHeader() },
+      body: JSON.stringify({ text, ...tuning }),
+    });
+    if (!response.ok) throw new ApiError({ status: response.status, code: 'tts_failed', message: 'speech synthesis failed' } as never);
+    return response.blob();
+  },
   /** Which STT engines the deployment can offer — drives the on-device switch. */
   sttCapabilities: () =>
     api.get<{

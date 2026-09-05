@@ -131,6 +131,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
 
   const voice = useVoiceSession({
     enabled: true,
+    sessionId,
     personaGender: bootstrap?.persona.gender ?? null,
     personaAge: bootstrap?.persona.age ?? null,
     locale: bootstrap?.persona.language ?? 'zh-TW',

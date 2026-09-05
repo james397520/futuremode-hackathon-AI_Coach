@@ -63,6 +63,7 @@ import {
 } from '../store/session-store';
 import { AudioDevicePicker } from './audio-device-picker';
 import { SpeechEngineToggle } from './speech-engine-toggle';
+import { VoiceTuningPanel } from './voice-tuning-panel';
 import { ConversationPanel } from './conversation-panel';
 import { SelfView } from './self-view';
 import { CloseIcon, RestartIcon } from './icons';
@@ -156,6 +157,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
 
   const voice = useVoiceSession({
     enabled: Boolean(bootstrap?.voiceEnabled) && micWanted,
+    sessionId,
     personaGender: bootstrap?.persona.gender ?? null,
     personaAge: bootstrap?.persona.age ?? null,
     locale: bootstrap?.persona.language ?? 'zh-TW',
@@ -661,6 +663,13 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
             sttValue={sttEngine}
             onSttChange={(next) => actions.setVoice({ sttEngine: next })}
             sttCapability={sttCapability}
+          />
+        }
+        voiceTuning={
+          <VoiceTuningPanel
+            onPreview={(engine) =>
+              voice.speakTurn('我比較想先知道這個方案一個月實際會多花多少錢。', null, engine)
+            }
           />
         }
       />

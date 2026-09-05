@@ -79,6 +79,14 @@ class VoiceConfig(BaseModel):
     stability: float | None = None
     similarity: float | None = None
     emotion_style: str | None = None
+    #: Explicit ElevenLabs `style` (0-1). Overrides the coarse emotion_style
+    #: mapping. Higher = more expressive = more pitch drift; the rising-intonation
+    #: complaint on Chinese from English-trained voices is mostly this plus low
+    #: stability.
+    style: float | None = None
+    speaker_boost: bool = True
+    #: Per-request model override (e.g. multilingual_v2 for quality).
+    model_id: str | None = None
     interruptible: bool = True
     silence_timeout_s: float = DEFAULT_SILENCE_TIMEOUT_S
     turn_timeout_s: float = DEFAULT_TURN_TIMEOUT_S
@@ -567,16 +575,24 @@ class ElevenLabsTts:
 
     async def stream(self, text: str, *, config: VoiceConfig) -> AsyncIterator[AudioChunk]:
         voice_id = config.voice_id or "21m00Tcm4TlvDq8ikWAM"
+        # Defaults chosen against the drift complaint: high stability, no style.
+        # 0.5 / emotion_style->0.4 made every Chinese sentence end on a question.
+        style = (
+            config.style
+            if config.style is not None
+            else (0.0 if not config.emotion_style else 0.15)
+        )
         body: dict[str, Any] = {
             "text": text,
-            "model_id": self.model_id,
+            "model_id": config.model_id or self.model_id,
             "voice_settings": {
-                "stability": config.stability if config.stability is not None else 0.5,
+                "stability": config.stability if config.stability is not None else 0.75,
                 "similarity_boost": (
                     config.similarity if config.similarity is not None else 0.75
                 ),
-                "style": 0.0 if not config.emotion_style else 0.4,
-                "speed": config.speed,
+                "style": max(0.0, min(1.0, style)),
+                "use_speaker_boost": config.speaker_boost,
+                "speed": max(0.7, min(1.2, config.speed)),
             },
         }
         async with self._http().stream(

@@ -492,3 +492,9 @@ multilingual_v2 的 ~1 秒幾乎全在首位元組——客戶每句都要「想
 
 ### 16.11 線上聲音候選
 key 缺 `voices_read`，列不出 voice 清單；改用 ElevenLabs 內建（premade）voice 的公開 id 各合成同一句中文交付試聽（男 9、女 9，另加同事給的 4 支對照）。選定後把 id 填進 `apps/api/app/ws/voice_catalog.py` 的對應格即可，程式不用改。
+
+### 16.12 雲端 TTS 傳輸（已接）與「上飄」調整
+- **傳輸走 HTTP**：`POST /api/v1/sessions/{id}/speak {text, stability?, similarity?, style?, speed?, voice_id?, model_id?}` → `audio/mpeg`。前端 `speakTurn()` 在雲端模式下每句客戶回覆呼叫一次，`URL.createObjectURL` 後用既有 `playTts` 播放；失敗時 `auto` 落到系統語音、`cloud` 保持靜音。WebSocket 音訊幀那條路徑不再需要。
+- **上飄根因**：英文母語 voice 唸中文時 `stability` 太低（原 0.5）加上 persona `emotion_style` 把 `style` 推到 0.4。ElevenLabs 預設改為 **stability 0.75、style 0（有 emotion_style 時 0.15）、speaker_boost on**，並限制 speed 0.7–1.2。
+- **設定條**（音訊與語音對話框）：雲端 穩定度／風格／相似度／速度，系統 速度／音高，各有「試聽」；存在 `localStorage['aicoach.voice.tuning']`。
+- **中文 voice**：Voice Library 的 8 支中文聲音（Anna Su、Yui、LeeTingTing、Stacy、Ian、Devon、Kevin Tu、Chen）**不需 voices_write 就能直接用 id 合成**（實測 16/16 成功）。選定後填進 `voice_catalog.py`。

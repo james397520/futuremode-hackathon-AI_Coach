@@ -19,6 +19,8 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { endpoints } from '@/lib/api-client';
+
 import type { AudioDeviceOption, MicPermission } from '../lib/types';
 import { useSessionActions, useSessionStore } from '../store/session-store';
 import {
@@ -127,6 +129,8 @@ export interface UseVoiceSessionOptions {
    * in any other direction.
    */
   onUtterance?: (blob: Blob, mime: string, durationMs: number) => void;
+  /** Session id, needed for the HTTP cloud-TTS path. */
+  sessionId?: string;
   /** Persona identity, so the OS fallback picks a matching system voice. */
   personaGender?: SpeechGender | null;
   personaAge?: number | null;
@@ -163,7 +167,11 @@ export interface VoiceSessionApi {
    * on-device system voice when there is none — which is also the no-network
    * and no-API-key case. Returns which engine actually spoke.
    */
-  speakTurn: (text: string, audioUrl?: string | null) => Promise<'cloud' | 'system' | 'none'>;
+  speakTurn: (
+    text: string,
+    audioUrl?: string | null,
+    engineOverride?: 'auto' | 'system' | 'cloud',
+  ) => Promise<'cloud' | 'system' | 'none'>;
   /** OS voices for this locale, once probed. Empty until the first probe. */
   systemVoices: SpeechSynthesisVoice[];
   /** Where the browser's speech *recognition* runs. Disclosed, never assumed. */
@@ -212,6 +220,7 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     personaGender = null,
     personaAge = null,
     locale = 'zh-TW',
+    sessionId = '',
   } = options;
 
   const actions = useSessionActions();
@@ -239,6 +248,14 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
   const speechEngine = useSessionStore((s) => s.voice.speechEngine);
   const speechEngineRef = useRef(speechEngine);
   speechEngineRef.current = speechEngine;
+  const ttsTuning = useSessionStore((s) => s.voice.ttsTuning);
+  const ttsTuningRef = useRef(ttsTuning);
+  ttsTuningRef.current = ttsTuning;
+  const systemTuning = useSessionStore((s) => s.voice.systemTuning);
+  const systemTuningRef = useRef(systemTuning);
+  systemTuningRef.current = systemTuning;
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
   const systemVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const personaGenderRef = useRef<SpeechGender | null>(personaGender);
   personaGenderRef.current = personaGender;
@@ -299,27 +316,49 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
    * voice it was set up to show.
    */
   const speakTurn = useCallback(
-    async (text: string, audioUrl?: string | null): Promise<'cloud' | 'system' | 'none'> => {
-      const engine = speechEngineRef.current;
+    async (
+      text: string,
+      audioUrl?: string | null,
+      engineOverride?: 'auto' | 'system' | 'cloud',
+    ): Promise<'cloud' | 'system' | 'none'> => {
+      const engine = engineOverride ?? speechEngineRef.current;
       if (mutedRef.current) return 'none';
       // The floor changes hands: anything the trainee was saying is closed and
       // sent before the customer starts, so the two never share a recording.
       finalizeRef.current();
 
-      if (audioUrl && engine !== 'system') {
+      if (engine !== 'system') {
+        // Cloud voice over HTTP: a server-provided clip if the turn carried one,
+        // otherwise synthesise this line now with the trainee's tuning.
         try {
-          await playTtsRef.current(audioUrl);
-          return 'cloud';
+          let url = audioUrl ?? null;
+          if (!url && sessionIdRef.current) {
+            const blob = await endpoints.synthesizeSpeech(
+              sessionIdRef.current,
+              text,
+              ttsTuningRef.current,
+            );
+            url = URL.createObjectURL(blob);
+            // Release the object URL once played; the element owns it until then.
+            window.setTimeout(() => URL.revokeObjectURL(url as string), 120_000);
+          }
+          if (url) {
+            await playTtsRef.current(url);
+            return 'cloud';
+          }
         } catch {
-          // Fall through: a broken clip is exactly when the fallback earns itself.
+          // Fall through: no network, no key, or a rejected clip — exactly when
+          // the on-device fallback earns itself (unless the user pinned cloud).
         }
+        if (engine === 'cloud') return 'none';
       }
-      if (engine === 'cloud') return 'none';
 
       const voice = pickVoice(systemVoicesRef.current, personaGenderRef.current, personaAgeRef.current);
       const started = speak(text, {
         voice,
         lang: localeRef.current,
+        rate: systemTuningRef.current.rate,
+        pitch: systemTuningRef.current.pitch,
         onEnd: () => setTtsPlaying(false),
         onError: () => setTtsPlaying(false),
       });

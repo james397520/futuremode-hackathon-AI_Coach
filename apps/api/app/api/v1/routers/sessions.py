@@ -29,6 +29,7 @@ from collections.abc import AsyncIterator
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile, WebSocket, status
+from fastapi.responses import StreamingResponse
 
 from app.core.deps import (
     AuditDep,
@@ -54,6 +55,7 @@ from app.domain.request_response import (
     SessionMessageRequest,
     SessionMessageResponse,
     SessionResponse,
+    SessionSpeakRequest,
     SessionTranscribeResponse,
     SessionTranscriptResponse,
 )
@@ -243,6 +245,65 @@ async def transcribe_utterance(
     # as a message, which is exactly what happened with a test signal.
     text = _NON_SPEECH_TAG.sub("", text).strip()
     return SessionTranscribeResponse(text=text, provider=stt.provider, language=locale)
+
+
+@router.post(
+    "/{session_id}/speak",
+    summary="Synthesise one persona line as MP3 (cloud TTS over HTTP)",
+    dependencies=[Depends(rate_limit("sessions.speak", per_minute=120, burst=20, cost=1))],
+    response_class=StreamingResponse,
+)
+async def speak_line(
+    session_id: str,
+    payload: SessionSpeakRequest,
+    service: SessionDep,
+    ctx: CanParticipate,
+) -> StreamingResponse:
+    """The cloud voice reaches the browser over plain HTTP: one persona line in,
+    one MP3 out, played by the client. Simpler than audio frames on the
+    WebSocket and it retries cleanly. The vendor key never leaves the API.
+
+    The voice is the persona's (explicit `voice.voice_id`, else the gender/age
+    table); the trainee's tuning sliders override only the expressiveness knobs.
+    """
+    from app.ws.voice import ElevenLabsTts, VoiceConfig
+    from app.ws.voice_catalog import resolve_voice_id
+
+    replay = await service.replay(session_id)
+    persona = dict(replay.pinned.persona or {})
+    raw_voice = persona.get("voice")
+    persona_voice: dict[str, Any] = raw_voice if isinstance(raw_voice, dict) else {}
+    config = VoiceConfig(
+        provider="elevenlabs",
+        voice_id=payload.voice_id or resolve_voice_id(persona),
+        language=str(persona.get("language") or "zh-TW"),
+        speed=(
+            payload.speed
+            if payload.speed is not None
+            else float(persona_voice.get("speed") or 1.0)
+        ),
+        stability=(
+            payload.stability
+            if payload.stability is not None
+            else persona_voice.get("stability")
+        ),
+        similarity=payload.similarity,
+        style=payload.style,
+        emotion_style=persona_voice.get("emotion_style"),
+        model_id=payload.model_id,
+    )
+    tts = ElevenLabsTts()
+
+    async def body() -> AsyncIterator[bytes]:
+        async for chunk in tts.stream(payload.text, config=config):
+            if chunk.data:
+                yield chunk.data
+
+    return StreamingResponse(
+        body(),
+        media_type="audio/mpeg",
+        headers={"Cache-Control": "no-store", "X-Voice-Id": str(config.voice_id)},
+    )
 
 
 @router.post(

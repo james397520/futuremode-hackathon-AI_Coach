@@ -26,6 +26,8 @@ export interface AudioDevicePickerProps {
   onRequestPermission: () => void;
   /** Speech-engine slot. Optional so the dialog still works without voice wired. */
   speechEngine?: ReactNode;
+  /** Voice tuning sliders (cloud + system), with preview. */
+  voiceTuning?: ReactNode;
 }
 
 const PERMISSION_COPY: Record<MicPermission, { tone: 'mint' | 'warning' | 'danger' | 'neutral'; text: string }> = {
@@ -81,6 +83,7 @@ export function AudioDevicePicker({
   onRefresh,
   onRequestPermission,
   speechEngine,
+  voiceTuning,
 }: AudioDevicePickerProps) {
   const inputs = devices.filter((d) => d.kind === 'audioinput');
   const outputs = devices.filter((d) => d.kind === 'audiooutput');
@@ -175,6 +178,11 @@ export function AudioDevicePicker({
         {speechEngine ? (
           <div className="border-t pt-4" style={{ borderColor: 'var(--border-soft)' }}>
             {speechEngine}
+          </div>
+        ) : null}
+        {voiceTuning ? (
+          <div className="border-t pt-4" style={{ borderColor: 'var(--border-soft)' }}>
+            {voiceTuning}
           </div>
         ) : null}
       </div>
