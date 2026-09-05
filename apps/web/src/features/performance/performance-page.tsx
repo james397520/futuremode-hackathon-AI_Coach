@@ -7,19 +7,17 @@ import { Button, GlassCard, Pill, StatTile } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';
 import { ScoreBar, SkillRadar, TrendLine } from '@/components/data-viz';
 import { RiskPill } from '@/components/status';
+import { SKILL_LABEL } from '@/lib/fixtures/evaluations';
 import {
-  DEMO_RECOMMENDATION,
-  DEMO_SKILL_PROFILE,
-  SCORE_TREND,
-  SKILL_LABEL,
-} from '@/lib/fixtures/evaluations';
-import { MOCK_SESSIONS } from '@/lib/fixtures/sessions';
-import { SCENARIO_MASTERY } from '@/lib/fixtures/reports';
-import { scenarioById } from '@/lib/fixtures/scenarios';
+  DEMO_HISTORY_MASTERY,
+  DEMO_HISTORY_PROFILE,
+  DEMO_HISTORY_RECOMMENDATION,
+  DEMO_HISTORY_SESSIONS,
+  DEMO_HISTORY_TREND,
+} from '@/lib/fixtures/demo-history';
 import { userById } from '@/lib/fixtures/identity';
 import { useAuth } from '@/lib/auth-context';
-import { DIFFICULTY_LABEL, SESSION_STATE_LABEL } from '@/lib/enum-labels';
-import { formatRelative } from '@/lib/utils';
+import { DIFFICULTY_LABEL } from '@/lib/enum-labels';
 
 /**
  * §34 Part I 個人成長頁 — overall score, monthly improvement, weakest and
@@ -29,10 +27,10 @@ import { formatRelative } from '@/lib/utils';
 export function PerformancePage({ userId }: { userId?: string }) {
   const { user } = useAuth();
   const target = userId ? userById(userId) : user;
-  const profile = DEMO_SKILL_PROFILE;
+  const profile = DEMO_HISTORY_PROFILE;
   const isOwn = !userId || userId === user?.id;
 
-  const sessions = MOCK_SESSIONS.filter((session) => !userId || session.user_id === userId);
+  const sessions = DEMO_HISTORY_SESSIONS;
   const radarValues = SKILL_KEYS.map((key) => profile.skills[key]);
 
   return (
@@ -90,13 +88,13 @@ export function PerformancePage({ userId }: { userId?: string }) {
             </div>
             <TrendLine
               className="mt-3"
-              points={SCORE_TREND.map((point) => ({ label: point.label, value: point.score }))}
+              points={DEMO_HISTORY_TREND.map((point) => ({ label: point.label, value: point.score }))}
               ariaLabel="每月的總分"
               min={55}
               max={95}
             />
             <p className="mt-2 text-tiny text-text-tertiary">
-              練習頻率：{SCORE_TREND.map((point) => `${point.label} ${point.sessions}`).join(' · ')}
+              練習頻率：{DEMO_HISTORY_TREND.map((point) => `${point.label} ${point.sessions}`).join(' · ')}
             </p>
           </GlassCard>
 
@@ -108,7 +106,7 @@ export function PerformancePage({ userId }: { userId?: string }) {
             <TrendLine
               className="mt-3"
               points={profile.compliance_trend.map((value, index) => ({
-                label: SCORE_TREND[index]?.label ?? `M${index + 1}`,
+                label: DEMO_HISTORY_TREND[index]?.label ?? `M${index + 1}`,
                 value,
               }))}
               ariaLabel="每月的合規分數"
@@ -135,11 +133,11 @@ export function PerformancePage({ userId }: { userId?: string }) {
         <GlassCard className="p-5">
           <h2 className="text-card-title">情境熟練度</h2>
           <ul className="mt-3 divide-y divide-border-soft/70">
-            {SCENARIO_MASTERY.map((entry) => (
+            {DEMO_HISTORY_MASTERY.map((entry) => (
               <li key={entry.scenario_id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 py-3">
                 <div className="min-w-0 flex-1">
                   <Link
-                    href={`/simulations/${entry.scenario_id}/setup`}
+                    href={entry.href}
                     className="text-body-sm font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
                   >
                     {entry.scenario_name}
@@ -163,30 +161,26 @@ export function PerformancePage({ userId }: { userId?: string }) {
               <h2 className="text-card-title">接下來該做什麼</h2>
             </div>
             <p className="mt-1 text-body-sm text-text-secondary">
-              依你最弱的維度推薦：{DEMO_RECOMMENDATION.weak_skills.map((skill) => SKILL_LABEL[skill]).join('、')}。
+              依你最弱的維度推薦：{DEMO_HISTORY_RECOMMENDATION.weak_skills.map((skill) => SKILL_LABEL[skill]).join('、')}。
             </p>
             <ul className="mt-3 space-y-2 text-body-sm">
-              {DEMO_RECOMMENDATION.retry_scenario_id ? (
-                <li>
-                  <Link
-                    href={`/simulations/${DEMO_RECOMMENDATION.retry_scenario_id}/setup`}
-                    className="font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
-                  >
-                    再練一次：{scenarioById(DEMO_RECOMMENDATION.retry_scenario_id)?.name}
-                  </Link>
-                </li>
-              ) : null}
-              {DEMO_RECOMMENDATION.next_scenario_id ? (
-                <li>
-                  <Link
-                    href={`/simulations/${DEMO_RECOMMENDATION.next_scenario_id}/setup`}
-                    className="font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
-                  >
-                    下一個情境：{scenarioById(DEMO_RECOMMENDATION.next_scenario_id)?.name}
-                  </Link>
-                </li>
-              ) : null}
-              {DEMO_RECOMMENDATION.knowledge_material.map((material) => (
+              <li>
+                <Link
+                  href={DEMO_HISTORY_RECOMMENDATION.retry_href}
+                  className="font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
+                >
+                  再練一次：續保費率調漲的情緒應對——張若瑄
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={DEMO_HISTORY_RECOMMENDATION.next_href}
+                  className="font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
+                >
+                  下一個情境：投資型保單的合規對談——周敏惠
+                </Link>
+              </li>
+              {DEMO_HISTORY_RECOMMENDATION.knowledge_material.map((material) => (
                 <li key={material.document_id} className="text-text-secondary">
                   延伸閱讀：{material.reason}
                 </li>
@@ -200,25 +194,26 @@ export function PerformancePage({ userId }: { userId?: string }) {
               <h2 className="text-card-title">最近的練習</h2>
             </div>
             <ul className="mt-3 divide-y divide-border-soft/70">
-              {sessions.slice(0, 5).map((session) => (
-                <li key={session.session_id} className="flex items-center justify-between gap-3 py-2.5">
+              {sessions.slice(0, 6).map((session) => (
+                <li key={session.id} className="flex items-center justify-between gap-3 py-2.5">
                   <div className="min-w-0">
                     <Link
-                      href={`/simulations/${session.session_id}/review`}
+                      href={session.href}
                       className="truncate text-body-sm hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
                     >
-                      {scenarioById(session.scenario_id)?.name ?? session.scenario_id}
+                      {session.scenario_name}
                     </Link>
                     <p className="text-tiny text-text-tertiary">
-                      {formatRelative(session.ended_at ?? session.started_at)} · {session.turn_count} 輪對話
+                      {session.days_ago === 0 ? '今天' : `${session.days_ago} 天前`} · {session.turn_count} 輪對話 · {session.duration_min} 分鐘
+                      {session.compliance_flags > 0 ? ` · 合規旗標 ${session.compliance_flags}` : ''}
                     </p>
                   </div>
-                  <Pill
-                    tone={session.status === 'completed' ? 'success' : session.status === 'error' ? 'danger' : 'neutral'}
-                    size="sm"
-                  >
-                    {SESSION_STATE_LABEL[session.status] ?? session.status}
-                  </Pill>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-body-sm font-semibold tabular-nums">{session.score}</span>
+                    <Pill tone={session.passed ? 'success' : 'danger'} size="sm">
+                      {session.passed ? '通過' : '未通過'}
+                    </Pill>
+                  </div>
                 </li>
               ))}
               {sessions.length === 0 ? (
