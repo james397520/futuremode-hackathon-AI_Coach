@@ -542,13 +542,24 @@ export function reduceEvent(state: SimulationData, event: StreamingEvent): Simul
         return { ...base, suppressedCoachCount: state.suppressedCoachCount + 1 };
       }
       if (base.coachInsights.some((i) => i.id === insight.id)) return base;
-      // Not volunteering, and nobody asked: hold it. The coach agent still ran
-      // and the insight still reaches the report — this only decides whether it
-      // interrupts the session.
-      if (!state.coachAutoPush && state.pendingHints <= 0) {
+      // Not volunteering, and this is not an answer to a question: hold it. The
+      // coach agent still ran and the insight still reaches the report — this
+      // only decides whether it interrupts the session.
+      //
+      // `insight.requested` is the server saying "the trainee asked for this".
+      // The counter alone was not enough: a turn-driven insight arriving first
+      // spent the token, and the answer the trainee had actually pressed for
+      // was then held back. Pressing a button and getting nothing is the worst
+      // behaviour available, so the flag decides and the counter is only a
+      // fallback for a server that has not been redeployed yet.
+      const asked = insight.requested === true || state.pendingHints > 0;
+      if (!state.coachAutoPush && !asked) {
         return { ...base, heldCoachCount: state.heldCoachCount + 1 };
       }
-      const spent = state.coachAutoPush ? state.pendingHints : state.pendingHints - 1;
+      const spent =
+        state.coachAutoPush || insight.requested === true
+          ? state.pendingHints
+          : state.pendingHints - 1;
       const timeline =
         insight.kind === 'missed_signal'
           ? pushCapped(base.timeline, marker(event, 'missed_signal', insight.title, { detail: insight.body }), MAX_TIMELINE)

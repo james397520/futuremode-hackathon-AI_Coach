@@ -158,8 +158,19 @@ class CustomerAgent(Agent[CustomerTurnRequest, CustomerReply]):
         # An impatient customer talks in clipped sentences. This is also what
         # keeps a low-patience demo persona's replies inside the transcript
         # panel without scrolling — the rule is character-driven, not a UI hack.
+        #
+        # Brevity alone produced *short but composed* lines — 「說原因太抽象，
+        # 直接給我數字：這次調漲多少、一年多花多少錢。」 is 30 characters of
+        # perfectly balanced prose, which is not how someone with 30 patience
+        # talks. Someone that irritated interrupts with the one thing they want:
+        # 「為什麼漲？」 So the instruction now asks for the register, not just
+        # the length, and explicitly allows a bare question as a whole turn.
         reply_length = (
             "最多兩句、合計 40 字以內。不客套、不重述對方的話、不解釋自己的情緒。"
+            "語氣要真的不耐煩，不是有禮貌地簡短：可以只丟一個問題當作整句話"
+            "（例如「為什麼漲？」「所以呢？」「多少？」），可以打斷、可以重複問"
+            "同一件事、可以用「講重點」催促。不要寫成工整對仗的句子，"
+            "不要一次把所有要求列清楚——真的在生氣的人一次只問一件事。"
             if patience is not None and patience < 35
             else "1–4 句，口語。"
         )

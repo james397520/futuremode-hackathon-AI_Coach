@@ -156,7 +156,12 @@ class CoachAgent(Agent[CoachRequest, CoachOutput]):
 
 
 def to_domain_insight(
-    draft: CoachInsightDraft, *, session_id: str, timestamp_ms: int, insight_id: str | None = None
+    draft: CoachInsightDraft,
+    *,
+    session_id: str,
+    timestamp_ms: int,
+    insight_id: str | None = None,
+    requested: bool = False,
 ) -> dict[str, Any]:
     """Shape a draft as the `CoachInsight` entity from shared (§53).
 
@@ -171,6 +176,9 @@ def to_domain_insight(
         "title": draft.title,
         "body": draft.body,
         "allowed_in_assessment": draft.kind in ALLOWED_IN_ASSESSMENT,
+        # The trainee pressed something. The client uses this to show an answer
+        # even when the coach is configured not to volunteer.
+        "requested": requested,
     }
 
 

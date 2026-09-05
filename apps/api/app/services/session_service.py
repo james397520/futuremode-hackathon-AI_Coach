@@ -1004,7 +1004,9 @@ async def _request_hint(self: SessionService, session_id: str, payload: Any = No
     )
     insights: list[dict[str, Any]] = []
     for draft in output.insights:
-        insight = to_domain_insight(draft, session_id=session_id, timestamp_ms=now_ms())
+        insight = to_domain_insight(
+            draft, session_id=session_id, timestamp_ms=now_ms(), requested=True
+        )
         await self.repo.add("CoachInsight", {**insight, **self.owned_fields()})
         insights.append(insight)
         await emitter.coach_insight(insight)

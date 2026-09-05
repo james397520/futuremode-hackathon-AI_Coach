@@ -59,6 +59,13 @@ class CoachInsight(DomainModel):
     title: str
     body: str
     allowed_in_assessment: bool
+    #: True when the trainee asked for this — 「詢問教練」 or the frown card —
+    #: rather than the coach volunteering after a turn. The client shows what
+    #: was asked for even while the coach is set not to volunteer, and without
+    #: this flag it had to guess by arming a counter, which the next unrelated
+    #: turn insight would spend. Asking and then getting nothing is the worst
+    #: possible behaviour for a button.
+    requested: bool = False
 
 
 class TrainingSession(DomainModel):

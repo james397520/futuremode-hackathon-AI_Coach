@@ -289,6 +289,11 @@ export interface CoachInsight {
   body: string;
   /** Assessment Mode 下不得下發 hint / next_strategy（§8.4 / §24） */
   allowed_in_assessment: boolean;
+  /**
+   * 學員主動要求的（「詢問教練」或皺眉提示卡），而不是教練每輪主動給的。
+   * 教練設為不主動時，只有這種會顯示——按了按鈕卻沒反應是最糟的行為。
+   */
+  requested?: boolean;
 }
 
 export interface TrainingSession {
