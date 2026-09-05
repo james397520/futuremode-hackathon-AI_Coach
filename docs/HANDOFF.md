@@ -463,3 +463,8 @@ exit code=139   # SIGSEGV  (兩次)
 | 能力探測 | `GET /api/v1/sessions/stt/capabilities` → 前端只在 `mac.available` 時開放「Mac 本機」選項 |
 
 音訊格式：瀏覽器送 Opus/WebM，AVFoundation 讀不了，API 先用 **ffmpeg** 轉 16kHz 單聲道 wav 再交給 daemon（ffmpeg 的 "Error parsing Opus packet header" 是警告，輸出正常）。
+
+### 16.5 辨識引擎 pill 與狀態列（輸入框下方，兩頁皆有）
+「講了話卻沒有任何反應」有四種完全不同的原因——麥克風靜音、授權過期（401）、限流（429）、辨識器失敗——先前全都長得一樣。現在每一句話的下場都寫在輸入框下：`正在轉寫…` → `已送出 · Mac 本機 510ms` / `沒有聽到內容` / `轉寫失敗：HTTP 429`。同一列的「辨識」pill 點擊循環 自動 → Mac 本機 → 雲端（API 回報本機不可用時跳過）。
+- 非語音標籤（`[音樂]`、`(silence)`、`（咳嗽）`）在 API 端剝掉，剝完為空就不送出——純音調曾被原樣送成一則訊息。
+- `sessions.transcribe` 限流放寬到 120/min、burst 20、cost 1；原本 burst 10 × cost 2 = 連講五句就 429。

@@ -94,6 +94,19 @@ export interface VoiceSliceState {
    * server's STT_PROVIDER. Only offered when the API reports the helper works.
    */
   sttEngine: 'auto' | 'mac' | 'cloud';
+  /**
+   * What the recogniser is doing right now, for the strip under the composer.
+   * Speech that produces no visible reaction is indistinguishable from a broken
+   * microphone, a muted one, an expired session and a rate limit — every one of
+   * which happened. So each utterance reports where it got to.
+   */
+  sttStatus: {
+    phase: 'idle' | 'transcribing' | 'done' | 'empty' | 'error';
+    provider?: string;
+    ms?: number;
+    detail?: string;
+    at: number;
+  };
 }
 
 export interface SimulationData {
@@ -159,6 +172,7 @@ export const initialVoiceState: VoiceSliceState = {
   bargeInCount: 0,
   speechEngine: 'auto',
   sttEngine: 'auto',
+  sttStatus: { phase: 'idle', at: 0 },
 };
 
 export function createInitialData(sessionId: ID, mode: SessionMode = 'training'): SimulationData {

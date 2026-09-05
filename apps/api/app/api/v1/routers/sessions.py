@@ -24,6 +24,7 @@ Version pinning (§54): the client cannot choose ``scenario_version`` /
 
 from __future__ import annotations
 
+import re
 from collections.abc import AsyncIterator
 from typing import Annotated, Any, Literal
 
@@ -184,13 +185,14 @@ async def stt_capabilities(ctx: CanParticipate) -> dict[str, Any]:
 #: Roughly 60s of Opus at the browser's default bitrate. Anything larger is not
 #: an utterance, it is a file upload on the wrong endpoint.
 _MAX_UTTERANCE_BYTES = 4 * 1024 * 1024
+_NON_SPEECH_TAG = re.compile(r"[\[（(][^\]）)]{0,24}[\]）)]")
 
 
 @router.post(
     "/{session_id}/transcribe",
     response_model=SessionTranscribeResponse,
     summary="Transcribe one spoken utterance (server-side STT, §22 / §71)",
-    dependencies=[Depends(rate_limit("sessions.transcribe", per_minute=60, burst=10, cost=2))],
+    dependencies=[Depends(rate_limit("sessions.transcribe", per_minute=120, burst=20, cost=1))],
 )
 async def transcribe_utterance(
     session_id: str,
@@ -236,6 +238,10 @@ async def transcribe_utterance(
         # The client gets an empty string and says "didn't catch that"; the
         # vendor error is already logged by the adapter.
         text = ""
+    # Vendors label non-speech in brackets — "[音樂]", "[笑聲]", "(silence)". A
+    # tone or a cough must come back as *nothing*, not be sent to the persona
+    # as a message, which is exactly what happened with a test signal.
+    text = _NON_SPEECH_TAG.sub("", text).strip()
     return SessionTranscribeResponse(text=text, provider=stt.provider, language=locale)
 
 

@@ -175,14 +175,32 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
       // text comes back and is sent as an ordinary turn so the transcript,
       // the optimistic echo and every downstream agent see exactly what a
       // typed message would have produced.
+      const started = Date.now();
+      actions.setVoice({ sttStatus: { phase: 'transcribing', at: started } });
       void endpoints
         .transcribeUtterance(sessionId, blob, mime, sttEngineRef.current)
         .then((result) => {
           const text = result.text.trim();
-          if (text) socketRef.current?.sendMessage(text);
-          else pushNotice(`stt-empty-${Date.now()}`, '沒有聽清楚，請再說一次或改用輸入。');
+          const ms = Date.now() - started;
+          if (text) {
+            socketRef.current?.sendMessage(text);
+            actions.setVoice({ sttStatus: { phase: 'done', provider: result.provider, ms, at: Date.now() } });
+          } else {
+            actions.setVoice({ sttStatus: { phase: 'empty', provider: result.provider, ms, at: Date.now() } });
+          }
         })
-        .catch(() => pushNotice(`stt-fail-${Date.now()}`, '語音轉文字暫時無法使用，請改用輸入。'));
+        .catch((err: unknown) => {
+          // The status code is the diagnosis: 401 = session expired, 429 = too
+          // many utterances, 5xx = the recogniser. Hide it and every one of
+          // those looks like "the mic does nothing".
+          const detail =
+            err && typeof err === 'object' && 'status' in err
+              ? `HTTP ${(err as { status: unknown }).status}`
+              : err instanceof Error
+                ? err.message
+                : '未知錯誤';
+          actions.setVoice({ sttStatus: { phase: 'error', detail, at: Date.now() } });
+        });
     },
     onSilenceTimeout: () => {
       pushNotice('silence', '已經安靜一段時間了，準備好時直接輸入或開口即可。');

@@ -19,6 +19,7 @@ import type { SessionState } from '@ai-coach/shared';
 import { INPUT_BLOCKED_STATES } from '../lib/session-transitions';
 import { insetSurface, tint, toneText } from '../lib/tone';
 import { LiveDot } from './atoms';
+import { SttEnginePill } from './stt-engine-pill';
 import { CameraIcon, CameraOffIcon, LightbulbIcon, MicIcon, MicOffIcon, SendIcon } from './icons';
 import { cn, Textarea } from './kit';
 
@@ -234,6 +235,7 @@ export function Composer({
         ) : (
           <span>{voiceEnabled ? '按住空白鍵說話 · Enter 送出 · Shift + Enter 換行' : 'Enter 送出 · Shift + Enter 換行'}</span>
         )}
+        {voiceEnabled ? <SttEnginePill /> : null}
         <span className="tabular-nums">{turnHint}</span>
         <span className={cn('tabular-nums', overLimit && 'font-semibold')} style={overLimit ? { color: toneText('danger') } : undefined}>
           {value.length} / {MAX_CHARS}
