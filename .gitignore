@@ -33,3 +33,7 @@ coverage/
 
 # Built by tools/mac-stt/build.sh (scripts/dev/install-mac-stt-service.sh runs it when missing)
 tools/mac-stt/bin/
+
+# Local TTS model server: venv and the Kokoro weights (services/local-tts/scripts/fetch_model.sh)
+services/local-tts/.venv/
+services/local-tts/models/

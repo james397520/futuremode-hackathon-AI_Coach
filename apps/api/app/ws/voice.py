@@ -87,6 +87,10 @@ class VoiceConfig(BaseModel):
     speaker_boost: bool = True
     #: Per-request model override (e.g. multilingual_v2 for quality).
     model_id: str | None = None
+    #: Persona gender ("male" / "female" / other). ElevenLabs resolves it to a
+    #: voice_id up front (voice_catalog); the local model server takes it as-is
+    #: and picks its own default voice for that gender.
+    gender: str | None = None
     interruptible: bool = True
     silence_timeout_s: float = DEFAULT_SILENCE_TIMEOUT_S
     turn_timeout_s: float = DEFAULT_TURN_TIMEOUT_S
@@ -606,6 +610,141 @@ class ElevenLabsTts:
         yield AudioChunk(data=b"", mime_type="audio/mpeg", is_final=True)
 
 
+def _default_local_tts_url() -> str:
+    try:
+        from app.core.config import get_settings
+
+        return str(getattr(get_settings(), "local_tts_url", "") or "http://127.0.0.1:8795")
+    except Exception:
+        return "http://127.0.0.1:8795"
+
+
+class LocalHttpTts:
+    """The local model server (services/local-tts, Kokoro-82M-v1.1-zh on onnxruntime).
+
+    Same shape as ElevenLabsTts — one line in, audio bytes out — but nothing
+    leaves the machine and there is no key. The server returns a whole clip, not
+    a stream: an 82M-parameter model finishes a sentence in well under the time
+    it takes to say it (RTF ≈ 0.2 on an M3), so buffering costs less than the
+    framing would. `mime_type` follows the format actually requested.
+    """
+
+    provider = "local"
+
+    def __init__(
+        self,
+        *,
+        base_url: str | None = None,
+        audio_format: str = "mp3",
+        client: Any | None = None,
+        timeout_s: float = 60.0,
+    ) -> None:
+        self.base_url = base_url or _default_local_tts_url()
+        self.audio_format = "wav" if audio_format == "wav" else "mp3"
+        self.timeout_s = timeout_s
+        self._client = client
+
+    @property
+    def mime_type(self) -> str:
+        return "audio/wav" if self.audio_format == "wav" else "audio/mpeg"
+
+    def _http(self) -> Any:
+        if self._client is None:
+            import httpx
+
+            self._client = httpx.AsyncClient(base_url=self.base_url, timeout=self.timeout_s)
+        return self._client
+
+    @staticmethod
+    def _gender(config: VoiceConfig) -> str | None:
+        g = (config.gender or "").lower()
+        return g if g in ("male", "female") else None
+
+    def request_body(self, text: str, config: VoiceConfig) -> dict[str, Any]:
+        body: dict[str, Any] = {
+            "text": text,
+            "speed": max(0.7, min(1.2, config.speed)),
+            "format": self.audio_format,
+        }
+        gender = self._gender(config)
+        if gender:
+            body["gender"] = gender
+        # An explicit local voice name (zf_001 / zm_010…) beats the gender default.
+        # ElevenLabs ids are 20-char opaque strings and must not be forwarded.
+        if config.voice_id and config.voice_id[:3] in ("zf_", "zm_"):
+            body["voice"] = config.voice_id
+        return body
+
+    async def stream(self, text: str, *, config: VoiceConfig) -> AsyncIterator[AudioChunk]:
+        response = await self._http().post("/speak", json=self.request_body(text, config))
+        if response.status_code >= 400:
+            raise RuntimeError(f"local tts {response.status_code}")
+        mime = str(response.headers.get("content-type") or self.mime_type).split(";")[0]
+        yield AudioChunk(data=bytes(response.content), mime_type=mime)
+        yield AudioChunk(data=b"", mime_type=mime, is_final=True)
+
+
+async def probe_local_tts(
+    base_url: str | None = None, *, timeout_s: float = 1.0, client: Any | None = None
+) -> dict[str, Any]:
+    """`GET /healthz` on the local model server, summarised for a capabilities reply.
+
+    Never raises: a closed port, a still-loading model and a malformed reply all
+    come back as `{"available": False, "reason": ...}` so the client simply does
+    not offer the option.
+    """
+    url = base_url or _default_local_tts_url()
+    try:
+        if client is None:
+            import httpx
+
+            async with httpx.AsyncClient(base_url=url, timeout=timeout_s) as http:
+                response = await http.get("/healthz")
+        else:
+            response = await client.get("/healthz")
+        data = response.json() if response.content else {}
+        if not isinstance(data, dict):
+            return {"available": False, "reason": f"http {response.status_code}"}
+        if response.status_code >= 400:
+            return {"available": False, "reason": str(data.get("status") or response.status_code)}
+        return {
+            "available": data.get("status") == "ok",
+            "model": data.get("model"),
+            "voices": list(data.get("voices") or []),
+            "device": data.get("device"),
+            "rtf_last": data.get("rtf_last"),
+        }
+    except Exception as exc:
+        return {"available": False, "reason": type(exc).__name__}
+
+
+class FallbackTts:
+    """Try each synthesiser in order; the first one that yields audio wins.
+
+    Used for `engine=local`: the model server may be down, mid-restart or still
+    loading, and the persona must still speak. A failure *after* the first
+    chunk is not retried — the client has already started playing.
+    """
+
+    def __init__(self, *adapters: Any) -> None:
+        self.adapters = [a for a in adapters if a is not None]
+        self.provider = self.adapters[0].provider if self.adapters else "none"
+
+    async def stream(self, text: str, *, config: VoiceConfig) -> AsyncIterator[AudioChunk]:
+        last: Exception | None = None
+        for adapter in self.adapters:
+            try:
+                async for chunk in adapter.stream(text, config=config):
+                    self.provider = adapter.provider
+                    yield chunk
+                return
+            except Exception as exc:
+                last = exc
+                log.info("voice.tts_fallback", from_provider=adapter.provider, error=repr(exc))
+        if last is not None:
+            raise last
+
+
 class NullStt:
     """No STT configured: voice degrades to text (§51 — core features never stop)."""
 
@@ -877,6 +1016,37 @@ def build_stt(engine: str | None = None) -> SttPort:
     return NullStt()
 
 
+def build_tts(engine: str | None = None) -> TtsPort:
+    """The text-to-speech adapter for one request.
+
+    `engine` is the client's per-line choice: `local` (the on-device model,
+    ElevenLabs as fallback when its port is closed), `cloud` (vendor only), or
+    None / `auto` for the server's `TTS_PROVIDER`.
+    """
+    cloud: Any = None
+    provider = "elevenlabs"
+    try:
+        from app.core.config import get_settings
+
+        settings = get_settings()
+        provider = str(getattr(settings, "tts_provider", "elevenlabs")).lower()
+        if getattr(settings, "elevenlabs_api_key", None):
+            cloud = ElevenLabsTts()
+        elif getattr(settings, "openai_api_key", None):
+            cloud = OpenAiTts()
+    except Exception as exc:
+        log.warning("voice.tts_setup_failed", error=repr(exc))
+
+    want = (engine or "auto").lower()
+    if want == "auto":
+        want = provider
+    if want == "local":
+        return FallbackTts(LocalHttpTts(), cloud)
+    if want in ("cloud", "elevenlabs", "openai"):
+        return cloud or NullTts()
+    return NullTts()
+
+
 def build_voice_session(
     *,
     session_id: str,
@@ -929,6 +1099,8 @@ __all__ = [
     "AudioChunk",
     "ElevenLabsStt",
     "ElevenLabsTts",
+    "FallbackTts",
+    "LocalHttpTts",
     "NullStt",
     "NullTts",
     "OpenAiStt",
@@ -940,5 +1112,7 @@ __all__ = [
     "VoiceSession",
     "VoiceState",
     "build_stt",
+    "build_tts",
     "build_voice_session",
+    "probe_local_tts",
 ]

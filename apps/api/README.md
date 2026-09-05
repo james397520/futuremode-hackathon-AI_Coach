@@ -389,7 +389,8 @@ NEXT_PUBLIC_ENABLE_WEBGPU        # reused as the default RuntimePolicy.webgpu (Â
 Optional extras, all with safe defaults (`app/core/config.py` is the reference):
 `API_PREFIX`, `LOG_LEVEL`, `DEBUG_SQL`, `CORS_ALLOW_ORIGINS`, `JWT_ALGORITHM`,
 `ACCESS_TOKEN_TTL_SECONDS`, `REFRESH_TOKEN_TTL_SECONDS`, `COOKIE_DOMAIN`,
-`LLM_PROVIDER`, `LLM_MODEL`, `TTS_PROVIDER`, `EMBEDDING_MODEL`, `EMBEDDING_DIMENSION`,
+`LLM_PROVIDER`, `LLM_MODEL`, `TTS_PROVIDER` (`elevenlabs|openai|local|none`), `LOCAL_TTS_URL`
+(the `services/local-tts` model server, default `http://127.0.0.1:8795`), `EMBEDDING_MODEL`, `EMBEDDING_DIMENSION`,
 `RATE_LIMIT_*`, `ALLOW_LOCAL_MODEL_CACHE`, `ALLOW_SENSITIVE_DATA_CACHE`,
 `CLEAR_ON_LOGOUT`, `TRANSCRIPT_RETENTION_DAYS`, `OTEL_*`, `S3_REGION`,
 `S3_SIGNED_URL_TTL_SECONDS`.

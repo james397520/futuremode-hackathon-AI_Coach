@@ -557,3 +557,11 @@ launchd label `com.aicoach.local-tts`，KeepAlive，log `/tmp/ai-coach-local-tts
 1. **客戶先開口**：`SessionService.speak_opening_line()` 在首次連線 `mark_ready` 後，把 `opening_context` 裡最後一段「…」引句當作客戶第 0 輪送出並持久化；session 已有任何回合就不做（重連不會重複）。四個情境的 opening_context 都寫成「他坐下來第一句話是：「…」」的格式，所以全部受惠。副作用：回合計數會把這一輪算進去（UI 顯示 Turn 1 / 30）。
 2. **低耐心 persona 回覆精簡**：`CustomerTurnRequest` 依 `traits.patience < 35` 加 `reply_length` 指令（兩句、40 字內）。這是角色特性，順便讓對話框不需捲動。
 3. **皺眉 → 提示卡**（`affect-nudge.tsx`）：用瀏覽器端臉部讀數（每 250ms），負向標籤（angry/sad/fearful/disgusted/contempt）信心 ≥ 0.55 **持續 1.5 秒**且輪到學員說話時，在**輸入框正上方**出現「這句不好接？我可以給你一個回應方向，不會替你講。」按「給我方向」走既有 `coach.request_hint`；30 秒內只出現一次、15 秒自動收、評測模式不顯示、**不說出偵測到的情緒**。實測皺眉到出現 2.9 秒。
+
+## 19. 男性虛擬人改用 Ready Player Me 模型（`public/models/avatar_male_real.glb`）
+使用者提供的 `.glb` **不是 VRM**：沒有 VRM 擴充，是 Ready Player Me 匯出——Mixamo 骨架（`Head`/`Neck`/`LeftEye`/`LeftArm`…）、52 個 ARKit morph targets（`browInnerUp`、`eyeBlinkLeft`…）、1 段動畫、13.7 MB。`vrm-stage.tsx` 新增「一般 glTF」分支：
+- 表情：我們的情緒層本來就輸出 ARKit 權重，直接寫進同名 morph target（VRM 路徑才需要 `arkitToVrm` 轉換）；眨眼用 `eyeBlinkLeft/Right`，沒有時退到 `eyesClosed`。
+- 頭與眼：raw bone 的 rest 不是 identity（VRM normalized bone 才是），所以旋轉用 `rest × delta`，否則脖子會扭向世界座標軸。眼球依 gaze 小幅轉動。
+- 動畫：保留檔案內的身體 idle tracks，**臉部軌跡一律丟掉**（臉是我們驅動的）。
+- 朝向：RPM 面向 +Z，不需要 `rotateVRM0`。`modelUrlFor('male')` 指向 glb；女性仍是 VRM。
+- 限制：沒有 VRM 的 lookAt／spring bone；手臂姿勢校正（`ARM_POSE`）只作用於 VRM。

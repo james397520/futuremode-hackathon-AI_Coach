@@ -24,7 +24,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 AppEnv = Literal["local", "test", "staging", "production"]
 WebGpuMode = Literal["auto", "on", "off"]
 LlmProvider = Literal["openai", "azure_openai", "aup", "minimax", "none"]
-TtsProvider = Literal["elevenlabs", "openai", "none"]
+TtsProvider = Literal["elevenlabs", "openai", "local", "none"]
 SttProvider = Literal["mac", "elevenlabs", "openai", "none"]
 VectorBackend = Literal["qdrant", "memory", "chroma", "faiss"]
 
@@ -97,6 +97,11 @@ class Settings(BaseSettings):
     # it, not to whoever spawned it) and listens on loopback. The API talks to it
     # here; a per-call subprocess is only the fallback when the daemon is down.
     mac_stt_port: int = Field(default=8790, validation_alias="MAC_STT_PORT")
+    # Local TTS model server (services/local-tts: Kokoro-82M-v1.1-zh on onnxruntime,
+    # its own launchd agent on loopback). Used when TTS_PROVIDER=local, or when a
+    # client asks for `engine=local` per line; falls back to the cloud provider when
+    # the port is closed, so a missing model never silences the persona.
+    local_tts_url: str = Field(default="http://127.0.0.1:8795", validation_alias="LOCAL_TTS_URL")
     # Measured on this account, zh-TW, 24-char sentence, median of 3, streaming:
     #   eleven_multilingual_v2  TTFB ~1040ms  total ~1100ms
     #   eleven_flash_v2_5       TTFB  ~215ms  total  ~310ms

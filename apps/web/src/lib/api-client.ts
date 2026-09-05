@@ -359,29 +359,40 @@ export const endpoints = {
     );
   },
   /**
-   * One persona line → MP3 from the cloud voice. Raw fetch rather than
-   * `request()`: the body is audio, not JSON. Same cookie + CSRF discipline.
+   * One persona line → audio clip. Raw fetch rather than `request()`: the body
+   * is audio, not JSON. Same cookie + CSRF discipline. `engine` picks where it
+   * is synthesised: `cloud` (ElevenLabs), `local` (the on-device model server,
+   * cloud fallback when it is down) or `auto` (the server's TTS_PROVIDER). The
+   * Blob's `type` is whatever codec came back (MP3 or WAV); the player reads it.
    */
   synthesizeSpeech: async (
     sessionId: ID,
     text: string,
     tuning: { stability: number; similarity: number; style: number; speed: number },
+    engine: 'auto' | 'cloud' | 'local' = 'auto',
   ): Promise<Blob> => {
-    const response = await fetch(new URL(`/api/v1/sessions/${sessionId}/speak`, API_BASE_URL), {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json', ...csrfHeader() },
-      body: JSON.stringify({ text, ...tuning }),
-    });
+    const response = await fetch(
+      new URL(`/api/v1/sessions/${sessionId}/speak?engine=${engine}`, API_BASE_URL),
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeader() },
+        body: JSON.stringify({ text, ...tuning }),
+      },
+    );
     if (!response.ok) throw new ApiError({ status: response.status, code: 'tts_failed', message: 'speech synthesis failed' } as never);
     return response.blob();
   },
-  /** Which STT engines the deployment can offer — drives the on-device switch. */
+  /** Which speech engines the deployment can offer — drives the on-device switches. */
   sttCapabilities: () =>
     api.get<{
       default: string;
       cloud: boolean;
       mac: { available: boolean; onDevice?: boolean; authorization?: string; reason?: string };
+      tts?: {
+        default: string;
+        local: { available: boolean; model?: string; voices?: string[]; reason?: string };
+      };
     }>('/api/v1/sessions/stt/capabilities'),
   /** Multipart upload; the server issues signed storage URLs (§73). */
   uploadDocuments: (kbId: ID, form: FormData) =>

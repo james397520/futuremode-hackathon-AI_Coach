@@ -55,7 +55,10 @@ export interface VrmStageProps {
 
 /** Same-origin model files (`apps/web/public/models`). */
 export function modelUrlFor(gender: AvatarBodyGender): string {
-  return `/models/avatar_${gender}_suit.vrm`;
+  // The male body is a Ready Player Me export: plain glTF with the ARKit-52
+  // morph targets and a Mixamo skeleton, no VRM extension. The stage drives it
+  // through the generic branch below; the female body is still a VRM.
+  return gender === 'male' ? '/models/avatar_male_real.glb' : `/models/avatar_${gender}_suit.vrm`;
 }
 
 /**
@@ -111,12 +114,36 @@ const TALL_HOST_PX = 480;
  */
 const FRAME_TARGET_DROP_M = 0.18;
 
+interface GenericAvatar {
+  root: THREE.Object3D;
+  morphMeshes: THREE.Mesh[];
+  head: THREE.Object3D | null;
+  headRest: THREE.Quaternion;
+  eyes: { node: THREE.Object3D; rest: THREE.Quaternion }[];
+}
+
+/** Mixamo / Ready Player Me bone names. */
+const RPM_HEAD = /^(Head)$/;
+const RPM_EYE = /^(LeftEye|RightEye)$/;
+/** Body tracks worth keeping from a shipped idle clip; face bones are ours. */
+const RPM_BODY_TRACK =
+  /^(Hips|Spine|Spine1|Spine2|LeftShoulder|RightShoulder|LeftArm|RightArm|LeftForeArm|RightForeArm|LeftHand|RightHand|LeftUpLeg|RightUpLeg|LeftLeg|RightLeg|LeftFoot|RightFoot)(\.|$)/;
+
 interface Rig {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   gazeTarget: THREE.Object3D;
   vrm: VRM | null;
+  /**
+   * A plain glTF avatar (Ready Player Me / Mixamo rig, ARKit morph targets).
+   * Mutually exclusive with `vrm`. Expressions are written straight to the
+   * ARKit-named morph targets — the emotion layer already produces ARKit
+   * weights, so nothing is lost in translation — and head/eye bones are
+   * rotated relative to their rest pose, because raw bones do not rest at
+   * identity the way VRM's normalized bones do.
+   */
+  generic: GenericAvatar | null;
   head: THREE.Object3D | null;
   /** Expression names this particular model actually has. */
   available: VrmExpressionName[];
@@ -258,6 +285,7 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
         head: null,
         available: [],
         mixer: null,
+        generic: null,
         headBase: new THREE.Vector3(0, 1.4, 0),
       };
     } catch (err) {
@@ -327,8 +355,8 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
     let lastHead: { yaw: number; pitch: number; roll: number } | null = null;
 
     const step = (dt: number): void => {
-      const { vrm, head, camera, gazeTarget, available, mixer } = rig;
-      if (!vrm) return;
+      const { vrm, head, camera, gazeTarget, available, mixer, generic } = rig;
+      if (!vrm && !generic) return;
       const state = useAvatarStore.getState();
       const expression = state.expression;
       const isSpeaking = speakingRef.current;
@@ -351,18 +379,49 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
         speaking: isSpeaking,
       });
       const speech = a2e.sample(dt, isSpeaking) ?? lipsync.sample(dt, isSpeaking);
-      const weights = arkitToVrm(composeArkit(emotionCur, speech, isSpeaking), pose.blink);
+      const arkit = composeArkit(emotionCur, speech, isSpeaking);
+      const weights = arkitToVrm(arkit, pose.blink);
 
-      const em = vrm.expressionManager;
-      if (em) {
-        for (const name of available) em.setValue(name, weights[name]);
+      if (vrm) {
+        const em = vrm.expressionManager;
+        if (em) {
+          for (const name of available) em.setValue(name, weights[name]);
+        }
+      } else if (generic) {
+        // ARKit weights land on ARKit-named morph targets directly. Blink is
+        // an ARKit pair too; RPM also ships a combined `eyesClosed`.
+        for (const mesh of generic.morphMeshes) {
+          const dict = mesh.morphTargetDictionary;
+          const infl = mesh.morphTargetInfluences;
+          if (!dict || !infl) continue;
+          for (const name of ARKIT_NAMES) {
+            const idx = dict[name];
+            if (idx === undefined) continue;
+            let v = arkit[name] ?? 0;
+            if (name === 'eyeBlinkLeft' || name === 'eyeBlinkRight') v = Math.max(v, pose.blink);
+            infl[idx] = v;
+          }
+          const closed = dict.eyesClosed;
+          if (closed !== undefined && dict.eyeBlinkLeft === undefined) infl[closed] = pose.blink;
+        }
       }
       lastWeights = weights;
 
-      if (head) {
+      if (vrm && head) {
         // Normalized bones rest at identity, so the pose is absolute.
         headEuler.set(pose.headPitch, pose.headYaw, pose.headRoll, 'YXZ');
         head.quaternion.setFromEuler(headEuler);
+        lastHead = { yaw: pose.headYaw, pitch: pose.headPitch, roll: pose.headRoll };
+      } else if (generic?.head) {
+        // Raw bones: rest × delta, or the neck snaps to world axes.
+        headEuler.set(pose.headPitch, pose.headYaw, pose.headRoll, 'YXZ');
+        generic.head.quaternion.copy(generic.headRest).multiply(
+          new THREE.Quaternion().setFromEuler(headEuler),
+        );
+        const eyeYaw = THREE.MathUtils.clamp(pose.gazeX * 0.6, -0.3, 0.3);
+        const eyePitch = THREE.MathUtils.clamp(pose.gazeY * 0.4, -0.2, 0.2);
+        const eyeDelta = new THREE.Quaternion().setFromEuler(new THREE.Euler(eyePitch, eyeYaw, 0, 'YXZ'));
+        for (const eye of generic.eyes) eye.node.quaternion.copy(eye.rest).multiply(eyeDelta);
         lastHead = { yaw: pose.headYaw, pitch: pose.headPitch, roll: pose.headRoll };
       }
 
@@ -372,7 +431,7 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
       gazeTarget.position.y += pose.gazeY * 3;
 
       mixer?.update(dt);
-      vrm.update(dt);
+      vrm?.update(dt);
       rig.renderer.render(rig.scene, camera);
     };
 
@@ -420,7 +479,63 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
       .loadAsync(modelUrlFor(gender))
       .then((gltf) => {
         const vrm = (gltf.userData as { vrm?: VRM }).vrm;
-        if (!vrm) throw new Error('file is not a VRM');
+        if (!vrm) {
+          // Plain glTF (Ready Player Me). No VRM extension, so no expression
+          // manager and no normalized humanoid — drive morphs and bones directly.
+          if (disposed) {
+            VRMUtils.deepDispose(gltf.scene);
+            return;
+          }
+          const root = gltf.scene;
+          const morphMeshes: THREE.Mesh[] = [];
+          let head: THREE.Object3D | null = null;
+          const eyes: { node: THREE.Object3D; rest: THREE.Quaternion }[] = [];
+          root.traverse((o) => {
+            const mesh = o as THREE.Mesh;
+            if (mesh.isMesh) {
+              mesh.frustumCulled = false;
+              if (mesh.morphTargetDictionary && mesh.morphTargetInfluences) morphMeshes.push(mesh);
+            }
+            if (RPM_HEAD.test(o.name)) head = o;
+            if (RPM_EYE.test(o.name)) eyes.push({ node: o, rest: o.quaternion.clone() });
+          });
+
+          // Keep the file's body idle (if any) but never its face — the face is ours.
+          let mixer: THREE.AnimationMixer | null = null;
+          const bodyTracks: THREE.KeyframeTrack[] = [];
+          for (const clip of gltf.animations ?? []) {
+            for (const track of clip.tracks) {
+              const bone = track.name.split('.')[0] ?? '';
+              if (RPM_BODY_TRACK.test(bone)) bodyTracks.push(track);
+            }
+          }
+          if (bodyTracks.length > 0) {
+            mixer = new THREE.AnimationMixer(root);
+            mixer.clipAction(new THREE.AnimationClip('rpm-idle', -1, bodyTracks)).play();
+          }
+
+          rig.scene.add(root);
+          rig.generic = {
+            root,
+            morphMeshes,
+            head,
+            headRest: head ? (head as THREE.Object3D).quaternion.clone() : new THREE.Quaternion(),
+            eyes,
+          };
+          rig.mixer = mixer;
+          rig.available = [];
+
+          root.updateMatrixWorld(true);
+          if (head) (head as THREE.Object3D).getWorldPosition(rig.headBase);
+          rig.headBase.y += 0.09;
+          frameCamera();
+
+          step(0.016);
+          report('ready');
+          clock.last = performance.now();
+          rafId = requestAnimationFrame(frame);
+          return;
+        }
         if (disposed) {
           VRMUtils.deepDispose(vrm.scene);
           return;
@@ -517,6 +632,7 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
       // No `forceContextLoss()`: React StrictMode re-runs this effect on the
       // same canvas in dev, and a deliberately lost context cannot be reused.
       // `dispose()` frees the GPU resources; the context goes with the canvas.
+      if (rig.generic) VRMUtils.deepDispose(rig.generic.root);
       rig.renderer.dispose();
       if (DEBUG_HANDLE && window.__aiCoachVrm?.step === step) delete window.__aiCoachVrm;
     };

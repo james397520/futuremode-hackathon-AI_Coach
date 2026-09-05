@@ -28,7 +28,7 @@ import re
 from collections.abc import AsyncIterator
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile, WebSocket, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, WebSocket, status
 from fastapi.responses import StreamingResponse
 
 from app.core.deps import (
@@ -63,6 +63,7 @@ from app.domain.session import CoachInsight, TrainingSession
 from app.services.evaluation_service import EvaluationService
 from app.services.session_service import SessionService
 from app.ws.gateway import session_ws_endpoint
+from app.ws.voice import AudioChunk
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -165,7 +166,7 @@ async def stt_capabilities(ctx: CanParticipate) -> dict[str, Any]:
     """Lets the client show an on-device switch only when the machine can honour it.
     Probing is cheap (one short subprocess) and cached by TCC after the first ask."""
     from app.core.config import get_settings
-    from app.ws.voice import MacSpeechStt
+    from app.ws.voice import MacSpeechStt, probe_local_tts
 
     settings = get_settings()
     mac = MacSpeechStt()
@@ -174,6 +175,10 @@ async def stt_capabilities(ctx: CanParticipate) -> dict[str, Any]:
         if mac.available()
         else {"available": False, "reason": "helper not built"}
     )
+    # The local TTS model server is probed here too (one round trip for the
+    # client, and the two switches sit side by side): 1 s cap so a stalled
+    # daemon cannot hold up the page.
+    local_tts = await probe_local_tts(timeout_s=1.0)
     return {
         "default": str(getattr(settings, "stt_provider", "elevenlabs")),
         "cloud": bool(
@@ -181,6 +186,10 @@ async def stt_capabilities(ctx: CanParticipate) -> dict[str, Any]:
             or getattr(settings, "openai_api_key", None)
         ),
         "mac": probe,
+        "tts": {
+            "default": str(getattr(settings, "tts_provider", "elevenlabs")),
+            "local": local_tts,
+        },
     }
 
 
@@ -249,7 +258,7 @@ async def transcribe_utterance(
 
 @router.post(
     "/{session_id}/speak",
-    summary="Synthesise one persona line as MP3 (cloud TTS over HTTP)",
+    summary="Synthesise one persona line as audio (cloud or local TTS over HTTP)",
     dependencies=[Depends(rate_limit("sessions.speak", per_minute=120, burst=20, cost=1))],
     response_class=StreamingResponse,
 )
@@ -258,15 +267,24 @@ async def speak_line(
     payload: SessionSpeakRequest,
     service: SessionDep,
     ctx: CanParticipate,
+    engine: Annotated[
+        Literal["auto", "cloud", "local"],
+        Query(description="auto (TTS_PROVIDER) | cloud | local (on-device model, cloud fallback)"),
+    ] = "auto",
 ) -> StreamingResponse:
-    """The cloud voice reaches the browser over plain HTTP: one persona line in,
-    one MP3 out, played by the client. Simpler than audio frames on the
-    WebSocket and it retries cleanly. The vendor key never leaves the API.
+    """The voice reaches the browser over plain HTTP: one persona line in, one
+    clip out, played by the client. Simpler than audio frames on the WebSocket
+    and it retries cleanly. The vendor key never leaves the API.
+
+    `engine=local` routes to the on-device model server (services/local-tts) and
+    falls back to the cloud voice when it is down, so the persona never goes
+    silent because a launchd agent is restarting. The `Content-Type` says which
+    codec actually came back — MP3 from the cloud, MP3 (or WAV) from the model.
 
     The voice is the persona's (explicit `voice.voice_id`, else the gender/age
     table); the trainee's tuning sliders override only the expressiveness knobs.
     """
-    from app.ws.voice import ElevenLabsTts, VoiceConfig
+    from app.ws.voice import VoiceConfig, build_tts
     from app.ws.voice_catalog import resolve_voice_id
 
     replay = await service.replay(session_id)
@@ -291,18 +309,41 @@ async def speak_line(
         style=payload.style,
         emotion_style=persona_voice.get("emotion_style"),
         model_id=payload.model_id,
+        gender=persona.get("gender") if isinstance(persona.get("gender"), str) else None,
     )
-    tts = ElevenLabsTts()
+    tts = build_tts(engine)
+
+    # The first chunk decides the Content-Type, so it is awaited before the
+    # response starts; the rest streams. A failure here (both engines down) is a
+    # clean 502 rather than an empty 200 the browser would try to decode.
+    stream = tts.stream(payload.text, config=config)
+    first: AudioChunk | None = None
+    try:
+        async for chunk in stream:
+            if chunk.data or chunk.is_final:
+                first = chunk
+                break
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="speech synthesis failed") from exc
+    if first is None or (not first.data and first.is_final):
+        raise HTTPException(status_code=502, detail="speech synthesis produced no audio")
+    media_type = first.mime_type or "audio/mpeg"
 
     async def body() -> AsyncIterator[bytes]:
-        async for chunk in tts.stream(payload.text, config=config):
+        if first.data:
+            yield first.data
+        async for chunk in stream:
             if chunk.data:
                 yield chunk.data
 
     return StreamingResponse(
         body(),
-        media_type="audio/mpeg",
-        headers={"Cache-Control": "no-store", "X-Voice-Id": str(config.voice_id)},
+        media_type=media_type,
+        headers={
+            "Cache-Control": "no-store",
+            "X-Voice-Id": str(config.voice_id),
+            "X-Tts-Provider": str(getattr(tts, "provider", engine)),
+        },
     )
 
 

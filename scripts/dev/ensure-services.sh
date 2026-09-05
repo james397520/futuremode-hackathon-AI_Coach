@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Bring up everything the web dev server assumes is running: the API agent and,
-# on macOS, the native STT daemon. Idempotent; a no-op on other platforms.
+# on macOS, the native STT daemon and the local TTS model server. Idempotent; a
+# no-op on other platforms.
 # Wired as `predev` so `pnpm dev` alone gives a working stack.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -17,3 +18,4 @@ up() {  # label install-script
 echo "ensuring background services:"
 up com.aicoach.api install-api-service.sh
 up com.aicoach.mac-stt install-mac-stt-service.sh
+up com.aicoach.local-tts install-local-tts-service.sh

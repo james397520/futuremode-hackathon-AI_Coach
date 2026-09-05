@@ -46,6 +46,7 @@ export function AffectNudge({ reading, cameraLive, traineesTurn, onAskHint, clas
   const [visible, setVisible] = useState(false);
   const sinceRef = useRef<number | null>(null);
   const lastShownRef = useRef(0);
+  const armedRef = useRef(true);
   const hideTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -57,13 +58,25 @@ export function AffectNudge({ reading, cameraLive, traineesTurn, onAskHint, clas
       reading.confidence >= MIN_CONFIDENCE;
 
     if (!negative) {
+      // The expression cleared: re-arm. A fresh frown later is a new signal.
       sinceRef.current = null;
+      armedRef.current = true;
       return;
     }
     if (sinceRef.current === null) sinceRef.current = Date.now();
     const held = Date.now() - sinceRef.current;
-    if (held < SUSTAIN_MS || visible || Date.now() - lastShownRef.current < COOLDOWN_MS) return;
+    // `armedRef` is the important guard: one continuous frown gets one card,
+    // however long it lasts. Without it the cooldown alone re-showed the card
+    // every 30s to someone who had already answered it.
+    if (
+      held < SUSTAIN_MS ||
+      visible ||
+      !armedRef.current ||
+      Date.now() - lastShownRef.current < COOLDOWN_MS
+    )
+      return;
 
+    armedRef.current = false;
     lastShownRef.current = Date.now();
     setVisible(true);
     hideTimerRef.current = window.setTimeout(() => setVisible(false), AUTO_HIDE_MS);

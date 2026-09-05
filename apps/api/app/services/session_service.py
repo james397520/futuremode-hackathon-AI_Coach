@@ -948,15 +948,68 @@ async def _override_evaluation(self: SessionService, session_id: str, payload: A
 
 
 async def _request_hint(self: SessionService, session_id: str, payload: Any = None) -> Any:
-    """§24 Training-Mode hint. Assessment Mode must never reach this."""
-    view = await self._require(session_id, read_only=True)
-    mode = getattr(view, "mode", None) or getattr(getattr(view, "session", None), "mode", None)
-    if str(mode) == "assessment":
+    """§24 Training-Mode hint, on demand.
+
+    Runs the coach agent with `explicit_request=True` against the live runtime
+    state and publishes the insights on the session stream — the same shape the
+    per-turn coach produces, so the UI needs no second path. Assessment Mode
+    must never reach this (§8.4).
+
+    Previously called `self._build_orchestrator(session_id)` — the method takes
+    `(runtime, emitter)` — so every "給我提示" click 500'd.
+    """
+    from app.agents.coach_agent import CoachRequest, to_domain_insight
+
+    row = await self._require(session_id, read_only=True)
+    if str(field(row, "mode", "training")) == "assessment":
         raise ValidationFailedError("hints are not available in assessment mode")
-    orchestrator = self._build_orchestrator(session_id)
-    return await orchestrator.request_hint(
-        session_id, payload.model_dump() if hasattr(payload, "model_dump") else (payload or {})
+
+    runtime = await self._runtime_state(session_id, row)
+    emitter = await self.emitters.get(
+        session_id, tenant_id=self.tenant_id, workspace_id=self.workspace_id
     )
+    orchestrator = self._build_orchestrator(runtime, emitter)
+    coach = getattr(orchestrator, "coach", None)
+    if coach is None:
+        raise ValidationFailedError("coaching is not available for this session")
+
+    scenario = (runtime.pinned.scenario if runtime.pinned is not None else {}) or {}
+    last_trainee = next(
+        (t for s_, t in reversed(runtime.recent_turns) if s_ == "trainee"), ""
+    )
+    context = getattr(payload, "context", None) if payload is not None else None
+    persona_state = runtime.persona_state
+    state_dict = (
+        persona_state.model_dump()
+        if hasattr(persona_state, "model_dump")
+        else (persona_state if isinstance(persona_state, dict) else {})
+    )
+
+    await emitter.agent_thinking("coach")
+    output = await coach.run(
+        CoachRequest(
+            mode=runtime.mode,
+            locale=runtime.locale,
+            session_id=session_id,
+            timestamp_ms=now_ms(),
+            trainee_text=str(context or last_trainee or ""),
+            persona_text=runtime.last_persona_text,
+            persona_state=state_dict,
+            director_signals=[],
+            learning_objectives=list(scenario.get("learning_objectives") or []),
+            required_talking_points=list(scenario.get("required_talking_points") or []),
+            recent_turns=list(runtime.recent_turns),
+            explicit_request=True,
+        )
+    )
+    insights: list[dict[str, Any]] = []
+    for draft in output.insights:
+        insight = to_domain_insight(draft, session_id=session_id, timestamp_ms=now_ms())
+        await self.repo.add("CoachInsight", {**insight, **self.owned_fields()})
+        insights.append(insight)
+        await emitter.coach_insight(insight)
+    await self.repo.commit()
+    return {"insights": insights, "suppressed": output.suppressed_by_mode}
 
 
 SessionService.create_session = _create_session          # type: ignore[attr-defined]

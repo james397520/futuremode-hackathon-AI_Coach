@@ -23,6 +23,7 @@ import { endpoints } from '@/lib/api-client';
 
 import type { AudioDeviceOption, MicPermission } from '../lib/types';
 import { useSessionActions, useSessionStore } from '../store/session-store';
+import { localTtsUsable, useSttCapabilities } from './use-stt-capabilities';
 import {
   cancelSpeech,
   pickVoice,
@@ -165,13 +166,15 @@ export interface VoiceSessionApi {
   /**
    * Speak a persona turn. Prefers server audio (ElevenLabs); falls back to the
    * on-device system voice when there is none — which is also the no-network
-   * and no-API-key case. Returns which engine actually spoke.
+   * and no-API-key case. `system` means "on this machine": the local TTS model
+   * (services/local-tts) when the API reports it reachable, else the OS voice.
+   * Returns which engine actually spoke.
    */
   speakTurn: (
     text: string,
     audioUrl?: string | null,
     engineOverride?: 'auto' | 'system' | 'cloud',
-  ) => Promise<'cloud' | 'system' | 'none'>;
+  ) => Promise<'cloud' | 'local' | 'system' | 'none'>;
   /** OS voices for this locale, once probed. Empty until the first probe. */
   systemVoices: SpeechSynthesisVoice[];
   /** Where the browser's speech *recognition* runs. Disclosed, never assumed. */
@@ -256,6 +259,11 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
   systemTuningRef.current = systemTuning;
   const sessionIdRef = useRef(sessionId);
   sessionIdRef.current = sessionId;
+  // Whether the local TTS *model* answered the API's probe. A ref, like the
+  // rest: `speakTurn` is stable across renders and reads the latest value.
+  const capabilities = useSttCapabilities();
+  const localModelRef = useRef(false);
+  localModelRef.current = localTtsUsable(capabilities);
   const systemVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const personaGenderRef = useRef<SpeechGender | null>(personaGender);
   personaGenderRef.current = personaGender;
@@ -320,12 +328,33 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       text: string,
       audioUrl?: string | null,
       engineOverride?: 'auto' | 'system' | 'cloud',
-    ): Promise<'cloud' | 'system' | 'none'> => {
+    ): Promise<'cloud' | 'local' | 'system' | 'none'> => {
       const engine = engineOverride ?? speechEngineRef.current;
       if (mutedRef.current) return 'none';
       // The floor changes hands: anything the trainee was saying is closed and
       // sent before the customer starts, so the two never share a recording.
       finalizeRef.current();
+
+      if (engine === 'system' && localModelRef.current && sessionIdRef.current) {
+        // "Local" with the model server up: the API synthesises on this machine
+        // (Kokoro zh) and returns a clip. Anything going wrong — server mid-
+        // restart, timeout, decode error — drops to the OS voice below, so the
+        // customer still speaks; it just sounds like the system voice.
+        try {
+          const blob = await endpoints.synthesizeSpeech(
+            sessionIdRef.current,
+            text,
+            ttsTuningRef.current,
+            'local',
+          );
+          const url = URL.createObjectURL(blob);
+          window.setTimeout(() => URL.revokeObjectURL(url), 120_000);
+          await playTtsRef.current(url);
+          return 'local';
+        } catch {
+          // Fall through to speechSynthesis.
+        }
+      }
 
       if (engine !== 'system') {
         // Cloud voice over HTTP: a server-provided clip if the turn carried one,

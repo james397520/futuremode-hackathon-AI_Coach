@@ -13,7 +13,7 @@
  */
 import { useEffect } from 'react';
 
-import { macSttUsable, useSttCapabilities } from '../hooks/use-stt-capabilities';
+import { localTtsUsable, macSttUsable, useSttCapabilities } from '../hooks/use-stt-capabilities';
 import { insetSurface, toneText } from '../lib/tone';
 import { useSessionActions, useSessionStore } from '../store/session-store';
 import { cn } from './kit';
@@ -79,10 +79,16 @@ function Pill({
   );
 }
 
-/** Customer voice: system synthesiser (local) vs ElevenLabs (cloud). */
+/**
+ * Customer voice: on this machine (local) vs ElevenLabs (cloud). "Local" means
+ * the local TTS *model* (services/local-tts, Kokoro zh) when the API reports it
+ * reachable, and the OS system voice otherwise — the tooltip says which.
+ */
 export function TtsLocalToggle({ className }: { className?: string }) {
   const speechEngine = useSessionStore((s) => s.voice.speechEngine);
   const actions = useSessionActions();
+  const cap = useSttCapabilities();
+  const localModel = localTtsUsable(cap);
   const on = speechEngine === 'system';
 
   useEffect(() => {
@@ -94,11 +100,15 @@ export function TtsLocalToggle({ className }: { className?: string }) {
     <Pill
       on={on}
       label="說：本地"
-      ariaLabel={on ? '客戶語音改用雲端' : '客戶語音改用本地系統語音'}
+      ariaLabel={on ? '客戶語音改用雲端' : localModel ? '客戶語音改用本地模型' : '客戶語音改用本地系統語音'}
       title={
         on
-          ? '客戶語音：這台電腦的系統語音（離線、免費）。點擊改用雲端 ElevenLabs。'
-          : '客戶語音：雲端 ElevenLabs（音質較好，需網路）。點擊改用本地系統語音。'
+          ? localModel
+            ? '客戶語音：本地模型（Kokoro 中文，離線、免費、不外傳；模型無回應時改用系統語音）。點擊改用雲端 ElevenLabs。'
+            : '客戶語音：這台電腦的系統語音（離線、免費）。點擊改用雲端 ElevenLabs。'
+          : localModel
+            ? '客戶語音：雲端 ElevenLabs（音質較好，需網路）。點擊改用本地模型。'
+            : '客戶語音：雲端 ElevenLabs（音質較好，需網路）。點擊改用本地系統語音。'
       }
       onClick={() => {
         const next = !on;
