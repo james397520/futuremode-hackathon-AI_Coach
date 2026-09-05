@@ -128,8 +128,8 @@
   background:
     linear-gradient(
       168deg,
-      rgba(255, 255, 255, 0.5) 0%,
-      rgba(255, 255, 255, 0.12) 34%,
+      rgba(255, 255, 255, 0.26) 0%,
+      rgba(255, 255, 255, 0.06) 34%,
       transparent 62%
     );
 }

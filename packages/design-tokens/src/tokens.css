@@ -17,14 +17,19 @@
   /* More transparent (was .44): with a deeper canvas behind it the outermost
    * shell should let the aurora through rather than washing it out. */
   --glass-shell: rgba(250, 252, 255, 0.16);
-  --glass-card: rgba(255, 255, 255, 0.68);
-  --glass-card-strong: rgba(255, 255, 255, 0.84);
+  /* 0.68 -> 0.30: at 68% white the panel was a tinted rectangle you could not
+   * see through. Legibility now comes from the heavier blur beneath it, not
+   * from an opaque fill. */
+  --glass-card: rgba(255, 255, 255, 0.30);
+  --glass-card-strong: rgba(255, 255, 255, 0.52);
 
   --border-glass: rgba(255, 255, 255, 0.82);
   --border-soft: rgba(184, 199, 225, 0.25);
 
-  --blur-shell: 28px;
-  --blur-card: 22px;
+  /* Raised with the alpha drop: blur is what keeps text readable on a
+   * see-through panel, by flattening whatever is behind it. */
+  --blur-shell: 36px;
+  --blur-card: 32px;
   --saturate-shell: 135%;
 
   /* ---- Text — 深海軍藍，不使用純黑（§7） ---- */
