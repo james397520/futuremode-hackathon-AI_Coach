@@ -92,7 +92,7 @@ function AudioReplay({ url, label }: { url: string; label: string }) {
     <button
       type="button"
       onClick={toggle}
-      aria-label={playing ? `Pause ${label}` : `Replay ${label}`}
+      aria-label={playing ? `暫停播放 ${label}` : `重新播放 ${label}`}
       className="sim-focusable inline-flex h-6 items-center gap-1 rounded-pill px-2 text-tiny text-text-tertiary transition-colors hover:text-text-secondary"
       style={insetSurface('neutral', 8)}
     >
@@ -214,7 +214,7 @@ export function TranscriptTurnRow({
               <span>{traineeName}</span>
               <span className="tabular-nums">{timecode}</span>
               {turn.audio_url && !streaming ? (
-                <AudioReplay url={turn.audio_url} label={`${traineeName} at ${timecode}`} />
+                <AudioReplay url={turn.audio_url} label={`${traineeName} 於 ${timecode}`} />
               ) : null}
             </div>
             <p className="mt-1 text-body text-text-primary">
@@ -277,7 +277,7 @@ export function TranscriptTurnRow({
 
             <span className="ml-auto flex items-center justify-end gap-1.5">
               {turn.audio_url && !streaming ? (
-                <AudioReplay url={turn.audio_url} label={`${displayName} at ${timecode}`} />
+                <AudioReplay url={turn.audio_url} label={`${displayName} 於 ${timecode}`} />
               ) : null}
             </span>
           </div>

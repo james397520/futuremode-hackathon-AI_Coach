@@ -110,7 +110,7 @@ const STRATEGY_INSIGHT: Omit<CoachInsight, 'session_id' | 'timestamp_ms'> = {
   id: 'insight-3',
   kind: 'next_strategy',
   title: '下一步：先問可接受的月預算',
-  body: '信任度已經過 70，客戶願意評估。先確認可接受的月預算上限，再回頭排保障順序，不要急著 Closing。',
+  body: '信任度已經過 70，客戶願意評估。先確認可接受的月預算上限，再回頭排保障順序，不要急著促成締結。',
   allowed_in_assessment: false,
 };
 
@@ -282,7 +282,7 @@ const SCRIPT: Beat[] = [
       type: 'runtime.fallback',
       from: 'ready',
       to: 'wasm',
-      reason: 'WebGPU adapter lost — continuing on local CPU',
+      reason: 'WebGPU 裝置中斷，改用本機 CPU 繼續',
     }),
   },
   {

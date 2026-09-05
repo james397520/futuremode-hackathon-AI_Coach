@@ -205,7 +205,7 @@ function CoachInlineEvents({
                 {insight.title}
               </span>
               <TonePill tone={COACH_KIND_TONE[insight.kind] ?? 'violet'} fill={14}>
-                {COACH_KIND_LABEL[insight.kind] ?? 'Coach'}
+                {COACH_KIND_LABEL[insight.kind] ?? '教練'}
               </TonePill>
             </div>
             <p className="mt-1 text-body-sm text-text-secondary">{insight.body}</p>

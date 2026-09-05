@@ -483,9 +483,9 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
       <>
         <SimulationStyles />
         <GlassCard className="sim-card-enter m-auto max-w-lg p-6 text-center">
-          <h2 className="text-section text-text-primary">This session could not be loaded</h2>
+          <h2 className="text-section text-text-primary">無法載入這場練習</h2>
           <p className="mt-2 text-body text-text-secondary">
-            {bootstrapError ?? 'The session may have ended or you may not have access to it.'}
+            {bootstrapError ?? '這場練習可能已經結束，或者你沒有存取權限。'}
           </p>
           <button
             type="button"
@@ -497,7 +497,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
             }}
           >
             <RestartIcon size={16} />
-            Try again
+            重新載入
           </button>
         </GlassCard>
       </>
@@ -549,14 +549,14 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
                 className="text-body font-medium"
                 style={{ color: toneText(sessionError.recoverable ? 'warning' : 'danger') }}
               >
-                {sessionError.recoverable ? 'The session hit a hiccup' : 'The session stopped'}
+                {sessionError.recoverable ? '練習遇到小狀況' : '練習已中斷'}
               </p>
               <p className="mt-0.5 text-body-sm text-text-secondary">{sessionError.message}</p>
             </div>
             <button
               type="button"
               onClick={actions.dismissError}
-              aria-label="Dismiss"
+              aria-label="關閉提示"
               className="sim-focusable shrink-0 text-text-tertiary hover:text-text-secondary"
             >
               <CloseIcon size={15} />

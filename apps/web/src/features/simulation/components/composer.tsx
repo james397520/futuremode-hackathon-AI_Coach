@@ -84,7 +84,7 @@ export function Composer({
   const [pttHeld, setPttHeld] = useState(false);
 
   const blocked = INPUT_BLOCKED_STATES.includes(status);
-  const reason = blocked ? (BLOCK_REASON[status] ?? 'Input is unavailable right now.') : null;
+  const reason = blocked ? (BLOCK_REASON[status] ?? '目前無法輸入。') : null;
   const overLimit = value.length > MAX_CHARS;
   const canSend = !blocked && value.trim().length > 0 && !overLimit;
 
@@ -142,7 +142,7 @@ export function Composer({
     };
   }, [onPushToTalk, voiceEnabled]);
 
-  const turnHint = maxTurns ? `Turn ${turnCount} / ${maxTurns}` : `Turn ${turnCount}`;
+  const turnHint = maxTurns ? `第 ${turnCount} / ${maxTurns} 回合` : `第 ${turnCount} 回合`;
 
   return (
     <div className={cn('shrink-0', className)}>

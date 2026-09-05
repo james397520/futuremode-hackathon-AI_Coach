@@ -91,11 +91,11 @@ export function CommandPalette({
   onOpenChange,
   items,
   groups: groupsProp,
-  placeholder = 'Search commands…',
+  placeholder = '搜尋指令…',
   emptyMessage = 'No matching command.',
   groupOrder,
   filter = defaultFilter,
-  label = 'Command palette',
+  label = '指令面板',
   footer,
   className,
 }: CommandPaletteProps): React.ReactElement {

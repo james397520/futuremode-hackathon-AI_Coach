@@ -351,7 +351,7 @@ export function DashboardPage() {
                     {scenario?.name ?? session.scenario_id}
                   </Link>
                   <p className="text-tiny text-text-tertiary">
-                    {learner?.display_name ?? session.user_id} · {session.turn_count} turns ·{' '}
+                    {learner?.display_name ?? session.user_id} · {session.turn_count} 輪對話 ·{' '}
                     {formatRelative(session.ended_at ?? session.started_at)}
                   </p>
                 </div>

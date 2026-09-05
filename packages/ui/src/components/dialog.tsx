@@ -58,7 +58,7 @@ export const ModalContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   ModalContentProps
 >(function ModalContent(
-  { size = 'md', showClose = true, closeLabel = 'Close', overlayClassName, className, children, ...props },
+  { size = 'md', showClose = true, closeLabel = '關閉', overlayClassName, className, children, ...props },
   ref,
 ) {
   return (

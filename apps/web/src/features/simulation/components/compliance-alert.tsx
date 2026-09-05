@@ -8,7 +8,12 @@
 import type { ComplianceFinding } from '@ai-coach/shared';
 
 import { formatClock } from '../lib/format';
-import { COMPLIANCE_RISK_LABEL, COMPLIANCE_RISK_TONE, COMPLIANCE_TYPE_LABEL } from '../lib/labels';
+import {
+  COMPLIANCE_RISK_LABEL,
+  COMPLIANCE_RISK_TONE,
+  COMPLIANCE_TYPE_LABEL,
+  REVIEWER_STATUS_LABEL,
+} from '../lib/labels';
 import { insetSurface, tint, toneText } from '../lib/tone';
 import { TonePill } from './atoms';
 import { AlertIcon, CheckIcon, ShieldIcon } from './icons';
@@ -21,13 +26,6 @@ export interface ComplianceAlertProps {
   compact?: boolean;
   className?: string;
 }
-
-const REVIEWER_LABEL: Record<ComplianceFinding['reviewer_status'], string> = {
-  open: 'Open',
-  acknowledged: 'Acknowledged',
-  resolved: 'Resolved',
-  dismissed: 'Dismissed',
-};
 
 export function ComplianceAlert({
   finding,
@@ -45,7 +43,7 @@ export function ComplianceAlert({
     <section
       className={cn('rounded-card border p-4', className)}
       style={insetSurface(tone, compact ? 8 : 11)}
-      aria-label={`Compliance warning: ${COMPLIANCE_TYPE_LABEL[finding.type] ?? finding.type}`}
+      aria-label={`合規提醒：${COMPLIANCE_TYPE_LABEL[finding.type] ?? finding.type}`}
     >
       <header className="flex flex-wrap items-center gap-2">
         <AlertIcon size={15} style={{ color: toneText(tone) }} />
@@ -63,7 +61,7 @@ export function ComplianceAlert({
       {finding.evidence ? (
         <figure className="mt-3">
           <figcaption className="text-tiny uppercase tracking-[0.08em] text-text-tertiary">
-            Transcript evidence
+            逐字稿佐證
           </figcaption>
           <blockquote
             className="mt-1 border-l-2 pl-3 text-body-sm text-text-primary"
@@ -88,15 +86,15 @@ export function ComplianceAlert({
         >
           <div className="flex items-center gap-1.5 text-tiny uppercase tracking-[0.08em]" style={{ color: toneText('mint') }}>
             <CheckIcon size={12} />
-            Suggested correction
+            建議改法
           </div>
           <p className="mt-1.5 text-body-sm text-text-secondary">{finding.suggested_correction}</p>
         </div>
       ) : null}
 
       <footer className="mt-3 flex items-center justify-between text-tiny text-text-tertiary">
-        <span>Reviewer status · {REVIEWER_LABEL[finding.reviewer_status] ?? finding.reviewer_status}</span>
-        {finding.transcript_turn_id ? <span>Turn {finding.transcript_turn_id}</span> : null}
+        <span>審閱狀態 · {REVIEWER_STATUS_LABEL[finding.reviewer_status] ?? finding.reviewer_status}</span>
+        {finding.transcript_turn_id ? <span>第 {finding.transcript_turn_id} 回合</span> : null}
       </footer>
     </section>
   );

@@ -214,7 +214,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
  */
 export async function probeWebgpu(adapterTimeoutMs = 4000): Promise<GpuProbeResult> {
   if (!hasNavigator()) {
-    return { webgpu: false, reason: 'No navigator (server rendering).', software: false };
+    return { webgpu: false, reason: '沒有 navigator（伺服器端算繪）。', software: false };
   }
   const gpu = (navigator as Navigator & { gpu?: GPU }).gpu;
   if (!gpu || typeof gpu.requestAdapter !== 'function') {
@@ -246,7 +246,7 @@ export async function probeWebgpu(adapterTimeoutMs = 4000): Promise<GpuProbeResu
   }
 
   if (!adapter) {
-    return { webgpu: false, reason: 'No GPU adapter available.', software: false };
+    return { webgpu: false, reason: '找不到可用的 GPU 介面卡。', software: false };
   }
 
   let adapterInfo: { vendor?: string; architecture?: string } | undefined;
@@ -426,7 +426,7 @@ export function selectBackend(
     return {
       backend: 'server',
       chain: ['server'],
-      reason: 'Local acceleration is disabled by policy.',
+      reason: '政策已停用本機加速。',
     };
   }
 
@@ -434,7 +434,7 @@ export function selectBackend(
     return {
       backend: 'server',
       chain: ['server'],
-      reason: 'Web Workers are unavailable, and AI inference must not run on the main thread.',
+      reason: '無法使用 Web Worker，而 AI 推論不得在主執行緒執行。',
     };
   }
 
@@ -456,19 +456,19 @@ export function selectBackend(
   }
 
   if (head === 'webgpu') {
-    return { backend: 'webgpu', chain, reason: 'WebGPU is available and enabled.' };
+    return { backend: 'webgpu', chain, reason: 'WebGPU 可用且已啟用。' };
   }
   if (head === 'wasm') {
     return {
       backend: 'wasm',
       chain,
-      reason: 'WebGPU is unavailable; using the WASM SIMD tier.',
+      reason: '無法使用 WebGPU，改用 WASM SIMD 層級。',
     };
   }
   return {
     backend: 'server',
     chain,
-    reason: 'No local execution tier is available on this device.',
+    reason: '這台裝置沒有可用的本機執行層級。',
   };
 }
 
@@ -489,7 +489,7 @@ export function serverOnlyCapability(): DetailedComputeCapability {
     wasmThreads: 1,
     cores: 1,
     softwareAdapter: false,
-    webgpuUnavailableReason: 'Not running in a browser.',
+    webgpuUnavailableReason: '不是在瀏覽器中執行。',
     detectedAt: new Date().toISOString(),
   };
 }
@@ -523,7 +523,7 @@ export async function detectCapability(
     // deployment is trying to avoid.
     const forcedOff = policy.webgpu === 'off' || override === 'off';
     const gpu: GpuProbeResult = forcedOff
-      ? { webgpu: false, reason: 'Local acceleration is disabled by policy.', software: false }
+      ? { webgpu: false, reason: '政策已停用本機加速。', software: false }
       : await probeWebgpu(options.adapterTimeoutMs ?? 4000);
 
     const memoryClass = classifyMemory({

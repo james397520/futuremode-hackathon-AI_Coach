@@ -18,20 +18,20 @@ export function VoiceSettingsPage() {
 
   return (
     <SettingsShell
-      title="Voice"
-      description="How the persona sounds, and how turn-taking behaves during a voice session."
-      meta={<Pill tone="info" size="sm">Applies to new voice sessions</Pill>}
+      title="語音"
+      description="模擬人物聽起來是什麼樣子，以及語音練習中輪流發言的行為。"
+      meta={<Pill tone="info" size="sm">套用於新的語音練習</Pill>}
       actions={
         <Button variant="primary" size="sm" disabled={!canManage}>
           <Save size={15} strokeWidth={1.8} aria-hidden />
-          Save
+          儲存
         </Button>
       }
     >
       <GlassCard className="p-5">
         <div className="flex items-center gap-2">
           <Volume2 size={16} strokeWidth={1.8} aria-hidden className="text-accent-blue" />
-          <h2 className="text-card-title">Synthesis</h2>
+          <h2 className="text-card-title">語音合成</h2>
         </div>
 
         <div className="mt-4 grid gap-5 sm:grid-cols-2">
@@ -83,26 +83,26 @@ export function VoiceSettingsPage() {
         <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border-soft pt-4">
           <Button variant="secondary" size="sm">
             <Volume2 size={15} strokeWidth={1.8} aria-hidden />
-            Preview voice
+            試聽語音
           </Button>
           <Button variant="ghost" size="sm">
             <Mic size={15} strokeWidth={1.8} aria-hidden />
-            Test microphone
+            測試麥克風
           </Button>
           <p className="text-tiny text-text-tertiary">
-            Synthesis and transcription both run server-side; no provider key reaches the browser.
+            語音合成與轉錄都在伺服器端執行；服務供應商的金鑰不會傳到瀏覽器。
           </p>
         </div>
       </GlassCard>
 
       <GlassCard className="p-5">
-        <h2 className="text-card-title">Turn-taking</h2>
+        <h2 className="text-card-title">輪流發言</h2>
         <p className="mt-1 text-body-sm text-text-secondary">
-          Voice activity detection drives end-of-turn. When the trainee starts speaking while the persona is
-          talking, synthesis is cancelled and the session returns to listening without losing context.
+          由語音活動偵測判斷一個回合何時結束。當模擬人物還在說話、學員就開口時，系統會取消語音合成，
+          並回到聆聽狀態，且不會遺失對話脈絡。
         </p>
         <ol className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-2 text-body-sm text-text-secondary">
-          {['AI speaking', 'Voice detected', 'Cancel synthesis', 'Listening', 'Transcribe', 'Continue context'].map(
+          {['AI 說話中', '偵測到語音', '取消合成', '聆聽中', '轉錄', '延續脈絡'].map(
             (stage, index, all) => (
               <li key={stage} className="flex items-center gap-2">
                 <span className="rounded-pill bg-glass-card px-2.5 py-1">{stage}</span>
@@ -114,10 +114,9 @@ export function VoiceSettingsPage() {
       </GlassCard>
 
       <GlassCard className="p-5">
-        <h2 className="text-card-title">Accessibility</h2>
+        <h2 className="text-card-title">無障礙</h2>
         <p className="mt-1 text-body-sm text-text-secondary">
-          Captions and a full transcript are always available during and after a voice session — a voice
-          session is never the only way to complete an assignment.
+          語音練習期間與結束之後，字幕與完整逐字稿都一定看得到——語音練習絕不會是完成指派任務的唯一方式。
         </p>
       </GlassCard>
     </SettingsShell>

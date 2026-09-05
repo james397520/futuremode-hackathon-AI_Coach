@@ -18,7 +18,8 @@ import { SCENARIO_MASTERY } from '@/lib/fixtures/reports';
 import { scenarioById } from '@/lib/fixtures/scenarios';
 import { userById } from '@/lib/fixtures/identity';
 import { useAuth } from '@/lib/auth-context';
-import { formatRelative, titleize } from '@/lib/utils';
+import { DIFFICULTY_LABEL, SESSION_STATE_LABEL } from '@/lib/enum-labels';
+import { formatRelative } from '@/lib/utils';
 
 /**
  * §34 Part I 個人成長頁 — overall score, monthly improvement, weakest and
@@ -40,21 +41,21 @@ export function PerformancePage({ userId }: { userId?: string }) {
         breadcrumbs={
           isOwn
             ? undefined
-            : [{ label: 'Performance Review', href: '/performance' }, { label: target?.display_name ?? userId ?? '' }]
+            : [{ label: '成效檢視', href: '/performance' }, { label: target?.display_name ?? userId ?? '' }]
         }
-        title={isOwn ? 'My progress' : `${target?.display_name ?? 'Learner'} — progress`}
-        description="Every number on this page opens the transcript evidence behind it."
+        title={isOwn ? '我的進度' : `${target?.display_name ?? '學員'} — 進度`}
+        description="頁面上的每一個數字，都可以往下追到逐字稿佐證。"
         meta={
           <>
-            <Pill tone="neutral" size="sm">{profile.completed_sessions} sessions</Pill>
-            <Pill tone="success" size="sm">+{profile.monthly_improvement} this month</Pill>
+            <Pill tone="neutral" size="sm">{profile.completed_sessions} 場練習</Pill>
+            <Pill tone="success" size="sm">本月 +{profile.monthly_improvement}</Pill>
             <RiskPill risk="low" />
           </>
         }
         actions={
           <Button variant="secondary" size="sm" asChild>
             <Link href="/reports/skill">
-              Skill report
+              技能報表
               <ArrowUpRight size={15} strokeWidth={1.8} aria-hidden />
             </Link>
           </Button>
@@ -62,21 +63,21 @@ export function PerformancePage({ userId }: { userId?: string }) {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile surface="card" label="Overall skill score" value={String(profile.overall_score)} delta={`+${profile.monthly_improvement}`} hint="weighted across ten dimensions" />
-        <StatTile surface="card" label="Strongest" value={SKILL_LABEL[profile.strongest_skill]} hint={`${profile.skills[profile.strongest_skill]} / 100`} />
-        <StatTile surface="card" label="Weakest" value={SKILL_LABEL[profile.weakest_skill]} hint={`${profile.skills[profile.weakest_skill]} / 100`} />
-        <StatTile surface="card" label="Days to readiness" value={String(profile.days_to_readiness ?? '—')} hint="at the current pace" />
+        <StatTile surface="card" label="技能總分" value={String(profile.overall_score)} delta={`+${profile.monthly_improvement}`} hint="十項維度加權計算" />
+        <StatTile surface="card" label="最擅長" value={SKILL_LABEL[profile.strongest_skill]} hint={`${profile.skills[profile.strongest_skill]} / 100`} />
+        <StatTile surface="card" label="待加強" value={SKILL_LABEL[profile.weakest_skill]} hint={`${profile.skills[profile.weakest_skill]} / 100`} />
+        <StatTile surface="card" label="預估達標天數" value={String(profile.days_to_readiness ?? '—')} hint="以目前的進步速度推估" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <GlassCard className="p-5">
-          <h2 className="text-card-title">Skill profile</h2>
-          <p className="text-tiny text-text-tertiary">Compared with the team average</p>
+          <h2 className="text-card-title">技能輪廓</h2>
+          <p className="text-tiny text-text-tertiary">與團隊平均對照</p>
           <SkillRadar
             axes={[...SKILL_KEYS]}
             series={[
-              { id: 'me', label: isOwn ? 'You' : target?.display_name ?? 'Learner', color: 'var(--accent-indigo)', values: radarValues },
-              { id: 'team', label: 'Team average', color: 'var(--accent-cyan)', values: [85, 76, 84, 82, 80, 78, 83, 71, 77, 86] },
+              { id: 'me', label: isOwn ? '你' : target?.display_name ?? '學員', color: 'var(--accent-indigo)', values: radarValues },
+              { id: 'team', label: '團隊平均', color: 'var(--accent-cyan)', values: [85, 76, 84, 82, 80, 78, 83, 71, 77, 86] },
             ]}
           />
         </GlassCard>
@@ -85,25 +86,24 @@ export function PerformancePage({ userId }: { userId?: string }) {
           <GlassCard className="p-5">
             <div className="flex items-center gap-2">
               <TrendingUp size={16} strokeWidth={1.8} aria-hidden className="text-accent-indigo" />
-              <h2 className="text-card-title">Score trend</h2>
+              <h2 className="text-card-title">分數趨勢</h2>
             </div>
             <TrendLine
               className="mt-3"
               points={SCORE_TREND.map((point) => ({ label: point.label, value: point.score }))}
-              ariaLabel="Overall score by month"
+              ariaLabel="每月的總分"
               min={55}
               max={95}
             />
             <p className="mt-2 text-tiny text-text-tertiary">
-              Practice frequency: {SCORE_TREND.map((point) => `${point.label} ${point.sessions}`).join(' · ')}
+              練習頻率：{SCORE_TREND.map((point) => `${point.label} ${point.sessions}`).join(' · ')}
             </p>
           </GlassCard>
 
           <GlassCard className="p-5">
-            <h2 className="text-card-title">Compliance trend</h2>
+            <h2 className="text-card-title">合規趨勢</h2>
             <p className="text-tiny text-text-tertiary">
-              Compliance is the gating dimension — a critical finding fails a session regardless of the
-              other scores.
+              合規是關卡型維度 — 只要出現重大發現，不論其他分數多高，該場練習一律不通過。
             </p>
             <TrendLine
               className="mt-3"
@@ -111,7 +111,7 @@ export function PerformancePage({ userId }: { userId?: string }) {
                 label: SCORE_TREND[index]?.label ?? `M${index + 1}`,
                 value,
               }))}
-              ariaLabel="Compliance score by month"
+              ariaLabel="每月的合規分數"
               min={40}
               max={100}
             />
@@ -120,9 +120,9 @@ export function PerformancePage({ userId }: { userId?: string }) {
       </div>
 
       <GlassCard className="p-5">
-        <h2 className="text-card-title">All ten dimensions</h2>
+        <h2 className="text-card-title">十項維度</h2>
         <p className="mt-1 text-body-sm text-text-secondary">
-          Open any session report to see the transcript excerpts behind these scores.
+          開啟任一場練習報表，即可看到這些分數背後的逐字稿摘錄。
         </p>
         <div className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2">
           {SKILL_KEYS.map((key) => (
@@ -133,7 +133,7 @@ export function PerformancePage({ userId }: { userId?: string }) {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <GlassCard className="p-5">
-          <h2 className="text-card-title">Scenario mastery</h2>
+          <h2 className="text-card-title">情境熟練度</h2>
           <ul className="mt-3 divide-y divide-border-soft/70">
             {SCENARIO_MASTERY.map((entry) => (
               <li key={entry.scenario_id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 py-3">
@@ -145,11 +145,11 @@ export function PerformancePage({ userId }: { userId?: string }) {
                     {entry.scenario_name}
                   </Link>
                   <p className="text-tiny text-text-tertiary">
-                    {titleize(entry.difficulty)} · {entry.attempts} attempts
+                    {DIFFICULTY_LABEL[entry.difficulty] ?? entry.difficulty} · 嘗試 {entry.attempts} 次
                   </p>
                 </div>
                 <div className="w-40">
-                  <ScoreBar compact label={`${Math.round(entry.pass_rate * 100)}% pass`} score={entry.average_score} />
+                  <ScoreBar compact label={`及格率 ${Math.round(entry.pass_rate * 100)}%`} score={entry.average_score} />
                 </div>
               </li>
             ))}
@@ -160,10 +160,10 @@ export function PerformancePage({ userId }: { userId?: string }) {
           <GlassCard className="p-5">
             <div className="flex items-center gap-2">
               <Target size={16} strokeWidth={1.8} aria-hidden className="text-accent-indigo" />
-              <h2 className="text-card-title">What to do next</h2>
+              <h2 className="text-card-title">接下來該做什麼</h2>
             </div>
             <p className="mt-1 text-body-sm text-text-secondary">
-              Derived from your weakest dimensions: {DEMO_RECOMMENDATION.weak_skills.map((skill) => SKILL_LABEL[skill]).join(', ')}.
+              依你最弱的維度推薦：{DEMO_RECOMMENDATION.weak_skills.map((skill) => SKILL_LABEL[skill]).join('、')}。
             </p>
             <ul className="mt-3 space-y-2 text-body-sm">
               {DEMO_RECOMMENDATION.retry_scenario_id ? (
@@ -172,7 +172,7 @@ export function PerformancePage({ userId }: { userId?: string }) {
                     href={`/simulations/${DEMO_RECOMMENDATION.retry_scenario_id}/setup`}
                     className="font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
                   >
-                    Retry: {scenarioById(DEMO_RECOMMENDATION.retry_scenario_id)?.name}
+                    再練一次：{scenarioById(DEMO_RECOMMENDATION.retry_scenario_id)?.name}
                   </Link>
                 </li>
               ) : null}
@@ -182,13 +182,13 @@ export function PerformancePage({ userId }: { userId?: string }) {
                     href={`/simulations/${DEMO_RECOMMENDATION.next_scenario_id}/setup`}
                     className="font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
                   >
-                    Next: {scenarioById(DEMO_RECOMMENDATION.next_scenario_id)?.name}
+                    下一個情境：{scenarioById(DEMO_RECOMMENDATION.next_scenario_id)?.name}
                   </Link>
                 </li>
               ) : null}
               {DEMO_RECOMMENDATION.knowledge_material.map((material) => (
                 <li key={material.document_id} className="text-text-secondary">
-                  Read: {material.reason}
+                  延伸閱讀：{material.reason}
                 </li>
               ))}
             </ul>
@@ -197,7 +197,7 @@ export function PerformancePage({ userId }: { userId?: string }) {
           <GlassCard className="p-5">
             <div className="flex items-center gap-2">
               <Flame size={16} strokeWidth={1.8} aria-hidden className="text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]" />
-              <h2 className="text-card-title">Recent sessions</h2>
+              <h2 className="text-card-title">最近的練習</h2>
             </div>
             <ul className="mt-3 divide-y divide-border-soft/70">
               {sessions.slice(0, 5).map((session) => (
@@ -210,19 +210,19 @@ export function PerformancePage({ userId }: { userId?: string }) {
                       {scenarioById(session.scenario_id)?.name ?? session.scenario_id}
                     </Link>
                     <p className="text-tiny text-text-tertiary">
-                      {formatRelative(session.ended_at ?? session.started_at)} · {session.turn_count} turns
+                      {formatRelative(session.ended_at ?? session.started_at)} · {session.turn_count} 輪對話
                     </p>
                   </div>
                   <Pill
                     tone={session.status === 'completed' ? 'success' : session.status === 'error' ? 'danger' : 'neutral'}
                     size="sm"
                   >
-                    {titleize(session.status)}
+                    {SESSION_STATE_LABEL[session.status] ?? session.status}
                   </Pill>
                 </li>
               ))}
               {sessions.length === 0 ? (
-                <li className="py-4 text-body-sm text-text-tertiary">No session yet.</li>
+                <li className="py-4 text-body-sm text-text-tertiary">尚未有練習紀錄。</li>
               ) : null}
             </ul>
           </GlassCard>

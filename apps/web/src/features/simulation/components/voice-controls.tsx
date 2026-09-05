@@ -113,7 +113,7 @@ export function VoiceControls({
         className,
       )}
       style={{ borderColor: tint('neutral', 18) }}
-      aria-label="Voice call controls"
+      aria-label="語音通話控制"
     >
       {/* Voice is optional. Text remains the primary way to reply. */}
       <span
@@ -142,7 +142,7 @@ export function VoiceControls({
       ) : (
         <>
           <ControlButton
-            label={muted ? 'Unmute microphone' : 'Mute microphone'}
+            label={muted ? '取消靜音麥克風' : '靜音麥克風'}
             icon={muted ? <MicOffIcon size={18} /> : <MicIcon size={18} />}
             onClick={onToggleMute}
             tone={muted ? 'warning' : 'blue'}
@@ -154,7 +154,7 @@ export function VoiceControls({
       )}
 
       <ControlButton
-        label="Captions"
+        label="字幕"
         icon={<CaptionsIcon size={18} />}
         onClick={onToggleCaptions}
         pressed={captionsEnabled}

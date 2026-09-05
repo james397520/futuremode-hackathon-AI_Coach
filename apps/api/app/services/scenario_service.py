@@ -312,7 +312,7 @@ class ScenarioService(BaseService):
                 ValidationIssue(
                     step=int(WizardStep.EVALUATION),
                     field_name="rubric_id",
-                    message="an assessment scenario must reference a rubric (§28)",
+                    message="評測情境必須指定評分規準（§28）",
                 )
             )
         max_turns = field(row, "max_turns")
@@ -321,7 +321,7 @@ class ScenarioService(BaseService):
                 ValidationIssue(
                     step=int(WizardStep.CONSTRAINTS),
                     field_name="max_turns",
-                    message="max_turns must be at least 3 for a meaningful simulation",
+                    message="回合上限至少要 3 才能構成有意義的練習",
                 )
             )
 

@@ -97,8 +97,8 @@ export function SimulationSetupPage({ scenarioId }: { scenarioId: string }) {
           <>
             <DifficultyPill difficulty={scenario.difficulty} />
             <ModePill mode={scenario.mode} />
-            <Pill tone="neutral" size="sm">Scenario v{scenario.version}</Pill>
-            {persona ? <Pill tone="neutral" size="sm">Persona v{persona.version}</Pill> : null}
+            <Pill tone="neutral" size="sm">情境 v{scenario.version}</Pill>
+            {persona ? <Pill tone="neutral" size="sm">客戶 v{persona.version}</Pill> : null}
             <RuntimeBadge />
           </>
         }

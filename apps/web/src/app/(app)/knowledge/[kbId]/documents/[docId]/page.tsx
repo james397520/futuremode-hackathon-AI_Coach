@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { DocumentDetailPage } from '@/features/knowledge';
 
-export const metadata: Metadata = { title: 'Document' };
+export const metadata: Metadata = { title: '文件' };
 
 export default async function Page({
   params,

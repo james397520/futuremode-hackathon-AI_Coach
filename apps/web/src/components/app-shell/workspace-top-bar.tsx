@@ -118,7 +118,7 @@ export function WorkspaceTopBar() {
           <kbd className="ml-2 rounded-[5px] border border-border-soft px-1.5 py-0.5 text-tiny">⌘K</kbd>
         </button>
 
-        <IconButton label="Search" onClick={toggleCommandPalette} className="md:hidden">
+        <IconButton label="搜尋" onClick={toggleCommandPalette} className="md:hidden">
           <Search size={18} strokeWidth={1.7} aria-hidden />
         </IconButton>
 

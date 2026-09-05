@@ -36,7 +36,7 @@ export function SettingsShell({
   return (
     <div className="space-y-5 pb-4">
       <PageHeader
-        breadcrumbs={breadcrumbs ?? [{ label: 'Settings', href: '/settings' }, { label: title }]}
+        breadcrumbs={breadcrumbs ?? [{ label: '設定', href: '/settings' }, { label: title }]}
         title={title}
         description={description}
         actions={actions}
@@ -45,7 +45,7 @@ export function SettingsShell({
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,240px)_minmax(0,1fr)]">
         <aside className="h-fit border-r border-border-soft pr-3 max-md:border-b max-md:border-r-0 max-md:pb-3 max-md:pr-0">
-          <nav aria-label="Settings sections">
+          <nav aria-label="設定分類">
             <ul className="flex gap-1.5 overflow-x-auto md:flex-col md:overflow-visible">
               {sections.map((section) => {
                 const active = pathname === section.href;
@@ -65,7 +65,7 @@ export function SettingsShell({
                       <span className="truncate">{section.label}</span>
                       {section.adminOnly ? (
                         <Pill tone="neutral" size="sm" className="ml-auto hidden md:inline-flex">
-                          Admin
+                          管理者
                         </Pill>
                       ) : null}
                     </Link>

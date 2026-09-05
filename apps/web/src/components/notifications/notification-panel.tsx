@@ -66,8 +66,8 @@ export function NotificationPanel() {
       open={open}
       onOpenChange={setOpen}
       side="right"
-      title="Notifications"
-      description={unread > 0 ? `${unread} unread` : 'You are all caught up'}
+      title="通知"
+      description={unread > 0 ? `${unread} 則未讀` : '全部都看完了'}
       width={420}
       footer={
         <div className="flex w-full items-center justify-between gap-2">
@@ -77,10 +77,10 @@ export function NotificationPanel() {
             onClick={() => setItems((prev) => prev.map((n) => ({ ...n, read: true })))}
             disabled={unread === 0}
           >
-            Mark all as read
+            全部標示為已讀
           </Button>
           <Link href="/settings/profile" className="ink-indigo text-body-sm hover:underline">
-            Notification settings
+            通知設定
           </Link>
         </div>
       }
@@ -94,7 +94,7 @@ export function NotificationPanel() {
               onClick={() => setFilter('all')}
               aria-pressed={filter === 'all'}
             >
-              All
+              全部
             </Button>
             <Button
               variant={filter === 'unread' ? 'subtle' : 'ghost'}
@@ -102,7 +102,7 @@ export function NotificationPanel() {
               onClick={() => setFilter('unread')}
               aria-pressed={filter === 'unread'}
             >
-              Unread
+              未讀
             </Button>
           </div>
         </div>
@@ -110,7 +110,7 @@ export function NotificationPanel() {
         <ul className="scroll-area -mx-1 flex min-h-0 flex-1 flex-col gap-2 px-1" aria-live="polite">
           {visible.length === 0 ? (
             <li className="rounded-card bg-glass-card p-6 text-center text-body-sm text-text-secondary">
-              Nothing here. New assignments, reports and security warnings will appear in this panel.
+              目前沒有通知。新的指派任務、報表與安全警示都會出現在這裡。
             </li>
           ) : null}
 
@@ -144,7 +144,7 @@ export function NotificationPanel() {
                           {NOTIFICATION_KIND_LABEL[item.kind]}
                         </Pill>
                         <span className="text-tiny text-text-tertiary">{formatRelative(item.at)}</span>
-                        {!item.read ? <span className="ink-indigo text-tiny font-medium">Unread</span> : null}
+                        {!item.read ? <span className="ink-indigo text-tiny font-medium">未讀</span> : null}
                       </div>
                       <p className="text-body-sm font-medium">{item.title}</p>
                       <p className="mt-0.5 text-body-sm text-text-secondary">{item.body}</p>

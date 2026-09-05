@@ -484,7 +484,7 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
           deviceId: d.deviceId,
           kind: d.kind === 'audiooutput' ? ('audiooutput' as const) : ('audioinput' as const),
           // Labels are empty until permission is granted — keep it human anyway.
-          label: d.label || `${d.kind === 'audiooutput' ? 'Output' : 'Microphone'} ${index + 1}`,
+          label: d.label || `${d.kind === 'audiooutput' ? '輸出裝置' : '麥克風'} ${index + 1}`,
         }));
       setDevices(audio);
     } catch {
@@ -667,14 +667,14 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     if (graphRef.current || starting) return;
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
       setPermission('unsupported');
-      setError('This browser cannot capture audio. Use the text composer instead.');
+      setError('這個瀏覽器無法擷取音訊，請改用文字輸入。');
       actions.setVoice({ permission: 'unsupported', lastError: 'getUserMedia unavailable' });
       return;
     }
     const AudioContextCtor = resolveAudioContext();
     if (!AudioContextCtor) {
       setPermission('unsupported');
-      setError('Web Audio is unavailable in this browser.');
+      setError('這個瀏覽器不支援 Web Audio。');
       return;
     }
 
@@ -817,10 +817,10 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
         err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
       setPermission(denied ? 'denied' : 'prompt');
       const message = denied
-        ? 'Microphone permission is required for a voice session.'
+        ? '語音練習需要麥克風權限。'
         : err instanceof Error
           ? err.message
-          : 'Could not open the microphone.';
+          : '無法開啟麥克風。';
       setError(message);
       actions.setVoice({ permission: denied ? 'denied' : 'prompt', lastError: message });
     } finally {

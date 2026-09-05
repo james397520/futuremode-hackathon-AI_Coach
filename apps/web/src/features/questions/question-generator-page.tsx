@@ -20,6 +20,11 @@ import { cn } from '@/lib/utils';
 
 const GENERATED: Question[] = MOCK_QUESTIONS.filter((question) => Boolean(question.generated_by_model));
 
+/** The same Chinese difficulty wording `DifficultyPill` uses (`components/status`). */
+const DIFFICULTY_LABEL: Record<Difficulty, string> = {
+  easy: '初階', medium: '中階', hard: '進階', expert: '專家',
+};
+
 const TYPE_CHOICES: QuestionType[] = [
   'multiple_choice',
   'true_false',
@@ -61,16 +66,16 @@ export function QuestionGeneratorPage() {
   return (
     <div className="space-y-5 pb-4">
       <PageHeader
-        breadcrumbs={[{ label: 'Question Bank', href: '/questions' }, { label: 'Generate with AI' }]}
-        title="AI question generator"
-        description={`Step ${step + 1} of ${total} — ${currentStep?.label ?? ''}`}
-        meta={<Pill tone="warning" size="sm">Nothing publishes without human review</Pill>}
+        breadcrumbs={[{ label: '題庫', href: '/questions' }, { label: '用 AI 生成' }]}
+        title="AI 出題工具"
+        description={`第 ${step + 1} / ${total} 步 — ${currentStep?.label ?? ''}`}
+        meta={<Pill tone="warning" size="sm">未經人工審核，一律不會發布</Pill>}
       />
 
       <GlassCard className="p-5">
         <StepProgress
           orientation="horizontal"
-          aria-label="Question generation steps"
+          aria-label="出題流程步驟"
           steps={QUESTION_GENERATION_STEPS.map((entry) => ({ id: entry.id, label: entry.label }))}
           current={step}
         />
@@ -79,10 +84,9 @@ export function QuestionGeneratorPage() {
       <GlassCard className="p-6">
         {step === 0 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Knowledge</h2>
+            <h2 className="text-section">知識庫</h2>
             <p className="text-body-sm text-text-secondary">
-              Questions are grounded in the chunks of one knowledge base, and each generated item keeps its
-              citations so a reviewer can verify the claim.
+              題目會以單一知識庫的段落為依據生成，而且每則題目都會保留引用來源，方便審核者查核內容。
             </p>
             <ul className="space-y-2">
               {MOCK_KNOWLEDGE_BASES.map((kb) => (
@@ -100,7 +104,7 @@ export function QuestionGeneratorPage() {
                       <div className="min-w-0">
                         <p className="truncate text-body-sm font-medium">{kb.name}</p>
                         <p className="text-tiny text-text-tertiary">
-                          {kb.document_count} documents · {kb.chunk_count.toLocaleString('en-US')} chunks
+                          {kb.document_count} 份文件 · {kb.chunk_count.toLocaleString('en-US')} 個段落
                         </p>
                       </div>
                       {kbId === kb.id ? (
@@ -116,10 +120,9 @@ export function QuestionGeneratorPage() {
 
         {step === 1 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Topics</h2>
+            <h2 className="text-section">主題</h2>
             <p className="text-body-sm text-text-secondary">
-              Pick the sections to cover. Leaving this empty lets the generator choose, which usually
-              over-samples the longest document.
+              挑選要涵蓋的章節。留空則由系統自行決定，通常會過度集中在最長的那份文件。
             </p>
             <div className="flex flex-wrap gap-2">
               {GENERATION_TOPIC_SUGGESTIONS.map((topic) => (
@@ -139,9 +142,9 @@ export function QuestionGeneratorPage() {
                 </button>
               ))}
             </div>
-            <Field label="Add a topic">
+            <Field label="新增主題">
               <Input
-                placeholder="e.g. 團保理賠上限"
+                placeholder="例如：團保理賠上限"
                 onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
                   if (event.key === 'Enter') {
                     event.preventDefault();
@@ -154,13 +157,13 @@ export function QuestionGeneratorPage() {
                 }}
               />
             </Field>
-            <p className="text-tiny text-text-tertiary">{topics.length} topic(s) selected</p>
+            <p className="text-tiny text-text-tertiary">已選擇 {topics.length} 個主題</p>
           </section>
         ) : null}
 
         {step === 2 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Question types</h2>
+            <h2 className="text-section">題型</h2>
             <ul className="grid gap-2 sm:grid-cols-2">
               {TYPE_CHOICES.map((type) => (
                 <li
@@ -171,34 +174,34 @@ export function QuestionGeneratorPage() {
                   <Switch
                     checked={types.includes(type)}
                     onCheckedChange={() => toggleType(type)}
-                    aria-label={`Generate ${QUESTION_TYPE_LABEL[type]} questions`}
+                    aria-label={`生成${QUESTION_TYPE_LABEL[type]}題目`}
                   />
                 </li>
               ))}
             </ul>
             <p className="text-tiny text-text-tertiary">
-              Voice and role-play items are authored by hand — they need a rubric a generator cannot infer.
+              語音與角色扮演題目一律人工撰寫 — 它們需要的評分規準無法由系統推斷。
             </p>
           </section>
         ) : null}
 
         {step === 3 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Difficulty & volume</h2>
+            <h2 className="text-section">難度與題數</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Difficulty">
+              <Field label="難度">
                 <Select
                   value={difficulty}
                   onValueChange={(value: string) => setDifficulty(value as Difficulty)}
                   options={[
-                    { value: 'easy', label: 'Easy' },
-                    { value: 'medium', label: 'Medium' },
-                    { value: 'hard', label: 'Hard' },
-                    { value: 'expert', label: 'Expert' },
+                    { value: 'easy', label: DIFFICULTY_LABEL.easy },
+                    { value: 'medium', label: DIFFICULTY_LABEL.medium },
+                    { value: 'hard', label: DIFFICULTY_LABEL.hard },
+                    { value: 'expert', label: DIFFICULTY_LABEL.expert },
                   ]}
                 />
               </Field>
-              <Field label="How many" hint="Larger batches take longer to review than to generate.">
+              <Field label="要生成幾題" hint="一次生成太多，審核花的時間會遠多於生成。">
                 <Input
                   type="number"
                   min={1}
@@ -213,28 +216,28 @@ export function QuestionGeneratorPage() {
 
         {step === 4 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Generate</h2>
+            <h2 className="text-section">生成</h2>
             <dl className="grid gap-4 sm:grid-cols-2">
               <div>
-                <dt className="meta-label">Knowledge base</dt>
+                <dt className="meta-label">知識庫</dt>
                 <dd className="text-body-sm">
                   {MOCK_KNOWLEDGE_BASES.find((kb) => kb.id === kbId)?.name ?? '—'}
                 </dd>
               </div>
               <div>
-                <dt className="meta-label">Topics</dt>
-                <dd className="text-body-sm">{topics.length > 0 ? topics.join('、') : 'Auto'}</dd>
+                <dt className="meta-label">主題</dt>
+                <dd className="text-body-sm">{topics.length > 0 ? topics.join('、') : '自動決定'}</dd>
               </div>
               <div>
-                <dt className="meta-label">Types</dt>
+                <dt className="meta-label">題型</dt>
                 <dd className="text-body-sm">
-                  {types.map((type) => QUESTION_TYPE_LABEL[type]).join(', ') || 'None selected'}
+                  {types.map((type) => QUESTION_TYPE_LABEL[type]).join('、') || '尚未選擇'}
                 </dd>
               </div>
               <div>
-                <dt className="meta-label">Difficulty / count</dt>
+                <dt className="meta-label">難度 / 題數</dt>
                 <dd className="text-body-sm">
-                  {difficulty} · {count}
+                  {DIFFICULTY_LABEL[difficulty]} · {count}
                 </dd>
               </div>
             </dl>
@@ -246,11 +249,11 @@ export function QuestionGeneratorPage() {
               onClick={() => setStep(5)}
             >
               <Sparkles size={16} strokeWidth={1.9} aria-hidden />
-              Generate {count} questions
+              生成 {count} 道題目
             </Button>
 
             <p className="text-tiny text-text-tertiary">
-              Generation runs on the server. No model credential is present in this browser.
+              生成作業在伺服器端執行，瀏覽器內不存放任何模型憑證。
             </p>
           </section>
         ) : null}
@@ -258,15 +261,14 @@ export function QuestionGeneratorPage() {
         {step === 5 ? (
           <section className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-section">Human review</h2>
+              <h2 className="text-section">人工審核</h2>
               <span className="gradient-pill inline-flex items-center gap-1.5 px-3 py-1 text-tiny font-medium">
                 <Sparkles size={12} strokeWidth={2} aria-hidden />
-                {count} questions successfully generated
+                已成功生成 {count} 道題目
               </span>
             </div>
             <p className="text-body-sm text-text-secondary">
-              {approvedCount} of {GENERATED.length} shown items approved. Rejected items are kept for model
-              evaluation but never assigned.
+              顯示的 {GENERATED.length} 則中已核准 {approvedCount} 則。退回的題目會保留供模型評估使用，但不會被指派。
             </p>
 
             <ul className="space-y-3">
@@ -283,14 +285,14 @@ export function QuestionGeneratorPage() {
                             <ContentStatusPill status={question.status} />
                             {decision ? (
                               <Pill tone={decision === 'approved' ? 'success' : 'danger'} size="sm">
-                                {decision === 'approved' ? 'Approved' : 'Rejected'}
+                                {decision === 'approved' ? '已核准' : '已退回'}
                               </Pill>
                             ) : null}
                           </div>
                           <p className="text-body">{question.prompt}</p>
                           {question.correct_answer ? (
                             <p className="mt-2 text-body-sm">
-                              <span className="meta-label mr-2">Answer</span>
+                              <span className="meta-label mr-2">答案</span>
                               <span className="text-text-secondary">{question.correct_answer}</span>
                             </p>
                           ) : null}
@@ -299,7 +301,7 @@ export function QuestionGeneratorPage() {
                           ) : null}
                           {question.citations && question.citations.length > 0 ? (
                             <div className="mt-3">
-                              <p className="meta-label mb-1.5">Grounded in</p>
+                              <p className="meta-label mb-1.5">依據來源</p>
                               <CitationList citations={question.citations} />
                             </div>
                           ) : null}
@@ -313,7 +315,7 @@ export function QuestionGeneratorPage() {
                               onClick={() => setDecisions((prev) => ({ ...prev, [question.id]: 'rejected' }))}
                             >
                               <X size={15} strokeWidth={2} aria-hidden />
-                              Reject
+                              退回
                             </Button>
                             <Button
                               variant="primary"
@@ -321,7 +323,7 @@ export function QuestionGeneratorPage() {
                               onClick={() => setDecisions((prev) => ({ ...prev, [question.id]: 'approved' }))}
                             >
                               <Check size={15} strokeWidth={2} aria-hidden />
-                              Approve
+                              核准
                             </Button>
                           </div>
                         ) : null}
@@ -336,17 +338,16 @@ export function QuestionGeneratorPage() {
 
         {step === 6 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Publish</h2>
+            <h2 className="text-section">發布</h2>
             <p className="text-body-sm text-text-secondary">
-              {approvedCount} approved item(s) will be published into the question bank at version 1 and become
-              assignable. Rejected and unreviewed items stay out of circulation.
+              已核准的 {approvedCount} 則題目會以第 1 版發布到題庫，並可開始指派。退回與尚未審核的題目不會進入題庫。
             </p>
             <div className="flex flex-wrap gap-2">
               <Button variant="primary" size="sm" disabled={!canPublish || approvedCount === 0}>
-                Publish {approvedCount} question(s)
+                發布 {approvedCount} 道題目
               </Button>
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/questions">Back to the bank</Link>
+                <Link href="/questions">回到題庫</Link>
               </Button>
             </div>
           </section>
@@ -355,10 +356,10 @@ export function QuestionGeneratorPage() {
         <div className="mt-8 flex items-center justify-between gap-3 border-t border-border-soft pt-5">
           <Button variant="ghost" size="sm" disabled={step === 0} onClick={() => setStep((prev) => Math.max(0, prev - 1))}>
             <ArrowLeft size={15} strokeWidth={1.8} aria-hidden />
-            Back
+            上一步
           </Button>
           <p className="text-tiny text-text-tertiary">
-            Step {step + 1} of {total}
+            第 {step + 1} / {total} 步
           </p>
           <Button
             variant="primary"
@@ -366,7 +367,7 @@ export function QuestionGeneratorPage() {
             disabled={step === total - 1}
             onClick={() => setStep((prev) => Math.min(total - 1, prev + 1))}
           >
-            Next
+            下一步
             <ArrowRight size={15} strokeWidth={1.8} aria-hidden />
           </Button>
         </div>

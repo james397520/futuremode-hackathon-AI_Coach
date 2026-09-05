@@ -32,14 +32,14 @@ export function PersonasListPage() {
   return (
     <div className="space-y-5 pb-4">
       <PageHeader
-        title="Personas"
-        description="Simulated customers with personality sliders, hidden goals and voice. Hidden state is only ever sent to coach and admin roles."
+        title="客戶角色"
+        description="具備個性參數、隱藏目標與語音的模擬客戶。隱藏設定只會傳送給教練與管理員角色。"
         actions={
           canEdit ? (
             <Button variant="primary" size="sm" asChild>
               <Link href="/personas/new">
                 <Plus size={15} strokeWidth={2} aria-hidden />
-                New persona
+                新增客戶角色
               </Link>
             </Button>
           ) : null
@@ -51,10 +51,10 @@ export function PersonasListPage() {
           value={filter}
           onValueChange={(value: string) => setFilter(value as Filter)}
           items={[
-            { value: 'all', label: 'All', count: MOCK_PERSONAS.length },
-            { value: 'published', label: 'Published' },
-            { value: 'review_required', label: 'In review' },
-            { value: 'draft', label: 'Draft' },
+            { value: 'all', label: '全部', count: MOCK_PERSONAS.length },
+            { value: 'published', label: '已發布' },
+            { value: 'review_required', label: '審核中' },
+            { value: 'draft', label: '草稿' },
           ]}
         />
         <div className="relative ml-auto w-full max-w-xs">
@@ -67,8 +67,8 @@ export function PersonasListPage() {
           <Input
             type="search"
             value={query}
-            placeholder="Filter personas…"
-            aria-label="Filter personas"
+            placeholder="篩選客戶角色…"
+            aria-label="篩選客戶角色"
             className="pl-9"
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)}
           />
@@ -77,8 +77,8 @@ export function PersonasListPage() {
 
       {personas.length === 0 ? (
         <EmptyState
-          title="No persona matches"
-          description="Personas are reusable across scenarios — try clearing the filter before creating a duplicate."
+          title="沒有符合的客戶角色"
+          description="客戶角色可以跨情境重複使用 — 建立新的之前，先試著清除篩選條件。"
         />
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
@@ -90,7 +90,7 @@ export function PersonasListPage() {
                   <Pill tone="neutral" size="sm">v{persona.version}</Pill>
                   <Pill tone="neutral" size="sm">{persona.locale}</Pill>
                   {persona.voice.provider !== 'none' ? (
-                    <Pill tone="info" size="sm">Voice</Pill>
+                    <Pill tone="info" size="sm">語音</Pill>
                   ) : null}
                 </div>
 
@@ -105,9 +105,9 @@ export function PersonasListPage() {
                 <div className="mt-4 space-y-2">
                   {(
                     [
-                      ['Price sensitivity', persona.traits.price_sensitivity],
-                      ['Resistance', persona.traits.resistance],
-                      ['Trust', persona.traits.trust],
+                      ['價格敏感度', persona.traits.price_sensitivity],
+                      ['抗拒程度', persona.traits.resistance],
+                      ['信任度', persona.traits.trust],
                     ] as const
                   ).map(([label, value]) => (
                     <div key={label}>
@@ -129,18 +129,18 @@ export function PersonasListPage() {
                 </div>
 
                 <p className="mt-3 text-tiny text-text-tertiary">
-                  Updated {formatRelative(persona.updated_at)}
+                  更新於 {formatRelative(persona.updated_at)}
                 </p>
 
                 <div className="mt-4 flex items-center gap-2 border-t border-border-soft pt-4">
                   <Button variant="secondary" size="sm" asChild>
-                    <Link href={`/personas/${persona.id}`}>{canEdit ? 'Open builder' : 'View'}</Link>
+                    <Link href={`/personas/${persona.id}`}>{canEdit ? '開啟編輯器' : '檢視'}</Link>
                   </Button>
                   {canEdit ? (
                     <Button variant="ghost" size="sm" asChild>
                       <Link href={`/personas/${persona.id}/test-lab`}>
                         <FlaskConical size={15} strokeWidth={1.8} aria-hidden />
-                        Test lab
+                        測試實驗室
                       </Link>
                     </Button>
                   ) : null}

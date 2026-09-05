@@ -34,7 +34,7 @@ export function StateTimeline({
   const unique = emotions.filter((emotion, index) => emotions[index - 1] !== emotion);
 
   return (
-    <section className={cn('space-y-4', className)} aria-label="Persona state timeline">
+    <section className={cn('space-y-4', className)} aria-label="客戶狀態時間軸">
       <div className="flex flex-wrap items-center gap-1.5 text-body-sm text-text-secondary">
         {unique.map((emotion, index) => (
           <span key={`${emotion}-${index}`} className="flex items-center gap-1.5">

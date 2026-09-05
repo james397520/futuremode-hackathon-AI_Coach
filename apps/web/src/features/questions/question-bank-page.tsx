@@ -44,11 +44,11 @@ export function QuestionBankPage() {
   return (
     <div className="space-y-5 pb-4">
       <PageHeader
-        title="Question Bank"
-        description="Knowledge checks, scenarios, voice prompts and compliance items. AI-generated questions cannot publish themselves."
+        title="題庫"
+        description="知識檢核、情境、語音提問與合規題目。AI 生成的題目無法自行發布。"
         meta={
           awaitingReview > 0 ? (
-            <Pill tone="warning" size="sm">{awaitingReview} awaiting review</Pill>
+            <Pill tone="warning" size="sm">{awaitingReview} 題待審核</Pill>
           ) : null
         }
         actions={
@@ -57,13 +57,13 @@ export function QuestionBankPage() {
               <Button variant="secondary" size="sm" asChild>
                 <Link href="/questions/generate">
                   <Sparkles size={15} strokeWidth={1.9} aria-hidden />
-                  Generate with AI
+                  用 AI 生成
                 </Link>
               </Button>
               <Button variant="primary" size="sm" asChild>
                 <Link href="/questions/new/edit">
                   <Plus size={15} strokeWidth={2} aria-hidden />
-                  Create question
+                  新增題目
                 </Link>
               </Button>
             </>
@@ -91,7 +91,7 @@ export function QuestionBankPage() {
             aria-pressed={reviewOnly}
             onClick={() => setReviewOnly((prev) => !prev)}
           >
-            Needs review
+            待審核
           </Button>
           <div className="relative w-full max-w-xs">
             <Search
@@ -103,8 +103,8 @@ export function QuestionBankPage() {
             <Input
               type="search"
               value={query}
-              placeholder="Filter questions…"
-              aria-label="Filter questions"
+              placeholder="篩選題目…"
+              aria-label="篩選題目"
               className="pl-9"
               onChange={(event: React.ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)}
             />
@@ -114,12 +114,12 @@ export function QuestionBankPage() {
 
       {questions.length === 0 ? (
         <EmptyState
-          title="No question matches"
-          description="Try another type, or generate a batch from a knowledge base."
+          title="沒有符合的題目"
+          description="換一種題型，或從知識庫生成一批題目。"
           action={
             canEdit ? (
               <Button variant="secondary" size="sm" asChild>
-                <Link href="/questions/generate">Generate with AI</Link>
+                <Link href="/questions/generate">用 AI 生成</Link>
               </Button>
             ) : null
           }
@@ -151,18 +151,18 @@ export function QuestionBankPage() {
                   <dl className="mt-3 space-y-1 text-body-sm">
                     {kb ? (
                       <div className="flex gap-2">
-                        <dt className="text-text-tertiary">Knowledge</dt>
+                        <dt className="text-text-tertiary">知識庫</dt>
                         <dd className="truncate">{kb.name}</dd>
                       </div>
                     ) : null}
                     {question.skill ? (
                       <div className="flex gap-2">
-                        <dt className="text-text-tertiary">Skill</dt>
+                        <dt className="text-text-tertiary">技能</dt>
                         <dd>{SKILL_LABEL[question.skill]}</dd>
                       </div>
                     ) : null}
                     <div className="flex gap-2">
-                      <dt className="text-text-tertiary">Version</dt>
+                      <dt className="text-text-tertiary">版本</dt>
                       <dd className="tabular-nums">v{question.version}</dd>
                     </div>
                   </dl>
@@ -170,26 +170,26 @@ export function QuestionBankPage() {
                   {/* §15 — an AI-generated item always shows its sources. */}
                   {question.citations && question.citations.length > 0 ? (
                     <div className="mt-3">
-                      <p className="meta-label mb-1.5">Generated from</p>
+                      <p className="meta-label mb-1.5">生成依據</p>
                       <CitationList citations={question.citations} showScores={false} />
                     </div>
                   ) : null}
 
                   <p className="mt-3 text-tiny text-text-tertiary">
                     {question.reviewed_at
-                      ? `Reviewed ${formatRelative(question.reviewed_at)}`
+                      ? `審核於 ${formatRelative(question.reviewed_at)}`
                       : needsReview
-                        ? 'Not reviewed — cannot be assigned yet'
-                        : `Updated ${formatRelative(question.updated_at)}`}
+                        ? '尚未審核 — 還不能指派'
+                        : `更新於 ${formatRelative(question.updated_at)}`}
                   </p>
 
                   <div className="mt-4 flex items-center gap-2 border-t border-border-soft pt-4">
                     <Button variant="secondary" size="sm" asChild>
-                      <Link href={`/questions/${question.id}/edit`}>{canEdit ? 'Edit' : 'View'}</Link>
+                      <Link href={`/questions/${question.id}/edit`}>{canEdit ? '編輯' : '檢視'}</Link>
                     </Button>
                     {needsReview && canEdit ? (
                       <Button variant="primary" size="sm" asChild>
-                        <Link href={`/questions/${question.id}/edit?review=1`}>Review</Link>
+                        <Link href={`/questions/${question.id}/edit?review=1`}>審核</Link>
                       </Button>
                     ) : null}
                   </div>

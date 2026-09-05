@@ -11,7 +11,8 @@ import { SAFETY_CONTROLS, SECURITY_SUMMARY } from '@/lib/fixtures/security';
 import { MOCK_SESSIONS } from '@/lib/fixtures/sessions';
 import { userById } from '@/lib/fixtures/identity';
 import { useCan } from '@/lib/auth-context';
-import { formatDate, formatRelative, titleize } from '@/lib/utils';
+import { COMPLIANCE_TYPE_LABEL, CONTROL_STATUS_LABEL, REVIEWER_STATUS_LABEL } from '@/lib/enum-labels';
+import { formatDate, formatRelative } from '@/lib/utils';
 
 /**
  * §41 Security & Audit — soft glass, deliberately *not* a black-and-red security
@@ -30,15 +31,15 @@ export function SecurityPage() {
   return (
     <div className="space-y-5 pb-4">
       <PageHeader
-        title="Security & Audit"
-        description="AI safety posture, compliance findings and the immutable activity log for this workspace."
+        title="資安與稽核"
+        description="本工作區的 AI 安全防護狀態、合規發現，以及無法竄改的活動紀錄。"
         meta={
           <>
             <Pill tone={SECURITY_SUMMARY.critical > 0 ? 'danger' : 'success'} size="sm">
-              {SECURITY_SUMMARY.critical} critical
+              {SECURITY_SUMMARY.critical} 項重大
             </Pill>
             <Pill tone="neutral" size="sm">
-              Last independent review {formatDate(SECURITY_SUMMARY.last_penetration_review)}
+              上次獨立審查 {formatDate(SECURITY_SUMMARY.last_penetration_review)}
             </Pill>
           </>
         }
@@ -47,7 +48,7 @@ export function SecurityPage() {
             <Button variant="secondary" size="sm" asChild>
               <Link href="/security/audit-log">
                 <ScrollText size={15} strokeWidth={1.8} aria-hidden />
-                Audit log
+                稽核紀錄
               </Link>
             </Button>
           ) : null
@@ -55,20 +56,19 @@ export function SecurityPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile surface="card" label="Safe sessions" value={SECURITY_SUMMARY.safe_sessions.toLocaleString('en-US')} hint="no finding above low" />
-        <StatTile surface="card" label="Warnings" value={String(SECURITY_SUMMARY.warnings)} hint="last 30 days" />
-        <StatTile surface="card" label="Critical" value={String(SECURITY_SUMMARY.critical)} hint="fails the session outright" />
-        <StatTile surface="card" label="Open findings" value={String(SECURITY_SUMMARY.open_findings)} hint={`${SECURITY_SUMMARY.sessions_reviewed} sessions reviewed`} />
+        <StatTile surface="card" label="安全的練習" value={SECURITY_SUMMARY.safe_sessions.toLocaleString('en-US')} hint="沒有低風險以上的發現" />
+        <StatTile surface="card" label="警告" value={String(SECURITY_SUMMARY.warnings)} hint="近 30 天" />
+        <StatTile surface="card" label="重大" value={String(SECURITY_SUMMARY.critical)} hint="該次練習直接判定未通過" />
+        <StatTile surface="card" label="待處理發現" value={String(SECURITY_SUMMARY.open_findings)} hint={`已審查 ${SECURITY_SUMMARY.sessions_reviewed} 場練習`} />
       </div>
 
       <GlassCard className="p-5">
         <div className="flex items-center gap-2">
           <ShieldCheck size={16} strokeWidth={1.8} aria-hidden className="text-accent-mint" />
-          <h2 className="text-card-title">Safety controls</h2>
+          <h2 className="text-card-title">安全防護機制</h2>
         </div>
         <p className="mt-1 text-body-sm text-text-secondary">
-          Enforced server-side on every turn. WebGPU acceleration never changes what is enforced — the
-          server stays authoritative.
+          每一個回合都在伺服器端強制執行。WebGPU 加速不會改變所強制執行的內容——伺服器始終是最終依據。
         </p>
 
         <ul className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -106,7 +106,7 @@ export function SecurityPage() {
                       }
                       size="sm"
                     >
-                      {titleize(control.status)}
+                      {CONTROL_STATUS_LABEL[control.status] ?? control.status}
                     </Pill>
                   </div>
                   <p className="mt-0.5 text-body-sm text-text-secondary">{control.description}</p>
@@ -120,18 +120,18 @@ export function SecurityPage() {
 
       <GlassCard className="p-5">
         <div className="mb-4 flex flex-wrap items-center gap-3">
-          <h2 className="text-card-title">Findings</h2>
+          <h2 className="text-card-title">合規發現</h2>
           <div className="ml-auto w-44">
             <Select
               value={status}
               onValueChange={setStatus}
-              ariaLabel="Reviewer status"
+              ariaLabel="審查狀態"
               options={[
-                { value: 'all', label: 'All statuses' },
-                { value: 'open', label: 'Open' },
-                { value: 'acknowledged', label: 'Acknowledged' },
-                { value: 'resolved', label: 'Resolved' },
-                { value: 'dismissed', label: 'Dismissed' },
+                { value: 'all', label: '所有狀態' },
+                { value: 'open', label: '待處理' },
+                { value: 'acknowledged', label: '已確認' },
+                { value: 'resolved', label: '已處理' },
+                { value: 'dismissed', label: '已排除' },
               ]}
             />
           </div>
@@ -144,7 +144,7 @@ export function SecurityPage() {
             return (
               <li key={finding.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3.5">
                 <div className="min-w-0 flex-1">
-                  <p className="text-body-sm font-medium">{titleize(finding.type)}</p>
+                  <p className="text-body-sm font-medium">{COMPLIANCE_TYPE_LABEL[finding.type] ?? finding.type}</p>
                   <p className="mt-0.5 truncate text-body-sm text-text-secondary" title={finding.evidence}>
                     {finding.evidence}
                   </p>
@@ -166,14 +166,14 @@ export function SecurityPage() {
                   }
                   size="sm"
                 >
-                  {titleize(finding.reviewer_status)}
+                  {REVIEWER_STATUS_LABEL[finding.reviewer_status] ?? finding.reviewer_status}
                 </Pill>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/simulations/${finding.session_id}/review`}>Session</Link>
+                    <Link href={`/simulations/${finding.session_id}/review`}>查看練習</Link>
                   </Button>
                   {canReview && finding.reviewer_status !== 'resolved' ? (
-                    <Button variant="secondary" size="sm">Close finding</Button>
+                    <Button variant="secondary" size="sm">結案</Button>
                   ) : null}
                 </div>
               </li>
@@ -183,21 +183,20 @@ export function SecurityPage() {
 
         {findings.length === 0 ? (
           <p className="py-8 text-center text-body-sm text-text-tertiary">
-            No finding with that status.
+            沒有符合這個狀態的發現。
           </p>
         ) : null}
       </GlassCard>
 
       <GlassCard className="flex flex-wrap items-center justify-between gap-4 p-5">
         <div>
-          <h2 className="text-card-title">Independent security review</h2>
+          <h2 className="text-card-title">獨立資安審查</h2>
           <p className="text-body-sm text-text-secondary">
-            The platform is positioned for third-party audit of the AI supply chain: prompt handling,
-            tenant isolation, retrieval scoping and data retention. Last review{' '}
-            {formatDate(SECURITY_SUMMARY.last_penetration_review)}.
+            本平台已為 AI 供應鏈的第三方稽核做好準備：提示詞處理、租戶隔離、檢索範圍控管與資料保留期限。上次審查{' '}
+            {formatDate(SECURITY_SUMMARY.last_penetration_review)}。
           </p>
         </div>
-        <Pill tone="success" size="sm">Isolation assertions in CI</Pill>
+        <Pill tone="success" size="sm">CI 中持續驗證隔離</Pill>
       </GlassCard>
     </div>
   );

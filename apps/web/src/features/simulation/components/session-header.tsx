@@ -119,11 +119,11 @@ export function SessionHeader({
             icon={mode === 'assessment' ? <ShieldIcon size={11} /> : undefined}
             title={
               mode === 'assessment'
-                ? 'Assessment — coaching affordances are disabled to keep the score valid'
-                : 'Training — hints and coaching are available'
+                ? '評測模式 — 為了維持評分效力，教練輔助功能已停用'
+                : '訓練模式 — 可以使用提示與教練輔助'
             }
           >
-            {mode === 'assessment' ? 'Assessment' : 'Training'}
+            {mode === 'assessment' ? '評測' : '訓練'}
           </TonePill>
         </div>
         <p className="mt-1 truncate text-meta text-text-secondary">

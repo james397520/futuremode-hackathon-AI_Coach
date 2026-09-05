@@ -30,7 +30,7 @@ export function RuntimeBadge({
         <span
           className={cn('rail-item justify-center', className)}
           role="status"
-          aria-label={`AI runtime: ${label}`}
+          aria-label={`AI 執行環境：${label}`}
           data-state={state}
         >
           <Icon size={18} strokeWidth={1.6} aria-hidden />
@@ -40,7 +40,7 @@ export function RuntimeBadge({
   }
 
   return (
-    <Pill tone={tone} size="sm" className={cn('gap-1.5', className)} role="status" aria-label={`AI runtime: ${label}`}>
+    <Pill tone={tone} size="sm" className={cn('gap-1.5', className)} role="status" aria-label={`AI 執行環境：${label}`}>
       <Icon size={13} strokeWidth={1.8} aria-hidden />
       {label}
     </Pill>

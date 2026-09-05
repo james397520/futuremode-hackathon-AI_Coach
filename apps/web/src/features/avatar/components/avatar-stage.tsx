@@ -242,13 +242,13 @@ export function AvatarStage({
 
   const canvasLabel = useMemo(() => {
     const activity = speaking
-      ? 'speaking'
+      ? '說話中'
       : thinking
-        ? 'thinking'
+        ? '思考中'
         : listening
-          ? 'listening'
-          : 'waiting';
-    return `${personaName}, simulated customer. Currently ${activity}. Expression: ${EXPRESSION_LABEL[expression.name]}.`;
+          ? '聆聽中'
+          : '等待中';
+    return `${personaName}，模擬客戶。目前${activity}。表情：${EXPRESSION_LABEL[expression.name]}。`;
   }, [personaName, speaking, thinking, listening, expression.name]);
 
   const body = (

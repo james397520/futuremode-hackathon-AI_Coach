@@ -18,14 +18,14 @@ export function ScenariosListPage() {
   return (
     <div className="space-y-5 pb-4">
       <PageHeader
-        title="Scenarios"
-        description="A scenario binds a persona, knowledge bases, a rubric and a compliance policy into one reproducible exercise."
+        title="情境"
+        description="一個情境會把客戶角色、知識庫、評分規準與合規政策綁成一份可重現的練習。"
         actions={
           canEdit ? (
             <Button variant="primary" size="sm" asChild>
               <Link href="/scenarios/new/builder">
                 <Plus size={15} strokeWidth={2} aria-hidden />
-                New scenario
+                新增情境
               </Link>
             </Button>
           ) : null
@@ -53,19 +53,19 @@ export function ScenariosListPage() {
 
                     <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1.5 text-body-sm">
                       <div className="flex gap-2">
-                        <dt className="text-text-tertiary">Persona</dt>
+                        <dt className="text-text-tertiary">客戶角色</dt>
                         <dd>{persona?.name ?? scenario.persona_id}</dd>
                       </div>
                       <div className="flex gap-2">
-                        <dt className="text-text-tertiary">Knowledge</dt>
-                        <dd>{scenario.knowledge_base_ids.length} base(s)</dd>
+                        <dt className="text-text-tertiary">知識庫</dt>
+                        <dd>{scenario.knowledge_base_ids.length} 個</dd>
                       </div>
                       <div className="flex gap-2">
-                        <dt className="text-text-tertiary">Rubric</dt>
-                        <dd>{scenario.rubric_id ?? 'Not set'}</dd>
+                        <dt className="text-text-tertiary">評分規準</dt>
+                        <dd>{scenario.rubric_id ?? '尚未設定'}</dd>
                       </div>
                       <div className="flex gap-2">
-                        <dt className="text-text-tertiary">Updated</dt>
+                        <dt className="text-text-tertiary">更新於</dt>
                         <dd>{formatRelative(scenario.updated_at)}</dd>
                       </div>
                     </dl>
@@ -74,20 +74,20 @@ export function ScenariosListPage() {
                   <div className="flex shrink-0 flex-col items-end gap-2">
                     {mastery ? (
                       <p className="text-right text-tiny text-text-tertiary">
-                        {mastery.attempts} attempts
+                        {mastery.attempts} 次練習
                         <br />
-                        {Math.round(mastery.pass_rate * 100)}% pass · avg {mastery.average_score}
+                        通過率 {Math.round(mastery.pass_rate * 100)}% · 平均 {mastery.average_score} 分
                       </p>
                     ) : (
-                      <p className="text-tiny text-text-tertiary">No attempts yet</p>
+                      <p className="text-tiny text-text-tertiary">尚無練習紀錄</p>
                     )}
                     <div className="flex gap-2">
                       <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/simulations/${scenario.id}/setup`}>Preview</Link>
+                        <Link href={`/simulations/${scenario.id}/setup`}>預覽</Link>
                       </Button>
                       {canEdit ? (
                         <Button variant="secondary" size="sm" asChild>
-                          <Link href={`/scenarios/${scenario.id}/builder`}>Open builder</Link>
+                          <Link href={`/scenarios/${scenario.id}/builder`}>開啟編輯器</Link>
                         </Button>
                       ) : null}
                     </div>

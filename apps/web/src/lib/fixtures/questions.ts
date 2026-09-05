@@ -3,27 +3,27 @@ import { SCOPE, daysAgo, minutesAgo } from './constants';
 import { MOCK_CITATIONS } from './knowledge';
 
 export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
-  multiple_choice: 'MCQ',
-  true_false: 'True / False',
-  short_answer: 'Short answer',
-  open_ended: 'Open-ended',
-  scenario: 'Scenario',
-  voice_response: 'Voice',
-  role_play: 'Role-play',
-  compliance: 'Compliance',
-  objection_handling: 'Objection handling',
-  knowledge_check: 'Knowledge check',
+  multiple_choice: '單選題',
+  true_false: '是非題',
+  short_answer: '簡答題',
+  open_ended: '申論題',
+  scenario: '情境題',
+  voice_response: '口說題',
+  role_play: '角色演練',
+  compliance: '合規題',
+  objection_handling: '異議處理',
+  knowledge_check: '知識檢核',
 };
 
 /** §32 tab set. */
 export const QUESTION_TABS: Array<{ value: 'all' | QuestionType; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'multiple_choice', label: 'MCQ' },
-  { value: 'open_ended', label: 'Open-ended' },
-  { value: 'scenario', label: 'Scenario' },
-  { value: 'voice_response', label: 'Voice' },
-  { value: 'role_play', label: 'Role-play' },
-  { value: 'compliance', label: 'Compliance' },
+  { value: 'all', label: '全部' },
+  { value: 'multiple_choice', label: '單選題' },
+  { value: 'open_ended', label: '申論題' },
+  { value: 'scenario', label: '情境題' },
+  { value: 'voice_response', label: '口說題' },
+  { value: 'role_play', label: '角色演練' },
+  { value: 'compliance', label: '合規題' },
 ];
 
 export const MOCK_QUESTIONS: Question[] = [
@@ -35,7 +35,7 @@ export const MOCK_QUESTIONS: Question[] = [
     prompt:
       '客戶認為保費太高時，你應該先採取哪一種回應策略？請說明你會先問什麼，以及為什麼不直接降低保額。',
     knowledge_base_id: 'kb_product_sop',
-    category: 'Objection handling',
+    category: '異議處理',
     skill: 'objection_handling',
     difficulty: 'hard',
     rubric:
@@ -60,7 +60,7 @@ export const MOCK_QUESTIONS: Question[] = [
     type: 'multiple_choice',
     prompt: '本契約重大疾病保險金的等待期為契約生效日起算多久？',
     knowledge_base_id: 'kb_product_sop',
-    category: 'Product knowledge',
+    category: '產品知識',
     skill: 'product_knowledge',
     difficulty: 'easy',
     correct_answer: '90 日',
@@ -84,7 +84,7 @@ export const MOCK_QUESTIONS: Question[] = [
     prompt:
       '下列哪一句話違反 2026 年招攬規範？請指出違規字詞並改寫成合規版本。',
     knowledge_base_id: 'kb_compliance',
-    category: 'Compliance',
+    category: '合規',
     skill: 'compliance',
     difficulty: 'medium',
     correct_answer: '「這個絕對不會拒賠」— 違規字詞為「絕對」。',
@@ -108,7 +108,7 @@ export const MOCK_QUESTIONS: Question[] = [
     prompt:
       '請用 60 秒，向一位已有公司團保的 38 歲工程師說明個人保單的必要性。不得使用專業術語超過兩個。',
     knowledge_base_id: 'kb_product_sop',
-    category: 'Communication',
+    category: '表達溝通',
     skill: 'communication_clarity',
     difficulty: 'medium',
     rubric: '需涵蓋「離職即終止」與「保額基準不同」兩點，且語速與用詞適合非專業聽眾。',
@@ -130,7 +130,7 @@ export const MOCK_QUESTIONS: Question[] = [
     type: 'role_play',
     prompt: '客戶在開場就提到親屬剛因病離世。請演練接下來的三句話。',
     knowledge_base_id: 'kb_compliance',
-    category: 'Empathy',
+    category: '同理心',
     skill: 'empathy',
     difficulty: 'hard',
     rubric: '前兩句不得出現任何商品資訊；必須先承接情緒並取得繼續談話的同意。',
@@ -151,7 +151,7 @@ export const MOCK_QUESTIONS: Question[] = [
     prompt:
       '客戶房貸餘額 620 萬、家庭年支出 96 萬、現有團保保額 180 萬。若以「房貸 + 三年家庭支出」為基準，缺口為多少？',
     knowledge_base_id: 'kb_product_sop',
-    category: 'Needs discovery',
+    category: '需求探索',
     skill: 'needs_discovery',
     difficulty: 'medium',
     correct_answer: '620 + 288 − 180 = 728 萬',
@@ -175,10 +175,10 @@ export const MOCK_QUESTIONS: Question[] = [
     type: 'true_false',
     prompt: '被保險人離職後，團體保險的保障仍會持續至該年度結束。',
     knowledge_base_id: 'kb_product_sop',
-    category: 'Product knowledge',
+    category: '產品知識',
     skill: 'product_knowledge',
     difficulty: 'easy',
-    correct_answer: 'False',
+    correct_answer: '否',
     required_keywords: [],
     forbidden_claims: [],
     compliance_rules: [],
@@ -198,7 +198,7 @@ export const MOCK_QUESTIONS: Question[] = [
     type: 'multiple_choice',
     prompt: '38 歲非吸菸男性、保額 300 萬之重大疾病主約，年繳保費區間最接近下列哪一項？',
     knowledge_base_id: 'kb_product_sop',
-    category: 'Product knowledge',
+    category: '產品知識',
     skill: 'product_knowledge',
     difficulty: 'medium',
     correct_answer: '38,400 – 42,900 元',
@@ -221,7 +221,7 @@ export const MOCK_QUESTIONS: Question[] = [
     type: 'open_ended',
     prompt: '若被保險人於等待期第 60 日確診重大疾病，理賠如何處理？請說明你會如何向客戶解釋。',
     knowledge_base_id: 'kb_product_sop',
-    category: 'Product knowledge',
+    category: '產品知識',
     skill: 'professional_knowledge',
     difficulty: 'hard',
     rubric: '需說明等待期內確診不予給付，並以客戶能理解的方式解釋設計目的。',
@@ -243,7 +243,7 @@ export const MOCK_QUESTIONS: Question[] = [
     type: 'multiple_choice',
     prompt: '2024 年 38 歲男性重疾主約保費區間為？',
     knowledge_base_id: 'kb_product_sop',
-    category: 'Product knowledge',
+    category: '產品知識',
     difficulty: 'easy',
     correct_answer: '36,200 – 40,100 元',
     required_keywords: [],
@@ -259,13 +259,13 @@ export const MOCK_QUESTIONS: Question[] = [
 
 /** §33 AI question generation flow. */
 export const QUESTION_GENERATION_STEPS = [
-  { id: 'knowledge', label: 'Knowledge' },
-  { id: 'topics', label: 'Topics' },
-  { id: 'type', label: 'Question type' },
-  { id: 'difficulty', label: 'Difficulty' },
-  { id: 'generate', label: 'Generate' },
-  { id: 'review', label: 'Human review' },
-  { id: 'publish', label: 'Publish' },
+  { id: 'knowledge', label: '選擇知識庫' },
+  { id: 'topics', label: '設定主題' },
+  { id: 'type', label: '題型' },
+  { id: 'difficulty', label: '難度' },
+  { id: 'generate', label: '生成' },
+  { id: 'review', label: '人工審核' },
+  { id: 'publish', label: '發布' },
 ] as const;
 
 export const GENERATION_TOPIC_SUGGESTIONS = [

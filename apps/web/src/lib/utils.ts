@@ -15,12 +15,12 @@ export function formatClock(ms: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-/** Human duration, e.g. `1h 24m`. */
+/** Human duration, e.g. `1 小時 24 分`. */
 export function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.round((seconds % 3600) / 60);
-  if (h === 0) return `${m}m`;
-  return `${h}h ${m}m`;
+  if (h === 0) return `${m} 分鐘`;
+  return `${h} 小時 ${m} 分`;
 }
 
 export function formatBytes(bytes: number): string {
@@ -39,19 +39,19 @@ export function formatCount(n: number): string {
   return n.toLocaleString('en-US');
 }
 
-/** `12 min ago` — relative time without pulling in a date library. */
+/** `12 分鐘前` — relative time without pulling in a date library. */
 export function formatRelative(iso: string, now: Date = new Date()): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return '—';
   const diff = Math.max(0, now.getTime() - then);
   const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes} min ago`;
+  if (minutes < 1) return '剛剛';
+  if (minutes < 60) return `${minutes} 分鐘前`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${hours} 小時前`;
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(then).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (days < 30) return `${days} 天前`;
+  return new Date(then).toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' });
 }
 
 export function formatDate(iso?: string): string {

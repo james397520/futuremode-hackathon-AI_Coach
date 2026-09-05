@@ -259,7 +259,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
     onRuntimeFallback: (to, reason) => {
       pushNotice(
         `runtime-${to}`,
-        `Voice pipeline moved to ${to === 'wasm' ? 'WASM' : 'server'} mode — ${reason}. The call continues.`,
+        `語音流程已切換為${to === 'wasm' ? ' WASM ' : '伺服器'}模式——${reason}。通話照常進行。`,
       );
     },
     onCompleted: () => {
@@ -409,9 +409,9 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
       <>
         <SimulationStyles />
         <GlassCard className="sim-card-enter m-auto max-w-lg p-6 text-center">
-          <h2 className="text-section text-text-primary">This voice session could not be loaded</h2>
+          <h2 className="text-section text-text-primary">無法載入這場語音練習</h2>
           <p className="mt-2 text-body text-text-secondary">
-            {bootstrapError ?? 'The session may have ended or you may not have access to it.'}
+            {bootstrapError ?? '這場練習可能已經結束，或者你沒有存取權限。'}
           </p>
           <button
             type="button"
@@ -423,7 +423,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
             }}
           >
             <RestartIcon size={16} />
-            Try again
+            重新載入
           </button>
         </GlassCard>
       </>
@@ -473,7 +473,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
             <button
               type="button"
               onClick={actions.dismissError}
-              aria-label="Dismiss"
+              aria-label="關閉提示"
               className="sim-focusable shrink-0 text-text-tertiary hover:text-text-secondary"
             >
               <CloseIcon size={15} />

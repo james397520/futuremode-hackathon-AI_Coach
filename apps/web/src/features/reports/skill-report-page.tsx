@@ -25,19 +25,19 @@ export function SkillReportPage() {
   return (
     <div className="space-y-5 pb-4">
       <PageHeader
-        breadcrumbs={[{ label: 'Reports' }, { label: 'Skill' }]}
-        title="Skill report"
-        description="Where the whole workspace is strong and weak across the ten evaluation dimensions."
+        breadcrumbs={[{ label: '報表' }, { label: '技能' }]}
+        title="技能報表"
+        description="整個工作區在十項評分維度上的強項與弱項。"
         meta={
           <Pill tone="neutral" size="sm">
-            Rubric {RUBRIC_LIFE_CORE.name} v{RUBRIC_LIFE_CORE.version}
+            評分規準 {RUBRIC_LIFE_CORE.name} v{RUBRIC_LIFE_CORE.version}
           </Pill>
         }
         actions={
           canExport ? (
             <Button variant="secondary" size="sm">
               <Download size={15} strokeWidth={1.8} aria-hidden />
-              Export
+              匯出
             </Button>
           ) : null
         }
@@ -46,22 +46,22 @@ export function SkillReportPage() {
       <ReportTabs current="skill" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile surface="card" label="Weakest dimension" value={SKILL_LABEL[weakest]} hint={`${workspaceAverage(weakest)} / 100 workspace average`} />
-        <StatTile surface="card" label="Strongest dimension" value={SKILL_LABEL[strongest]} hint={`${workspaceAverage(strongest)} / 100`} />
-        <StatTile surface="card" label="Below threshold" value={String(ranked.filter((skill) => workspaceAverage(skill) < RUBRIC_LIFE_CORE.pass_threshold).length)} hint={`of ${SKILL_KEYS.length} dimensions`} />
-        <StatTile surface="card" label="Knowledge gaps" value={String(KNOWLEDGE_GAPS.length)} hint="topics driving the misses" />
+        <StatTile surface="card" label="最弱維度" value={SKILL_LABEL[weakest]} hint={`工作區平均 ${workspaceAverage(weakest)} / 100`} />
+        <StatTile surface="card" label="最強維度" value={SKILL_LABEL[strongest]} hint={`${workspaceAverage(strongest)} / 100`} />
+        <StatTile surface="card" label="未達門檻" value={String(ranked.filter((skill) => workspaceAverage(skill) < RUBRIC_LIFE_CORE.pass_threshold).length)} hint={`共 ${SKILL_KEYS.length} 項維度`} />
+        <StatTile surface="card" label="知識落差" value={String(KNOWLEDGE_GAPS.length)} hint="造成答錯的主題" />
       </div>
 
       <GlassCard className="p-5">
-        <h2 className="text-card-title">Workspace average by dimension</h2>
+        <h2 className="text-card-title">各維度的工作區平均</h2>
         <p className="mt-1 text-body-sm text-text-secondary">
-          Ordered weakest first. The tick marks the rubric pass threshold of {RUBRIC_LIFE_CORE.pass_threshold}.
+          由最弱排到最強。刻度標示的是評分規準的及格門檻 {RUBRIC_LIFE_CORE.pass_threshold} 分。
         </p>
         <div className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2">
           {ranked.map((skill) => (
             <ScoreBar
               key={skill}
-              label={`${SKILL_LABEL[skill]} · weight ${RUBRIC_LIFE_CORE.weights[skill]}%`}
+              label={`${SKILL_LABEL[skill]} · 權重 ${RUBRIC_LIFE_CORE.weights[skill]}%`}
               score={workspaceAverage(skill)}
               threshold={RUBRIC_LIFE_CORE.pass_threshold}
             />
@@ -70,7 +70,7 @@ export function SkillReportPage() {
       </GlassCard>
 
       <GlassCard className="p-5">
-        <h2 className="text-card-title">By team</h2>
+        <h2 className="text-card-title">依團隊分佈</h2>
         <SkillHeatmap
           className="mt-4"
           columns={[...SKILL_KEYS]}
@@ -84,9 +84,9 @@ export function SkillReportPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <GlassCard className="p-5">
-          <h2 className="text-card-title">Learners most affected by the weakest dimension</h2>
+          <h2 className="text-card-title">受最弱維度影響最深的學員</h2>
           <p className="mt-1 text-body-sm text-text-secondary">
-            Whose {SKILL_LABEL[weakest]} score is holding their overall score back.
+            這些學員的總分被{SKILL_LABEL[weakest]}分數拖住。
           </p>
           <ul className="mt-3 divide-y divide-border-soft/70">
             {TEAM_LEADERBOARD.filter((row) => row.weakest_skill === weakest || row.overall_score < 80).map((row) => (
@@ -104,24 +104,23 @@ export function SkillReportPage() {
         </GlassCard>
 
         <GlassCard className="p-5">
-          <h2 className="text-card-title">Dimension trend</h2>
-          <p className="text-tiny text-text-tertiary">{SKILL_LABEL[weakest]} across the last six months</p>
+          <h2 className="text-card-title">維度趨勢</h2>
+          <p className="text-tiny text-text-tertiary">近六個月的{SKILL_LABEL[weakest]}表現</p>
           <TrendLine
             className="mt-3"
             points={SCORE_TREND.map((point, index) => ({
               label: point.label,
               value: 52 + index * 3,
             }))}
-            ariaLabel={`${SKILL_LABEL[weakest]} workspace average by month`}
+            ariaLabel={`${SKILL_LABEL[weakest]}的每月工作區平均`}
             min={40}
             max={90}
           />
           <p className="mt-3 text-body-sm text-text-secondary">
-            Improving, but still the lowest dimension. The compliance assessment assignment is the intended
-            intervention.
+            雖然持續進步，但仍是分數最低的維度。合規評測指派就是針對這一點設計的補強措施。
           </p>
           <Button variant="ghost" size="sm" className="mt-3" asChild>
-            <Link href="/training">Open training assignments</Link>
+            <Link href="/training">開啟訓練指派</Link>
           </Button>
         </GlassCard>
       </div>

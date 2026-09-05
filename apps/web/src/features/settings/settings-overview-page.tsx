@@ -14,12 +14,12 @@ export function SettingsOverviewPage() {
 
   return (
     <SettingsShell
-      breadcrumbs={[{ label: 'Settings' }]}
-      title="Settings"
-      description="Workspace configuration and your personal preferences."
+      breadcrumbs={[{ label: '設定' }]}
+      title="設定"
+      description="工作區設定與你的個人偏好。"
       meta={
         <>
-          <Pill tone="neutral" size="sm">{workspace?.name ?? 'No workspace'}</Pill>
+          <Pill tone="neutral" size="sm">{workspace?.name ?? '尚未指定工作區'}</Pill>
           {user?.roles.map((role) => (
             <Pill key={role} tone="neutral" size="sm">
               {ROLE_LABEL[role]}
@@ -49,7 +49,7 @@ export function SettingsOverviewPage() {
                   <p className="mt-1 text-body-sm text-text-secondary">{section.description}</p>
                   {section.adminOnly ? (
                     <Pill tone="neutral" size="sm" className="mt-2">
-                      Admin only
+                      僅限管理者
                     </Pill>
                   ) : null}
                 </div>
@@ -60,11 +60,11 @@ export function SettingsOverviewPage() {
       </ul>
 
       <GlassCard className="p-5">
-        <h2 className="text-card-title">Keyboard shortcuts</h2>
+        <h2 className="text-card-title">鍵盤快速鍵</h2>
         <p className="mt-1 text-body-sm text-text-secondary">
-          Press <kbd className="rounded-button border border-border-soft px-1.5 py-0.5 text-tiny">⌘/</kbd> anywhere to
-          see the full list, or <kbd className="rounded-button border border-border-soft px-1.5 py-0.5 text-tiny">⌘K</kbd>{' '}
-          for the command palette.
+          在任何頁面按 <kbd className="rounded-button border border-border-soft px-1.5 py-0.5 text-tiny">⌘/</kbd>{' '}
+          即可看到完整清單，或按 <kbd className="rounded-button border border-border-soft px-1.5 py-0.5 text-tiny">⌘K</kbd>{' '}
+          開啟指令面板。
         </p>
       </GlassCard>
     </SettingsShell>

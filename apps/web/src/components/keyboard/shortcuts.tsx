@@ -6,13 +6,13 @@ import { useShellStore } from '@/components/app-shell/shell-store';
 
 /** §78 Keyboard Shortcuts. */
 export const SHORTCUTS: Array<{ keys: string; action: string; scope: string }> = [
-  { keys: 'Space', action: 'Push to talk', scope: 'Voice simulation' },
-  { keys: '⌘K / Ctrl+K', action: 'Command palette', scope: 'Everywhere' },
-  { keys: '⌘/ / Ctrl+/', action: 'Keyboard help', scope: 'Everywhere' },
-  { keys: 'Esc', action: 'Close panel or dialog', scope: 'Everywhere' },
-  { keys: 'R', action: 'Replay current voice turn', scope: 'Voice simulation' },
-  { keys: 'H', action: 'Request a coach hint', scope: 'Training mode only' },
-  { keys: 'N', action: 'Open notifications', scope: 'Everywhere' },
+  { keys: 'Space', action: '按住說話', scope: '語音練習' },
+  { keys: '⌘K / Ctrl+K', action: '指令面板', scope: '全站通用' },
+  { keys: '⌘/ / Ctrl+/', action: '快速鍵說明', scope: '全站通用' },
+  { keys: 'Esc', action: '關閉面板或對話框', scope: '全站通用' },
+  { keys: 'R', action: '重播目前這句語音', scope: '語音練習' },
+  { keys: 'H', action: '請教練給提示', scope: '僅限訓練模式' },
+  { keys: 'N', action: '開啟通知', scope: '全站通用' },
 ];
 
 /**
@@ -78,8 +78,8 @@ export function ShortcutsDialog() {
     <Modal
       open={open}
       onOpenChange={setOpen}
-      title="Keyboard shortcuts"
-      description="Shortcuts are suppressed while you are typing in a field."
+      title="鍵盤快速鍵"
+      description="在輸入欄位打字時，快速鍵會自動停用。"
       size="sm"
     >
       <ul className="divide-y divide-border-soft/70">

@@ -229,7 +229,7 @@ class KnowledgeAgent(Agent[KnowledgeRequest, KnowledgeVerdict]):
         if scope_hits:
             return self._redirect(request, note=f"restricted topic: {', '.join(scope_hits)}")
         if not usable:
-            return self._insufficient(request, note="no chunk above similarity threshold")
+            return self._insufficient(request, note="沒有切片超過相似度門檻")
 
         verdict = await self._invoke_structured(
             self._messages(request.model_copy(update={"evidence": usable}))

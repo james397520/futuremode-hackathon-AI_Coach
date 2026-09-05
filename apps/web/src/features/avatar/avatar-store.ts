@@ -33,14 +33,14 @@ import { EXPRESSION_PRESETS } from './lib/expression';
 
 /** §52 — the eight gates, in the order the spec lists them. */
 const INITIAL_CHECKS: PreflightCheck[] = [
-  { id: 'backend', label: 'Avatar backend', state: 'pending', required: false },
-  { id: 'model', label: 'Face model loaded', state: 'pending', required: false },
-  { id: 'avatar_cache', label: 'Avatar cache', state: 'pending', required: false },
-  { id: 'expression_bank', label: 'Expression bank', state: 'pending', required: false },
-  { id: 'musetalk_warmup', label: 'Lip-sync warm-up', state: 'pending', required: false },
-  { id: 'tts', label: 'Voice (TTS)', state: 'pending', required: true },
-  { id: 'webrtc', label: 'Video transport', state: 'pending', required: false },
-  { id: 'audio_device', label: 'Audio device', state: 'pending', required: true },
+  { id: 'backend', label: '虛擬人後端', state: 'pending', required: false },
+  { id: 'model', label: '臉部模型載入', state: 'pending', required: false },
+  { id: 'avatar_cache', label: '虛擬人快取', state: 'pending', required: false },
+  { id: 'expression_bank', label: '表情資料庫', state: 'pending', required: false },
+  { id: 'musetalk_warmup', label: '嘴型同步暖機', state: 'pending', required: false },
+  { id: 'tts', label: '語音合成（TTS）', state: 'pending', required: true },
+  { id: 'webrtc', label: '影像傳輸', state: 'pending', required: false },
+  { id: 'audio_device', label: '音訊裝置', state: 'pending', required: true },
 ];
 
 export interface AvatarStoreState {

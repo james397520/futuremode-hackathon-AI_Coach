@@ -73,20 +73,20 @@ export class ApiError extends Error {
   get userMessage(): string {
     switch (this.status) {
       case 401:
-        return 'Your session expired. Please sign in again.';
+        return '登入狀態已逾期，請重新登入。';
       case 403:
-        return 'You do not have permission to do that in this workspace.';
+        return '你在這個工作區沒有執行這個動作的權限。';
       case 404:
-        return 'We could not find that item. It may have been moved or archived.';
+        return '找不到這筆資料，可能已被移動或封存。';
       case 409:
-        return 'Someone else changed this item. Reload and try again.';
+        return '這筆資料已被其他人修改，請重新載入後再試。';
       case 413:
-        return 'That file is larger than this workspace allows.';
+        return '檔案超過這個工作區允許的大小。';
       case 429:
-        return 'Too many requests. Give it a moment and try again.';
+        return '請求過於頻繁，請稍候再試。';
       default:
         return this.status >= 500
-          ? 'The AI service is temporarily unavailable. Your work has been kept.'
+          ? 'AI 服務暫時無法使用，你的內容已保留。'
           : this.message;
     }
   }
@@ -198,7 +198,7 @@ async function request<T>(
     throw new ApiError({
       status: 0,
       code: 'network_error',
-      message: 'Could not reach the AI service.',
+      message: '無法連線到 AI 服務。',
       recoverable: true,
       details: cause,
     });
@@ -380,7 +380,7 @@ export const endpoints = {
         body: JSON.stringify({ text, ...tuning }),
       },
     );
-    if (!response.ok) throw new ApiError({ status: response.status, code: 'tts_failed', message: 'speech synthesis failed' } as never);
+    if (!response.ok) throw new ApiError({ status: response.status, code: 'tts_failed', message: '語音合成失敗' } as never);
     return response.blob();
   },
   /** Which speech engines the deployment can offer — drives the on-device switches. */

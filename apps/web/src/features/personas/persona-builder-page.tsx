@@ -16,24 +16,24 @@ import { titleize } from '@/lib/utils';
 type BuilderTab = 'identity' | 'personality' | 'behavior' | 'objections' | 'knowledge' | 'voice' | 'safety';
 
 const TABS: Array<{ value: BuilderTab; label: string }> = [
-  { value: 'identity', label: 'Identity' },
-  { value: 'personality', label: 'Personality' },
-  { value: 'behavior', label: 'Behavior' },
-  { value: 'objections', label: 'Objections' },
-  { value: 'knowledge', label: 'Knowledge' },
-  { value: 'voice', label: 'Voice' },
-  { value: 'safety', label: 'Safety' },
+  { value: 'identity', label: '身分設定' },
+  { value: 'personality', label: '個性' },
+  { value: 'behavior', label: '行為' },
+  { value: 'objections', label: '異議' },
+  { value: 'knowledge', label: '知識' },
+  { value: 'voice', label: '語音' },
+  { value: 'safety', label: '安全' },
 ];
 
 /** §16.2 slider order, kept identical to the spec list. */
 const TRAIT_ORDER: Array<{ key: keyof PersonaTraits; label: string; hint: string }> = [
-  { key: 'trust', label: 'Trust', hint: 'Starting willingness to believe what the trainee says' },
-  { key: 'patience', label: 'Patience', hint: 'How long before the persona pushes for the point' },
-  { key: 'price_sensitivity', label: 'Price sensitivity', hint: 'How quickly cost becomes the objection' },
-  { key: 'risk_aversion', label: 'Risk aversion', hint: 'Weight given to worst-case outcomes' },
-  { key: 'product_knowledge', label: 'Product knowledge', hint: 'How much jargon the persona already understands' },
-  { key: 'resistance', label: 'Resistance', hint: 'Baseline pushback against any recommendation' },
-  { key: 'openness', label: 'Openness', hint: 'Willingness to share personal context unprompted' },
+  { key: 'trust', label: '信任度', hint: '一開始願意相信學員說法的程度' },
+  { key: 'patience', label: '耐心', hint: '多久之後會開始催學員講重點' },
+  { key: 'price_sensitivity', label: '價格敏感度', hint: '多快會把費用變成主要異議' },
+  { key: 'risk_aversion', label: '風險趨避', hint: '對最壞情況的在意程度' },
+  { key: 'product_knowledge', label: '產品知識', hint: '客戶本身聽得懂多少專業術語' },
+  { key: 'resistance', label: '抗拒程度', hint: '面對任何建議時的基本抗拒強度' },
+  { key: 'openness', label: '開放程度', hint: '沒被追問也願意主動透露個人狀況的程度' },
 ];
 
 const EMPTY_PERSONA: Persona = {
@@ -95,9 +95,9 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
   return (
     <div className="space-y-5 pb-4">
       <PageHeader
-        breadcrumbs={[{ label: 'Personas', href: '/personas' }, { label: isNew ? 'New persona' : draft.name || 'Persona' }]}
-        title={isNew ? 'New persona' : draft.name || 'Persona'}
-        description="Identity, personality, hidden state, behaviour rules and voice. Publishing requires review when the workspace enforces maker-checker."
+        breadcrumbs={[{ label: '客戶角色', href: '/personas' }, { label: isNew ? '新增客戶角色' : draft.name || '客戶角色' }]}
+        title={isNew ? '新增客戶角色' : draft.name || '客戶角色'}
+        description="身分、個性、隱藏設定、行為規則與語音。當工作區啟用雙人覆核時，發布前必須先送審。"
         meta={
           <>
             <ContentStatusPill status={draft.status} />
@@ -111,16 +111,16 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
               <Button variant="ghost" size="sm" asChild>
                 <Link href={`/personas/${draft.id}/test-lab`}>
                   <FlaskConical size={15} strokeWidth={1.8} aria-hidden />
-                  Test persona
+                  測試角色
                 </Link>
               </Button>
             ) : null}
             <Button variant="secondary" size="sm" disabled={!canEdit}>
               <Save size={15} strokeWidth={1.8} aria-hidden />
-              Save draft
+              儲存草稿
             </Button>
             <Button variant="primary" size="sm" disabled={!canPublish}>
-              Submit for review
+              送出審核
             </Button>
           </>
         }
@@ -138,13 +138,13 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
                 {(draft.name || '?').trim().charAt(0) || '?'}
               </span>
             </div>
-            <h2 className="text-card-title">{draft.name || 'Unnamed persona'}</h2>
+            <h2 className="text-card-title">{draft.name || '未命名的客戶角色'}</h2>
             <p className="text-body-sm text-text-tertiary">
               {[draft.age ? `${draft.age}` : null, draft.occupation, draft.industry].filter(Boolean).join(' · ') ||
-                'No identity details yet'}
+                '尚未填寫身分資料'}
             </p>
             <p className="mt-3 text-body-sm text-text-secondary">
-              {draft.background || 'Background will appear here as you fill in the identity tab.'}
+              {draft.background || '在「身分設定」分頁填寫後，背景描述會顯示在這裡。'}
             </p>
 
             <div className="mt-4 space-y-2 border-t border-border-soft pt-4">
@@ -169,10 +169,9 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
           </GlassCard>
 
           <GlassCard className="p-5">
-            <h3 className="text-card-title">Used by</h3>
+            <h3 className="text-card-title">使用情況</h3>
             <p className="mt-1 text-body-sm text-text-secondary">
-              Changing a published persona creates a new version; running sessions keep the version they
-              were pinned to.
+              修改已發布的客戶角色會產生新版本；進行中的練習仍會沿用當初綁定的版本。
             </p>
             <ul className="mt-3 space-y-1.5 text-body-sm">
               <li>
@@ -180,7 +179,7 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
                   「我已經有保險了」— 保障缺口對話
                 </Link>
               </li>
-              <li className="text-text-tertiary">2 assignments · 74 attempts</li>
+              <li className="text-text-tertiary">2 項指派 · 74 次練習</li>
             </ul>
           </GlassCard>
         </div>
@@ -191,16 +190,16 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
 
           {tab === 'identity' ? (
             <GlassCard className="space-y-4 p-5">
-              <h2 className="text-card-title">Basic identity</h2>
+              <h2 className="text-card-title">基本身分</h2>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Name" hint="Shown to the trainee during the session.">
+                <Field label="姓名" hint="練習過程中會顯示給學員。">
                   <Input
                     value={draft.name}
                     disabled={!canEdit}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, name: e.target.value })}
                   />
                 </Field>
-                <Field label="Age">
+                <Field label="年齡">
                   <Input
                     type="number"
                     value={draft.age ?? ''}
@@ -210,47 +209,47 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
                     }
                   />
                 </Field>
-                <Field label="Occupation">
+                <Field label="職業">
                   <Input
                     value={draft.occupation ?? ''}
                     disabled={!canEdit}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, occupation: e.target.value })}
                   />
                 </Field>
-                <Field label="Industry">
+                <Field label="產業">
                   <Input
                     value={draft.industry ?? ''}
                     disabled={!canEdit}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft({ ...draft, industry: e.target.value })}
                   />
                 </Field>
-                <Field label="Language">
+                <Field label="語言">
                   <Select
                     value={draft.language}
                     onValueChange={(value: string) => setDraft({ ...draft, language: value })}
                     options={[
                       { value: 'zh-TW', label: '繁體中文 (zh-TW)' },
                       { value: 'zh-CN', label: '简体中文 (zh-CN)' },
-                      { value: 'en', label: 'English' },
+                      { value: 'en', label: '英文' },
                       { value: 'ja', label: '日本語' },
                     ]}
                   />
                 </Field>
-                <Field label="Locale">
+                <Field label="地區">
                   <Select
                     value={draft.locale}
                     onValueChange={(value: string) => setDraft({ ...draft, locale: value })}
                     options={[
-                      { value: 'zh-TW', label: 'Taiwan' },
-                      { value: 'en-SG', label: 'Singapore' },
-                      { value: 'en-US', label: 'United States' },
+                      { value: 'zh-TW', label: '台灣' },
+                      { value: 'en-SG', label: '新加坡' },
+                      { value: 'en-US', label: '美國' },
                     ]}
                   />
                 </Field>
               </div>
               <Field
-                label="Background"
-                hint="Family, finances, prior experience — this is what makes the objections feel specific."
+                label="背景"
+                hint="家庭、財務、過往經驗 — 這些細節能讓異議聽起來更具體。"
               >
                 <Textarea
                   rows={5}
@@ -264,10 +263,9 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
 
           {tab === 'personality' ? (
             <GlassCard className="p-5">
-              <h2 className="text-card-title">Personality sliders</h2>
+              <h2 className="text-card-title">個性調整</h2>
               <p className="mt-1 text-body-sm text-text-secondary">
-                These feed the customer agent’s starting state. The simulation then moves them at runtime
-                according to the behaviour rules.
+                這些數值是客戶代理人的起始狀態，練習進行時模擬會依照行為規則調整它們。
               </p>
               <div className="mt-5 space-y-5">
                 {TRAIT_ORDER.map((trait) => (
@@ -293,35 +291,34 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
               <GlassCard className="p-5">
                 <div className="flex items-center gap-2">
                   <EyeOff size={16} strokeWidth={1.8} aria-hidden className="text-accent-violet" />
-                  <h2 className="text-card-title">Hidden state</h2>
-                  <Pill tone="warning" size="sm">Never sent to trainees</Pill>
+                  <h2 className="text-card-title">隱藏設定</h2>
+                  <Pill tone="warning" size="sm">不會傳送給學員</Pill>
                 </div>
                 <p className="mt-1 text-body-sm text-text-secondary">
-                  The API strips this object for any role without <code>persona.manage</code>. It is what the
-                  trainee is supposed to discover.
+                  沒有 <code>persona.manage</code> 權限的角色，API 會先移除這個物件。這正是學員該自己問出來的內容。
                 </p>
 
                 {canEdit ? (
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <Field label="Primary goal">
+                    <Field label="主要目標">
                       <Input
                         value={draft.hidden?.primary_goal ?? ''}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHidden('primary_goal', e.target.value)}
                       />
                     </Field>
-                    <Field label="Hidden need">
+                    <Field label="隱藏需求">
                       <Input
                         value={draft.hidden?.hidden_need ?? ''}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHidden('hidden_need', e.target.value)}
                       />
                     </Field>
-                    <Field label="Main concern">
+                    <Field label="主要顧慮">
                       <Input
                         value={draft.hidden?.main_concern ?? ''}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHidden('main_concern', e.target.value)}
                       />
                     </Field>
-                    <Field label="Budget (monthly)">
+                    <Field label="每月預算">
                       <Input
                         type="number"
                         value={draft.hidden?.budget ?? ''}
@@ -336,19 +333,19 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
                         }
                       />
                     </Field>
-                    <Field label="Opening attitude">
+                    <Field label="開場態度">
                       <Input
                         value={draft.hidden?.opening_attitude ?? ''}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHidden('opening_attitude', e.target.value)}
                       />
                     </Field>
-                    <Field label="Exit condition" hint="When the persona ends the conversation.">
+                    <Field label="結束條件" hint="客戶在什麼情況下會結束這場對話。">
                       <Input
                         value={draft.hidden?.exit_condition ?? ''}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHidden('exit_condition', e.target.value)}
                       />
                     </Field>
-                    <Field label="Success condition" className="sm:col-span-2">
+                    <Field label="成功條件" className="sm:col-span-2">
                       <Input
                         value={draft.hidden?.success_condition ?? ''}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHidden('success_condition', e.target.value)}
@@ -358,7 +355,7 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
                 ) : (
                   <p className="mt-4 flex items-center gap-2 rounded-card-sm border border-border-soft px-3.5 py-3 text-body-sm text-text-tertiary">
                     <Lock size={14} strokeWidth={1.8} aria-hidden />
-                    Your role cannot view persona hidden state.
+                    你目前的角色權限無法檢視客戶角色的隱藏設定。
                   </p>
                 )}
               </GlassCard>
@@ -367,14 +364,14 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
               <GlassCard className="p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-card-title">Triggers</h2>
+                    <h2 className="text-card-title">觸發規則</h2>
                     <p className="text-body-sm text-text-secondary">
-                      Deterministic state changes the customer agent must apply.
+                      客戶代理人必須確實套用的狀態變化。
                     </p>
                   </div>
                   <Button variant="secondary" size="sm" disabled={!canEdit}>
                     <Plus size={15} strokeWidth={2} aria-hidden />
-                    Add trigger
+                    新增觸發規則
                   </Button>
                 </div>
 
@@ -383,7 +380,7 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
                     <li key={rule.id} className="border border-border-soft bg-glass-card rounded-card-sm p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-body-sm font-medium">When {rule.when.toLowerCase()}</p>
+                          <p className="text-body-sm font-medium">觸發條件：{rule.when}</p>
                           <p className="mt-1 text-body-sm text-text-secondary">{rule.effect}</p>
                           <div className="mt-2 flex flex-wrap gap-1.5">
                             {rule.delta.map((delta) => (
@@ -399,7 +396,7 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
                           </div>
                         </div>
                         {canEdit ? (
-                          <Button variant="ghost" size="sm" aria-label={`Remove trigger: ${rule.when}`}>
+                          <Button variant="ghost" size="sm" aria-label={`刪除觸發規則：${rule.when}`}>
                             <Trash2 size={15} strokeWidth={1.8} aria-hidden />
                           </Button>
                         ) : null}
@@ -415,14 +412,14 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
             <GlassCard className="p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-card-title">Objections</h2>
+                  <h2 className="text-card-title">異議</h2>
                   <p className="text-body-sm text-text-secondary">
-                    The persona will raise these in priority order as the conversation allows.
+                    對話允許時，客戶會依照優先順序提出這些異議。
                   </p>
                 </div>
                 <Button variant="secondary" size="sm" disabled={!canEdit}>
                   <Plus size={15} strokeWidth={2} aria-hidden />
-                  Add objection
+                  新增異議
                 </Button>
               </div>
 
@@ -431,17 +428,17 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
                   <li key={objection} className="border border-border-soft bg-glass-card flex items-center gap-3 rounded-card-sm px-4 py-3">
                     <span className="text-meta tabular-nums text-text-tertiary">{index + 1}</span>
                     <span className="min-w-0 flex-1 text-body-sm">「{objection}」</span>
-                    {index === 0 ? <Pill tone="gradient" size="sm">Main objection</Pill> : null}
+                    {index === 0 ? <Pill tone="gradient" size="sm">主要異議</Pill> : null}
                   </li>
                 ))}
                 {(draft.hidden?.objections ?? []).length === 0 ? (
                   <li className="text-body-sm text-text-tertiary">
-                    No objection configured — the persona will only respond, never push back.
+                    尚未設定任何異議 — 客戶只會被動回應，不會提出質疑。
                   </li>
                 ) : null}
               </ol>
 
-              <h3 className="mt-6 text-body-sm font-semibold">Trigger points</h3>
+              <h3 className="mt-6 text-body-sm font-semibold">觸發點</h3>
               <ul className="mt-2 space-y-1.5 text-body-sm text-text-secondary">
                 {(draft.hidden?.trigger_points ?? []).map((point) => (
                   <li key={point} className="flex gap-2">
@@ -455,13 +452,12 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
 
           {tab === 'knowledge' ? (
             <GlassCard className="p-5">
-              <h2 className="text-card-title">Knowledge boundary</h2>
+              <h2 className="text-card-title">知識邊界</h2>
               <p className="mt-1 text-body-sm text-text-secondary">
-                What the persona is allowed to know. Anything outside this must be answered with
-                uncertainty rather than invention.
+                客戶被允許知道的範圍。超出範圍的問題必須以不確定的語氣回應，不能自行編造。
               </p>
 
-              <h3 className="mt-5 text-body-sm font-semibold">Forbidden knowledge</h3>
+              <h3 className="mt-5 text-body-sm font-semibold">不可知道的資訊</h3>
               <ul className="mt-2 space-y-1.5 text-body-sm text-text-secondary">
                 {(draft.hidden?.forbidden_knowledge ?? []).map((item) => (
                   <li key={item} className="flex gap-2">
@@ -470,25 +466,25 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
                   </li>
                 ))}
                 {(draft.hidden?.forbidden_knowledge ?? []).length === 0 ? (
-                  <li className="text-text-tertiary">Nothing restricted.</li>
+                  <li className="text-text-tertiary">沒有任何限制。</li>
                 ) : null}
               </ul>
 
-              <h3 className="mt-6 text-body-sm font-semibold">Knowledge bases the persona may reference</h3>
+              <h3 className="mt-6 text-body-sm font-semibold">客戶角色可參考的知識庫</h3>
               <ul className="mt-2 space-y-2">
                 {MOCK_KNOWLEDGE_BASES.slice(0, 3).map((kb) => (
                   <li key={kb.id} className="border border-border-soft bg-glass-card flex items-center justify-between gap-3 rounded-card-sm px-4 py-3">
                     <div className="min-w-0">
                       <p className="truncate text-body-sm font-medium">{kb.name}</p>
                       <p className="text-tiny text-text-tertiary">
-                        {kb.document_count} documents · scope {kb.acl.scope}
+                        {kb.document_count} 份文件 · 範圍 {kb.acl.scope}
                       </p>
                     </div>
                     <Switch
                       checked={kb.id === 'kb_product_sop'}
                       onCheckedChange={() => undefined}
                       disabled={!canEdit}
-                      aria-label={`Allow the persona to reference ${kb.name}`}
+                      aria-label={`允許客戶角色參考 ${kb.name}`}
                     />
                   </li>
                 ))}
@@ -500,10 +496,10 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
             <GlassCard className="p-5">
               <div className="flex items-center gap-2">
                 <Volume2 size={16} strokeWidth={1.8} aria-hidden className="text-accent-blue" />
-                <h2 className="text-card-title">Voice</h2>
+                <h2 className="text-card-title">語音</h2>
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Field label="Provider">
+                <Field label="語音服務">
                   <Select
                     value={draft.voice.provider}
                     onValueChange={(value: string) =>
@@ -512,11 +508,11 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
                     options={[
                       { value: 'elevenlabs', label: 'ElevenLabs' },
                       { value: 'openai', label: 'OpenAI' },
-                      { value: 'none', label: 'Text only' },
+                      { value: 'none', label: '純文字（不發聲）' },
                     ]}
                   />
                 </Field>
-                <Field label="Voice ID">
+                <Field label="語音 ID">
                   <Input
                     value={draft.voice.voice_id ?? ''}
                     disabled={!canEdit || draft.voice.provider === 'none'}
@@ -529,7 +525,7 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
 
               <div className="mt-5 space-y-5">
                 <Slider
-                  label="Speed"
+                  label="語速"
                   min={0.6}
                   max={1.6}
                   step={0.02}
@@ -538,8 +534,8 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
                   onValueChange={(value: number) => setDraft({ ...draft, voice: { ...draft.voice, speed: value } })}
                 />
                 <Slider
-                  label="Stability"
-                  hint="Lower is more expressive; higher is more consistent between turns."
+                  label="穩定度"
+                  hint="數值越低情緒起伏越大，越高則每一輪之間越一致。"
                   min={0}
                   max={1}
                   step={0.02}
@@ -549,7 +545,7 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
                 />
               </div>
 
-              <Field label="Emotion style" className="mt-5">
+              <Field label="情緒風格" className="mt-5">
                 <Input
                   value={draft.voice.emotion_style ?? ''}
                   disabled={!canEdit}
@@ -562,10 +558,10 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
               <div className="mt-5 flex items-center gap-2 border-t border-border-soft pt-4">
                 <Button variant="secondary" size="sm" disabled={draft.voice.provider === 'none'}>
                   <Volume2 size={15} strokeWidth={1.8} aria-hidden />
-                  Preview voice
+                  試聽語音
                 </Button>
                 <p className="text-tiny text-text-tertiary">
-                  Synthesis runs on the server — no provider key reaches the browser.
+                  語音合成在伺服器端執行 — 服務商金鑰不會傳到瀏覽器。
                 </p>
               </div>
             </GlassCard>
@@ -573,31 +569,30 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
 
           {tab === 'safety' ? (
             <GlassCard className="p-5">
-              <h2 className="text-card-title">Safety</h2>
+              <h2 className="text-card-title">安全</h2>
               <p className="mt-1 text-body-sm text-text-secondary">
-                These guards are enforced server-side on every turn. The persona must stay in character and
-                must never disclose its own configuration.
+                這些防護會在每一輪對話由伺服器端強制執行。客戶必須維持人設，且絕不能透露自己的設定內容。
               </p>
 
               <ul className="mt-4 space-y-2.5">
                 {[
-                  ['Stay in character under prompt injection', 'Refuses to reveal system instructions or hidden state.'],
-                  ['No invented product facts', 'Anything not in the allowed knowledge is answered with uncertainty.'],
-                  ['No personal data collection', 'Will not accept or repeat full national ID numbers.'],
-                  ['Escalate on distress', 'If the trainee describes a real crisis, the session pauses with guidance.'],
+                  ['遇到提示注入仍維持人設', '拒絕透露系統指令或隱藏設定。'],
+                  ['不編造商品事實', '不在授權知識範圍內的內容，一律以不確定的語氣回應。'],
+                  ['不蒐集個人資料', '不會接受或複述完整的身分證字號。'],
+                  ['遇到情緒危機時上報', '若學員描述的是真實的危機狀況，練習會暫停並提供指引。'],
                 ].map(([title, body]) => (
                   <li key={title} className="border border-border-soft bg-glass-card flex items-start justify-between gap-3 rounded-card-sm p-4">
                     <div className="min-w-0">
                       <p className="text-body-sm font-medium">{title}</p>
                       <p className="mt-0.5 text-body-sm text-text-secondary">{body}</p>
                     </div>
-                    <Pill tone="success" size="sm">Enforced</Pill>
+                    <Pill tone="success" size="sm">已強制執行</Pill>
                   </li>
                 ))}
               </ul>
 
               <p className="mt-4 text-tiny text-text-tertiary">
-                Escape attempts are recorded as security findings, not silently ignored — see Security & Audit.
+                跳脫人設的嘗試會記錄為安全事件，不會被靜默忽略 — 詳見「安全與稽核」。
               </p>
             </GlassCard>
           ) : null}

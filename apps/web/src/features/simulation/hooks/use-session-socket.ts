@@ -218,7 +218,7 @@ export function useSessionSocket(options: UseSessionSocketOptions): SessionSocke
               code: 'transport_failed',
               message:
                 meta?.reason ??
-                'Lost the realtime connection. Your transcript is safe — restart the session to continue.',
+                '即時連線已中斷。逐字稿已保留 — 重新開始練習即可繼續。',
               recoverable: true,
             });
           }
@@ -243,7 +243,7 @@ export function useSessionSocket(options: UseSessionSocketOptions): SessionSocke
         close: () => socket.close(),
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Realtime connection unavailable';
+      const message = error instanceof Error ? error.message : '目前無法建立即時連線';
       actions.applyEvent({
         seq: 0,
         session_id: sessionId,

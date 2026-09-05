@@ -460,12 +460,12 @@ SCENARIO: dict[str, Any] = {
     ],
     # §59 Success, exactly.
     "success_condition": (
-        "完成需求探索 + 正確說明保障 + 不產生 Critical Compliance Risk "
-        "+ Trust >= 70 + Overall Score >= 80"
+        "完成需求探索 + 正確說明保障 + 不產生重大合規風險 "
+        "+ 信任度 ≥ 70 + 總分 ≥ 80"
     ),
     "failure_condition": (
-        "未完成需求探索即進入商品說明，或出現 critical 合規風險（保證給付／"
-        "誤導性陳述），或客戶 resistance 連續上升至 85 以上並結束對話"
+        "未完成需求探索即進入商品說明，或出現重大合規風險（保證給付／"
+        "誤導性陳述），或客戶抗拒連續上升至 85 以上並結束對話"
     ),
     "time_limit_seconds": 900,
     "max_turns": 40,
@@ -481,15 +481,15 @@ SCENARIO: dict[str, Any] = {
 # evidence, and a prose-only condition cannot be evidenced.
 SCENARIO_SUCCESS_ASSERTIONS: list[dict[str, Any]] = [
     {"key": "needs_discovery_complete", "kind": "phase_reached", "value": "presentation",
-     "description": "需求探索完成 — scenario_phase 至少推進到 presentation"},
+     "description": "需求探索完成 — 對話階段至少推進到說明方案"},
     {"key": "coverage_explained_correctly", "kind": "skill_min", "skill": "product_knowledge",
-     "value": 70, "description": "正確說明保障 — product_knowledge >= 70 且引用有 citation"},
+     "value": 70, "description": "正確說明保障 — 產品知識 ≥ 70 且附有引用來源"},
     {"key": "no_critical_compliance", "kind": "max_compliance_risk", "value": "high",
-     "description": "不產生 Critical Compliance Risk（high 可接受，critical 不可）"},
+     "description": "不產生重大合規風險（高風險可接受，重大風險不可）"},
     {"key": "trust_threshold", "kind": "persona_state_min", "field": "trust", "value": 70,
-     "description": "Trust >= 70"},
+     "description": "信任度 ≥ 70"},
     {"key": "overall_threshold", "kind": "overall_score_min", "value": 80,
-     "description": "Overall Score >= 80"},
+     "description": "總分 ≥ 80"},
 ]
 
 # -----------------------------------------------------------------------------
@@ -649,8 +649,8 @@ EXTRA_SCENARIOS: list[dict[str, Any]] = [
                                     "確認客戶最擔心的情況", "明確說明本次對話不構成投資或稅務建議"],
         "key_objections": ["我朋友說直接買儲蓄險就好？", "這個…划算嗎？", "那這樣夠嗎？", "我再想想好了"],
         "restricted_topics": ["保證投資報酬率", "稅務規劃建議", "同業商品的具體費率比較"],
-        "success_condition": "學員至少一次以反問釐清模糊提問 + 客戶說出每月可負擔金額 + Trust >= 65 + 無 critical 合規風險",
-        "failure_condition": "連續兩次對模糊提問直接猜答而未釐清，或出現 critical 合規風險",
+        "success_condition": "學員至少一次以反問釐清模糊提問 + 客戶說出每月可負擔金額 + 信任度 ≥ 65 + 無重大合規風險",
+        "failure_condition": "連續兩次對模糊提問直接猜答而未釐清，或出現重大合規風險",
         "time_limit_seconds": 600, "max_turns": 30, "minimum_score": 70, "rubric_id": RUBRIC_ID,
         "created_at": NOW, "updated_at": NOW,
     },
@@ -684,8 +684,8 @@ EXTRA_SCENARIOS: list[dict[str, Any]] = [
                            "我再問問我兒子"],
         "restricted_topics": ["天氣", "颱風", "選舉", "政治", "總統", "股市預測", "股票會不會漲",
                               "比特幣", "醫療診斷", "同業商品比較"],
-        "success_condition": "完成現有保單盤點 + 每次離題後兩輪內回到主題 + Patience >= 50 + 無 critical 合規風險",
-        "failure_condition": "連續三輪跟著客戶離題、出現機械式拒絕、或 critical 合規風險",
+        "success_condition": "完成現有保單盤點 + 每次離題後兩輪內回到主題 + 耐心 ≥ 50 + 無重大合規風險",
+        "failure_condition": "連續三輪跟著客戶離題、出現機械式拒絕、或重大合規風險",
         "time_limit_seconds": 900, "max_turns": 40, "minimum_score": 70, "rubric_id": RUBRIC_ID,
         "created_at": NOW, "updated_at": NOW,
     },
@@ -710,7 +710,7 @@ EXTRA_SCENARIOS: list[dict[str, Any]] = [
             "察覺對方的情緒訊號，並在一句話內確認而非忽略",
             "在壓力下仍以數字與依據回應，不迴避",
             "接受客戶不滿而不過度道歉、不改變事實",
-            "全程不觸發 critical 合規風險（不承諾『以後不會再漲』）",
+            "全程不觸發重大合規風險（不承諾『以後不會再漲』）",
         ],
         "required_knowledge": ["團體保險費率調整的常見因素（理賠率、年齡結構、醫療通膨）",
                                "團保與個人保單的保障延續性", "離職後保障轉換的選項"],
@@ -719,8 +719,8 @@ EXTRA_SCENARIOS: list[dict[str, Any]] = [
         "key_objections": ["漲 18% 你要我怎麼跟老闆解釋？", "你們去年不是說費率穩定？", "別家報價比你便宜",
                            "我沒時間聽你講故事"],
         "restricted_topics": ["精算費率公式", "同業內部報價", "保證費率不再調漲", "醫療診斷"],
-        "success_condition": "客戶同意保留保單 + 學員至少一次正確回應對方情緒訊號 + Trust >= 60 + 無 critical 合規風險",
-        "failure_condition": "忽略客戶不悅連續兩輪、承諾「以後不會再漲」（critical）、或 Resistance 升至 90 以上",
+        "success_condition": "客戶同意保留保單 + 學員至少一次正確回應對方情緒訊號 + 信任度 ≥ 60 + 無重大合規風險",
+        "failure_condition": "忽略客戶不悅連續兩輪、承諾「以後不會再漲」（重大違規）、或抗拒升至 90 以上",
         "time_limit_seconds": 600, "max_turns": 30, "minimum_score": 75, "rubric_id": RUBRIC_ID,
         "created_at": NOW, "updated_at": NOW,
     },
@@ -810,9 +810,9 @@ RUBRIC: dict[str, Any] = {
     "weights": SKILL_WEIGHTS,
     "pass_threshold": 80,
     "required_evidence": [
-        "每一個維度至少一段 transcript 引用（§27）",
-        "合規維度扣分必須指向具體 policy_rule",
-        "低於 60 分的維度必須附 better_approach",
+        "每一個維度至少一段逐字稿引用（§27）",
+        "合規維度扣分必須指向具體的合規條款",
+        "低於 60 分的維度必須附上更好的做法",
     ],
     "forbidden_behaviors": [
         "保證投資報酬或保證給付",

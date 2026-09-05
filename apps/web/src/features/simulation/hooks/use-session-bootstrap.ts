@@ -29,13 +29,13 @@ export interface SessionBootstrapResult {
 
 /** §16.2 persona sliders → the short trait chips shown on the scenario card. */
 const TRAIT_LABELS: Record<keyof PersonaTraits, { high: string; low: string }> = {
-  trust: { high: 'Trusting', low: 'Skeptical' },
-  patience: { high: 'Patient', low: 'Impatient' },
-  price_sensitivity: { high: 'Price-sensitive', low: 'Value-driven' },
-  risk_aversion: { high: 'Risk-averse', low: 'Risk-tolerant' },
-  product_knowledge: { high: 'Well-informed', low: 'New to the product' },
-  resistance: { high: 'Resistant', low: 'Open' },
-  openness: { high: 'Open-minded', low: 'Guarded' },
+  trust: { high: '信任度高', low: '存有戒心' },
+  patience: { high: '有耐心', low: '沒耐心' },
+  price_sensitivity: { high: '對價格敏感', low: '看重價值' },
+  risk_aversion: { high: '保守避險', low: '願意承擔風險' },
+  product_knowledge: { high: '熟悉產品', low: '初次接觸產品' },
+  resistance: { high: '抗拒心強', low: '態度開放' },
+  openness: { high: '樂於嘗試', low: '有所保留' },
 };
 
 export function summariseTraits(traits: PersonaTraits | undefined, limit = 4): string[] {
@@ -152,7 +152,7 @@ export function useSessionBootstrap(
       } catch (err) {
         if (cancelled) return;
         const message =
-          err instanceof Error ? err.message : 'Could not load this session. Please try again.';
+          err instanceof Error ? err.message : '無法載入這場練習，請再試一次。';
         setError(message);
         setLoading(false);
         actions.setBootstrapError(message);

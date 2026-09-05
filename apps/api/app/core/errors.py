@@ -156,49 +156,49 @@ class AppError(Exception):
 class UnauthenticatedError(AppError):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = ErrorCode.UNAUTHENTICATED
-    title = "Authentication required"
-    detail = "Sign in to continue."
+    title = "需要登入"
+    detail = "請先登入再繼續。"
     recoverable = True
 
 
 class InvalidCredentialsError(AppError):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = ErrorCode.INVALID_CREDENTIALS
-    title = "Sign-in failed"
+    title = "登入失敗"
     # Deliberately does not say whether the account exists (user enumeration).
-    detail = "E-mail or password is incorrect."
+    detail = "電子郵件或密碼不正確。"
     recoverable = True
 
 
 class TokenExpiredError(AppError):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = ErrorCode.TOKEN_EXPIRED
-    title = "Session expired"
-    detail = "Your session expired. Sign in again."
+    title = "登入已逾期"
+    detail = "登入狀態已逾期，請重新登入。"
     recoverable = True
 
 
 class TokenInvalidError(AppError):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = ErrorCode.TOKEN_INVALID
-    title = "Invalid session"
-    detail = "Your session token could not be verified."
+    title = "登入狀態無效"
+    detail = "無法驗證你的登入憑證。"
     recoverable = True
 
 
 class CsrfError(AppError):
     status_code = status.HTTP_403_FORBIDDEN
     code = ErrorCode.CSRF_INVALID
-    title = "Request blocked"
-    detail = "CSRF validation failed. Reload the page and retry."
+    title = "請求已被阻擋"
+    detail = "CSRF 驗證失敗，請重新整理頁面後再試。"
     recoverable = True
 
 
 class PermissionDeniedError(AppError):
     status_code = status.HTTP_403_FORBIDDEN
     code = ErrorCode.RBAC_DENIED
-    title = "Not permitted"
-    detail = "Your role does not allow this action."
+    title = "沒有權限"
+    detail = "你的角色不允許執行這個動作。"
 
 
 class KnowledgeAclDeniedError(AppError):
@@ -206,15 +206,15 @@ class KnowledgeAclDeniedError(AppError):
 
     status_code = status.HTTP_403_FORBIDDEN
     code = ErrorCode.KNOWLEDGE_ACL_DENIED
-    title = "Knowledge access denied"
-    detail = "You do not have access to this knowledge base."
+    title = "無法存取知識庫"
+    detail = "你沒有這個知識庫的存取權限。"
 
 
 class WorkspaceScopeRequiredError(AppError):
     status_code = status.HTTP_400_BAD_REQUEST
     code = ErrorCode.WORKSPACE_SCOPE_REQUIRED
-    title = "Workspace required"
-    detail = "Select a workspace before calling this endpoint."
+    title = "請先選擇工作區"
+    detail = "呼叫這個端點前請先選擇工作區。"
     recoverable = True
 
 
@@ -228,8 +228,8 @@ class TenantIsolationError(AppError):
 
     status_code = status.HTTP_404_NOT_FOUND
     code = ErrorCode.NOT_FOUND
-    title = "Not found"
-    detail = "The requested resource does not exist."
+    title = "找不到資料"
+    detail = "找不到你要求的資料。"
 
 
 # --- 404 / 409 / 41x -------------------------------------------------------
@@ -238,20 +238,20 @@ class TenantIsolationError(AppError):
 class NotFoundError(AppError):
     status_code = status.HTTP_404_NOT_FOUND
     code = ErrorCode.NOT_FOUND
-    title = "Not found"
-    detail = "The requested resource does not exist."
+    title = "找不到資料"
+    detail = "找不到你要求的資料。"
 
     @classmethod
     def of(cls, resource: str, resource_id: str | None = None) -> NotFoundError:
         suffix = f" '{resource_id}'" if resource_id else ""
-        return cls(f"No {resource}{suffix} was found in this workspace.")
+        return cls(f"在這個工作區找不到 {resource}{suffix}。")
 
 
 class ConflictError(AppError):
     status_code = status.HTTP_409_CONFLICT
     code = ErrorCode.CONFLICT
-    title = "Conflict"
-    detail = "The resource is in a state that conflicts with this request."
+    title = "狀態衝突"
+    detail = "這筆資料目前的狀態與你的請求衝突。"
 
 
 class VersionConflictError(AppError):
@@ -259,32 +259,32 @@ class VersionConflictError(AppError):
 
     status_code = status.HTTP_409_CONFLICT
     code = ErrorCode.VERSION_CONFLICT
-    title = "Version conflict"
-    detail = "This item changed since you loaded it. Reload and reapply your edit."
+    title = "版本衝突"
+    detail = "這筆資料在你載入後已被修改，請重新載入再套用你的編輯。"
     recoverable = True
 
 
 class ValidationFailedError(AppError):
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     code = ErrorCode.VALIDATION_FAILED
-    title = "Invalid request"
-    detail = "The request payload is invalid."
+    title = "請求格式錯誤"
+    detail = "請求內容格式不正確。"
     recoverable = True
 
 
 class UnsupportedMediaTypeError(AppError):
     status_code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
     code = ErrorCode.UNSUPPORTED_MEDIA_TYPE
-    title = "Unsupported file type"
-    detail = "This file type cannot be ingested."
+    title = "不支援的檔案格式"
+    detail = "無法匯入這種檔案格式。"
     recoverable = True
 
 
 class PayloadTooLargeError(AppError):
     status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
     code = ErrorCode.PAYLOAD_TOO_LARGE
-    title = "File too large"
-    detail = "The file exceeds the maximum allowed size."
+    title = "檔案過大"
+    detail = "檔案超過允許的大小上限。"
     recoverable = True
 
 
@@ -296,8 +296,8 @@ class SessionStateError(AppError):
 
     status_code = status.HTTP_409_CONFLICT
     code = ErrorCode.SESSION_STATE_INVALID
-    title = "Session cannot do that yet"
-    detail = "The session is not in a state that allows this action."
+    title = "目前的練習狀態無法執行"
+    detail = "這場練習目前的狀態不允許這個動作。"
     recoverable = True
 
 
@@ -306,8 +306,8 @@ class AssessmentModeRestrictedError(AppError):
 
     status_code = status.HTTP_403_FORBIDDEN
     code = ErrorCode.ASSESSMENT_MODE_RESTRICTED
-    title = "Not available in assessment mode"
-    detail = "Coaching help is disabled while an assessment is in progress."
+    title = "評測模式不提供此功能"
+    detail = "評測進行中，教練協助已停用。"
 
 
 class ContentNotPublishedError(AppError):
@@ -315,8 +315,8 @@ class ContentNotPublishedError(AppError):
 
     status_code = status.HTTP_409_CONFLICT
     code = ErrorCode.CONTENT_NOT_PUBLISHED
-    title = "Content not published"
-    detail = "This content has not completed review and cannot be used yet."
+    title = "內容尚未發布"
+    detail = "這份內容尚未完成審核，還不能使用。"
 
 
 class SafetyBlockedError(AppError):
@@ -324,15 +324,15 @@ class SafetyBlockedError(AppError):
 
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     code = ErrorCode.SAFETY_BLOCKED
-    title = "Request blocked by safety policy"
-    detail = "This request was blocked by the safety policy."
+    title = "請求被安全政策阻擋"
+    detail = "這個請求已被安全政策阻擋。"
 
 
 class RetrievalUnavailableError(AppError):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     code = ErrorCode.RETRIEVAL_UNAVAILABLE
-    title = "Retrieval unavailable"
-    detail = "Knowledge retrieval is temporarily unavailable."
+    title = "知識檢索暫時無法使用"
+    detail = "知識檢索服務暫時無法使用。"
     recoverable = True
 
 
@@ -342,8 +342,8 @@ class RetrievalUnavailableError(AppError):
 class RateLimitedError(AppError):
     status_code = status.HTTP_429_TOO_MANY_REQUESTS
     code = ErrorCode.RATE_LIMITED
-    title = "Too many requests"
-    detail = "Rate limit exceeded. Retry shortly."
+    title = "請求過於頻繁"
+    detail = "已超過速率限制，請稍後再試。"
     recoverable = True
 
     def __init__(self, retry_after_seconds: int = 1, **kwargs: Any) -> None:
@@ -357,8 +357,8 @@ class QuotaExceededError(AppError):
 
     status_code = status.HTTP_402_PAYMENT_REQUIRED
     code = ErrorCode.QUOTA_EXCEEDED
-    title = "Quota exceeded"
-    detail = "This workspace has reached its usage quota."
+    title = "已達用量上限"
+    detail = "這個工作區已達用量上限。"
 
 
 class ProviderUnavailableError(AppError):
@@ -366,32 +366,32 @@ class ProviderUnavailableError(AppError):
 
     status_code = status.HTTP_502_BAD_GATEWAY
     code = ErrorCode.PROVIDER_UNAVAILABLE
-    title = "AI provider unavailable"
-    detail = "An AI provider is temporarily unavailable. Please retry."
+    title = "AI 服務暫時無法使用"
+    detail = "AI 服務暫時無法使用，請重試。"
     recoverable = True
 
 
 class ProviderTimeoutError(AppError):
     status_code = status.HTTP_504_GATEWAY_TIMEOUT
     code = ErrorCode.PROVIDER_TIMEOUT
-    title = "AI provider timed out"
-    detail = "The AI provider did not respond in time. Please retry."
+    title = "AI 服務逾時"
+    detail = "AI 服務未在時限內回應，請重試。"
     recoverable = True
 
 
 class ServiceUnavailableError(AppError):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     code = ErrorCode.SERVICE_UNAVAILABLE
-    title = "Service unavailable"
-    detail = "A dependency is unavailable. Please retry."
+    title = "服務暫時無法使用"
+    detail = "相依服務暫時無法使用，請重試。"
     recoverable = True
 
 
 class NotImplementedYetError(AppError):
     status_code = status.HTTP_501_NOT_IMPLEMENTED
     code = ErrorCode.NOT_IMPLEMENTED
-    title = "Not implemented"
-    detail = "This capability is not available in this deployment."
+    title = "此部署未提供這項功能"
+    detail = "這個部署沒有提供這項功能。"
 
 
 # ---------------------------------------------------------------------------
@@ -512,10 +512,10 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> Respo
     )
     problem = ProblemDetail(
         type=f"{ERROR_TYPE_BASE}/{ErrorCode.INTERNAL_ERROR.value}",
-        title="Internal error",
+        title="系統發生錯誤",
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         code=ErrorCode.INTERNAL_ERROR,
-        detail="The request could not be completed. The incident has been logged.",
+        detail="這個請求無法完成，事件已記錄。",
         request_id=_request_id(request) or None,
         recoverable=False,
     )

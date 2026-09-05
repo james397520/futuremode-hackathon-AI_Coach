@@ -46,7 +46,7 @@ export function Drawer({
   width = 380,
   children,
   className,
-  closeLabel = 'Close panel',
+  closeLabel = '關閉面板',
 }: DrawerProps) {
   const handleOpenChange = React.useCallback(
     (next: boolean) => {

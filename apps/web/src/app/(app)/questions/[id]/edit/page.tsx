@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { QuestionEditorPage } from '@/features/questions';
 
-export const metadata: Metadata = { title: 'Question editor' };
+export const metadata: Metadata = { title: '編輯題目' };
 
 export default async function Page({
   params,

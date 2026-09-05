@@ -19,14 +19,10 @@ import type { ToneKey } from './tone';
 
 // The enum → Chinese maps themselves live in `lib/enum-labels` so `components/`
 // can use them too (via `titleize`); this module keeps the tones and the rest.
-export { COMPLIANCE_RISK_LABEL, EMOTION_LABEL, INTENT_LABEL, PHASE_LABEL, SKILL_LABEL } from '@/lib/enum-labels';
-
-/** §23 session states — user-facing wording (`Live`, `Thinking`) over raw enum names. */
-export const SESSION_STATE_LABEL: Record<SessionState, string> = {
-  idle: '準備開始', connecting: '連線中', ready: '進行中', listening: '聆聽中',
-  transcribing: '轉錄中', processing: '思考中', persona_speaking: '對方說話中',
-  paused: '已暫停', reconnecting: '重新連線中', completed: '已完成', error: '發生錯誤',
-};
+export {
+  COMPLIANCE_RISK_LABEL, COMPLIANCE_TYPE_LABEL, DIFFICULTY_LABEL, EMOTION_LABEL, INTENT_LABEL,
+  PHASE_LABEL, REVIEWER_STATUS_LABEL, SESSION_STATE_LABEL, SKILL_LABEL,
+} from '@/lib/enum-labels';
 
 export const SESSION_STATE_TONE: Record<SessionState, ToneKey> = {
   idle: 'neutral',
@@ -80,20 +76,6 @@ export const COMPLIANCE_RISK_TONE: Record<ComplianceRisk, ToneKey> = {
   critical: 'danger',
 };
 
-export const COMPLIANCE_TYPE_LABEL: Record<ComplianceFindingType, string> = {
-  false_promise: '不實承諾', misleading_statement: '誤導性陳述', unsupported_claim: '無佐證主張',
-  privacy_issue: '隱私問題', unauthorized_advice: '未授權建議', sensitive_information: '敏感資訊',
-  missing_disclosure: '缺少揭露', prompt_injection: '提示注入', restricted_topic: '受限制主題',
-};
-
-/** Reviewer workflow states on a compliance finding. */
-export const REVIEWER_STATUS_LABEL: Record<string, string> = {
-  open: '待處理',
-  acknowledged: '已確認',
-  resolved: '已處理',
-  dismissed: '已排除',
-};
-
 /** Where the avatar/inference ran for this session. */
 export const RUNTIME_LABEL: Record<string, string> = {
   server: '伺服器',
@@ -124,10 +106,6 @@ export function trainingTypeLabel(value: string | null | undefined): string | un
   const key = value.trim().toLowerCase().replace(/[\s-]+/g, '_');
   return TRAINING_TYPE_LABEL[key] ?? value;
 }
-
-export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
-  easy: '初階', medium: '中階', hard: '進階', expert: '專家',
-};
 
 export const DIFFICULTY_TONE: Record<Difficulty, ToneKey> = {
   easy: 'mint',

@@ -163,7 +163,7 @@ export class FallbackController implements TaskRunner {
         ok: false,
         error: {
           reason: 'not_supported_for_task',
-          message: 'No local execution tier is available for this task.',
+          message: '這項工作沒有可用的本機執行層級。',
         },
         backend: this.tier,
         elapsed_ms: Math.round(this.now() - started),
