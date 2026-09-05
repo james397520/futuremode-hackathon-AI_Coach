@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Coach — 企業級 AI 角色扮演訓練平台 | BUILDMODE 2026</title>
+<meta name="description" content="AI Coach：結合自適應角色扮演、即時語音與 3D 虛擬人、企業知識 RAG 與實證績效評估的 AI 訓練平台。FUTUREMODE 2026 BUILDMODE 黑客松參賽作品。">
+<meta property="og:title" content="AI Coach — 企業級 AI 角色扮演訓練平台">
+<meta property="og:description" content="自適應角色扮演 × 即時語音 3D 虛擬人 × 企業知識 RAG × 實證績效評估">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23000'/%3E%3Ctext x='32' y='42' font-family='Arial' font-weight='700' font-size='30' fill='%23fff' text-anchor='middle'%3EAC%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0a; --bg-2:#111; --bg-3:#181818;
+    --fg:#f5f5f5; --fg-2:#b3b3b3; --fg-3:#777;
+    --line:#262626; --accent:#ffffff; --accent-ink:#000;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:"Inter","Noto Sans TC",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --max:1120px; --r:14px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);line-height:1.65;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  img,svg{max-width:100%}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+  section{padding:96px 0;border-top:1px solid var(--line)}
+  h1,h2,h3{margin:0;letter-spacing:-.02em;line-height:1.15}
+  h2{font-size:clamp(28px,4vw,42px);font-weight:800}
+  h3{font-size:20px;font-weight:700}
+  p{margin:0}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-3);margin-bottom:16px;display:flex;gap:10px;align-items:center}
+  .eyebrow::before{content:"";width:28px;height:1px;background:var(--fg-3)}
+  .lead{color:var(--fg-2);font-size:18px;max-width:680px;margin-top:20px}
+  .grid{display:grid;gap:20px}
+  .card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r);padding:28px}
+  .btn{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;font-weight:600;font-size:15px;border:1px solid var(--line);transition:.2s}
+  .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .btn.primary:hover{background:#e6e6e6}
+  .btn:not(.primary):hover{border-color:var(--fg-2)}
+  .tag{display:inline-block;font-family:var(--mono);font-size:12px;padding:4px 10px;border:1px solid var(--line);border-radius:6px;color:var(--fg-2)}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:10;backdrop-filter:blur(12px);background:rgba(10,10,10,.75);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em}
+  .logo i{width:28px;height:28px;border-radius:8px;background:#fff;color:#000;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800}
+  nav ul{display:flex;gap:28px;list-style:none;margin:0;padding:0;font-size:14px;color:var(--fg-2)}
+  nav ul a:hover{color:var(--fg)}
+  @media(max-width:760px){nav ul{display:none}}
+
+  /* hero */
+  .hero{border-top:0;padding:120px 0 100px;position:relative;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:0;background:
+    radial-gradient(60% 50% at 70% 20%,rgba(255,255,255,.08),transparent 60%),
+    repeating-linear-gradient(0deg,transparent 0 39px,rgba(255,255,255,.035) 39px 40px),
+    repeating-linear-gradient(90deg,transparent 0 39px,rgba(255,255,255,.035) 39px 40px);
+    mask-image:linear-gradient(to bottom,#000 30%,transparent);pointer-events:none}
+  .hero .wrap{position:relative}
+  .badge{display:inline-flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:6px 14px 6px 8px;font-size:13px;color:var(--fg-2);margin-bottom:28px}
+  .badge b{background:#fff;color:#000;border-radius:999px;padding:2px 10px;font-size:11px;letter-spacing:.08em}
+  h1{font-size:clamp(40px,7vw,84px);font-weight:900;max-width:960px}
+  h1 span{color:var(--fg-3)}
+  .hero .lead{font-size:20px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:40px}
+  .stats{display:flex;gap:40px;flex-wrap:wrap;margin-top:64px;padding-top:32px;border-top:1px solid var(--line)}
+  .stats div b{display:block;font-size:28px;font-weight:800;letter-spacing:-.02em}
+  .stats div span{font-size:13px;color:var(--fg-3)}
+
+  /* problem */
+  .two{grid-template-columns:1fr 1fr}
+  @media(max-width:860px){.two{grid-template-columns:1fr}}
+  .problem-list{list-style:none;padding:0;margin:0;display:grid;gap:14px}
+  .problem-list li{display:flex;gap:14px;color:var(--fg-2)}
+  .problem-list li::before{content:"×";font-family:var(--mono);color:var(--fg-3);flex:none;width:18px}
+  .solve-list li::before{content:"✓";color:var(--fg)}
+
+  /* features */
+  .features{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:1000px){.features{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:600px){.features{grid-template-columns:1fr}}
+  .feature .num{font-family:var(--mono);font-size:12px;color:var(--fg-3);margin-bottom:18px}
+  .feature svg{width:36px;height:36px;stroke:#fff;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;margin-bottom:22px}
+  .feature p{color:var(--fg-2);font-size:15px;margin-top:12px}
+
+  /* flow */
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:48px;counter-reset:s}
+  @media(max-width:900px){.flow{grid-template-columns:1fr}}
+  .flow div{padding:24px;border:1px solid var(--line);position:relative;background:var(--bg-2)}
+  .flow div:first-child{border-radius:var(--r) 0 0 var(--r)}
+  .flow div:last-child{border-radius:0 var(--r) var(--r) 0}
+  @media(max-width:900px){.flow div:first-child,.flow div:last-child{border-radius:0}.flow div:first-child{border-radius:var(--r) var(--r) 0 0}.flow div:last-child{border-radius:0 0 var(--r) var(--r)}}
+  .flow div::before{counter-increment:s;content:"0" counter(s);font-family:var(--mono);font-size:12px;color:var(--fg-3);display:block;margin-bottom:12px}
+  .flow h3{font-size:16px}
+  .flow p{font-size:13px;color:var(--fg-2);margin-top:8px}
+
+  /* architecture */
+  .arch{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r);padding:32px;margin-top:48px;overflow-x:auto}
+  .arch svg{display:block;min-width:760px;width:100%;height:auto}
+  .arch text{font-family:var(--sans);fill:#f5f5f5;font-size:13px;font-weight:600}
+  .arch .sub{fill:#8a8a8a;font-size:11px;font-weight:400}
+  .arch .box{fill:#181818;stroke:#333;stroke-width:1}
+  .arch .box.hi{fill:#fff}
+  .arch .box.hi + text,.arch .hi-text{fill:#000}
+  .arch .lane{fill:none;stroke:#262626;stroke-dasharray:4 4}
+  .arch .lbl{fill:#666;font-family:var(--mono);font-size:10px;letter-spacing:.12em;font-weight:400}
+  .arch line,.arch path{stroke:#555;stroke-width:1.2;fill:none;marker-end:url(#arr)}
+
+  /* tech table */
+  table{width:100%;border-collapse:collapse;margin-top:48px;font-size:15px}
+  th,td{text-align:left;padding:16px 18px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3);font-weight:500}
+  td:first-child{color:var(--fg-2);white-space:nowrap}
+  td .tag{margin:2px 6px 2px 0}
+  .table-wrap{overflow-x:auto}
+
+  /* demo */
+  .video{aspect-ratio:16/9;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r);display:grid;place-items:center;margin-top:48px;overflow:hidden;position:relative}
+  .video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .video .ph{text-align:center;color:var(--fg-3);padding:24px}
+  .video .ph .play{width:64px;height:64px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;margin:0 auto 16px}
+
+  /* team */
+  .team{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:900px){.team{grid-template-columns:repeat(2,1fr)}}
+  .member{text-align:left}
+  .avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#333,#111);border:1px solid var(--line);display:grid;place-items:center;font-weight:800;margin-bottom:16px}
+  .member small{display:block;color:var(--fg-3);font-size:13px;margin-top:4px}
+
+  /* limitations */
+  .lim{grid-template-columns:1fr 1fr}
+  @media(max-width:860px){.lim{grid-template-columns:1fr}}
+  .lim ul{margin:16px 0 0;padding-left:18px;color:var(--fg-2)}
+  .lim li{margin:8px 0}
+
+  footer{border-top:1px solid var(--line);padding:48px 0;color:var(--fg-3);font-size:13px}
+  footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+  .fm{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:8px 12px;color:var(--fg-2)}
+  .fm b{color:#fff;letter-spacing:.06em}
+
+  .todo{outline:1px dashed #444;outline-offset:2px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#top"><i>AC</i>AI Coach</a>
+    <ul>
+      <li><a href="#problem">問題</a></li>
+      <li><a href="#features">功能</a></li>
+      <li><a href="#arch">架構</a></li>
+      <li><a href="#tech">技術</a></li>
+      <li><a href="#demo">展示</a></li>
+      <li><a href="#team">團隊</a></li>
+    </ul>
+    <a class="btn" href="https://github.com/james397520/futuremode-hackathon-AI_Coach" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.7 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3z"/></svg>
+      GitHub
+    </a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="badge"><b>BUILDMODE 2026</b> FUTUREMODE 台灣未來祭 · 黑客松參賽作品</div>
+    <h1>讓每一次練習，<br>都像面對<span>真實的客戶</span>。</h1>
+    <p class="lead">AI Coach 是企業級 AI 訓練平台：以自適應角色扮演、即時語音與 3D 虛擬人對練，接上企業知識庫 RAG，並用可追溯證據的評估模型，把「訓練成效」變成看得見的數據。</p>
+    <div class="cta">
+      <a class="btn primary" href="#demo">觀看 Demo</a>
+      <a class="btn" href="https://github.com/james397520/futuremode-hackathon-AI_Coach" target="_blank" rel="noopener">查看程式碼</a>
+    </div>
+    <div class="stats">
+      <div><b>4</b><span>核心模組：角色扮演 / 語音 3D / RAG / 評估</span></div>
+      <div><b>&lt; 1s</b><span>語音往返延遲目標</span></div>
+      <div><b>100%</b><span>評分附逐句證據可回溯</span></div>
+    </div>
+  </div>
+</header>
+
+<section id="problem">
+  <div class="wrap">
+    <div class="eyebrow">Problem &amp; Goal</div>
+    <h2>企業訓練的老問題：貴、慢、看不見成效</h2>
+    <div class="grid two" style="margin-top:48px">
+      <div class="card">
+        <h3>現況痛點</h3>
+        <ul class="problem-list" style="margin-top:20px">
+          <li>業務、客服、銷售新人的角色扮演訓練依賴資深同事陪練，人力成本高、排程困難。</li>
+          <li>訓練腳本固定，學員很快「背起來」，缺乏面對真實客戶時的臨場變化。</li>
+          <li>企業產品知識、SOP 散落在文件裡，訓練內容與最新政策脫節。</li>
+          <li>評估靠主管印象打分，沒有一致標準，也無法指出「哪一句說錯」。</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>AI Coach 的目標</h3>
+        <ul class="problem-list solve-list" style="margin-top:20px">
+          <li>24/7 可用的 AI 對練對手，隨時開練、不佔用同事時間。</li>
+          <li>對手根據學員表現即時調整難度與情緒，每一次對話都不一樣。</li>
+          <li>回答與評分都以企業自己的知識庫為依據，答案有出處。</li>
+          <li>每次對練產出可追溯的評估報告：分數、依據、改進建議，一目了然。</li>
+        </ul>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:40px"><b style="color:var(--fg)">目標使用者：</b>需要大量對話技巧訓練的企業團隊——業務、客服、金融理專、醫療衛教、內部講師——以及負責訓練成效的 HR / L&amp;D 主管。</p>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="eyebrow">Core Features</div>
+    <h2>四個模組，組成一位不會累的教練</h2>
+    <div class="grid features" style="margin-top:48px">
+      <div class="card feature">
+        <div class="num">01 / ROLE-PLAY</div>
+        <svg viewBox="0 0 24 24"><path d="M4 5h11a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3H9l-5 4V8a3 3 0 0 1 3-3z"/><path d="M20 9h1a2 2 0 0 1 2 2v9l-3-2h-4"/></svg>
+        <h3>自適應角色扮演</h3>
+        <p>AI 扮演客戶、病患或面試官，依學員回應即時調整態度、難度與情境分支，避免「背答案」式訓練。</p>
+      </div>
+      <div class="card feature">
+        <div class="num">02 / VOICE + AVATAR</div>
+        <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>
+        <h3>即時語音與 3D 虛擬人</h3>
+        <p>串流語音辨識與合成，搭配口型同步的 3D Avatar，讓對練有真人般的語氣、停頓與表情壓力。</p>
+      </div>
+      <div class="card feature">
+        <div class="num">03 / ENTERPRISE RAG</div>
+        <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
+        <h3>企業知識 RAG</h3>
+        <p>匯入產品手冊、SOP、FAQ 等文件，AI 對手的問題與標準答案皆引用企業知識庫，確保內容正確且可更新。</p>
+      </div>
+      <div class="card feature">
+        <div class="num">04 / EVALUATION</div>
+        <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/><path d="m13 9 3-3 3 3"/></svg>
+        <h3>實證績效評估</h3>
+        <p>依可設定的評分準則（rubric）逐句分析對話，每個分數都附上原話證據與改進建議，主管與學員看到同一份事實。</p>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div><h3>選擇情境</h3><p>從情境庫挑選或由 HR 依知識庫自動生成任務。</p></div>
+      <div><h3>語音對練</h3><p>與 3D 虛擬客戶即時對話，AI 依表現動態調整。</p></div>
+      <div><h3>知識檢索</h3><p>AI 回應與追問全程引用企業文件。</p></div>
+      <div><h3>逐句評估</h3><p>依 rubric 產出分數、證據與建議。</p></div>
+      <div><h3>追蹤成長</h3><p>個人與團隊儀表板呈現趨勢與弱點。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="arch">
+  <div class="wrap">
+    <div class="eyebrow">System Architecture</div>
+    <h2>系統架構</h2>
+    <p class="lead">前端負責語音擷取與 3D 渲染；後端統籌對話狀態、RAG 檢索與評估流程；模型層可替換，資料層保存知識庫向量與訓練紀錄。</p>
+    <div class="arch">
+      <svg viewBox="0 0 920 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI Coach 系統架構圖">
+        <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5 0 10z" fill="#555"/></marker></defs>
+        <!-- lanes -->
+        <rect class="lane" x="10" y="10" width="200" height="380" rx="10"/><text class="lbl" x="24" y="32">FRONTEND</text>
+        <rect class="lane" x="230" y="10" width="240" height="380" rx="10"/><text class="lbl" x="244" y="32">BACKEND</text>
+        <rect class="lane" x="490" y="10" width="200" height="380" rx="10"/><text class="lbl" x="504" y="32">AI MODELS</text>
+        <rect class="lane" x="710" y="10" width="200" height="380" rx="10"/><text class="lbl" x="724" y="32">DATA</text>
+        <!-- frontend -->
+        <rect class="box" x="30" y="60" width="160" height="60" rx="8"/><text x="44" y="84">Web App</text><text class="sub" x="44" y="104">React / Vite</text>
+        <rect class="box" x="30" y="140" width="160" height="60" rx="8"/><text x="44" y="164">3D Avatar</text><text class="sub" x="44" y="184">Three.js · 口型同步</text>
+        <rect class="box" x="30" y="220" width="160" height="60" rx="8"/><text x="44" y="244">語音擷取</text><text class="sub" x="44" y="264">WebRTC / WebSocket</text>
+        <rect class="box" x="30" y="300" width="160" height="60" rx="8"/><text x="44" y="324">評估儀表板</text><text class="sub" x="44" y="344">學員 / 主管視圖</text>
+        <!-- backend -->
+        <rect class="box hi" x="250" y="60" width="200" height="60" rx="8"/><text class="hi-text" x="264" y="84">API Gateway</text><text class="sub" x="264" y="104" style="fill:#555">FastAPI · Auth · WS</text>
+        <rect class="box" x="250" y="140" width="200" height="60" rx="8"/><text x="264" y="164">對話編排器</text><text class="sub" x="264" y="184">情境狀態 · 難度調節</text>
+        <rect class="box" x="250" y="220" width="200" height="60" rx="8"/><text x="264" y="244">RAG Pipeline</text><text class="sub" x="264" y="264">切塊 · Embedding · 檢索</text>
+        <rect class="box" x="250" y="300" width="200" height="60" rx="8"/><text x="264" y="324">評估引擎</text><text class="sub" x="264" y="344">Rubric · 逐句證據</text>
+        <!-- models -->
+        <rect class="box" x="510" y="60" width="160" height="60" rx="8"/><text x="524" y="84">LLM</text><text class="sub" x="524" y="104">角色扮演 · 評估推理</text>
+        <rect class="box" x="510" y="140" width="160" height="60" rx="8"/><text x="524" y="164">STT / TTS</text><text class="sub" x="524" y="184">串流語音辨識與合成</text>
+        <rect class="box" x="510" y="220" width="160" height="60" rx="8"/><text x="524" y="244">Embedding</text><text class="sub" x="524" y="264">知識向量化</text>
+        <rect class="box" x="510" y="300" width="160" height="60" rx="8"/><text x="524" y="324">Avatar 驅動</text><text class="sub" x="524" y="344">音素 → 表情參數</text>
+        <!-- data -->
+        <rect class="box" x="730" y="60" width="160" height="60" rx="8"/><text x="744" y="84">向量資料庫</text><text class="sub" x="744" y="104">企業知識索引</text>
+        <rect class="box" x="730" y="140" width="160" height="60" rx="8"/><text x="744" y="164">關聯式資料庫</text><text class="sub" x="744" y="184">使用者 · 對練紀錄 · 評分</text>
+        <rect class="box" x="730" y="220" width="160" height="60" rx="8"/><text x="744" y="244">物件儲存</text><text class="sub" x="744" y="264">文件原檔 · 錄音</text>
+        <rect class="box" x="730" y="300" width="160" height="60" rx="8"/><text x="744" y="324">企業文件來源</text><text class="sub" x="744" y="344">PDF · Docs · FAQ</text>
+        <!-- arrows -->
+        <line x1="190" y1="90" x2="250" y2="90"/>
+        <line x1="190" y1="250" x2="250" y2="170"/>
+        <line x1="450" y1="170" x2="510" y2="90"/>
+        <line x1="450" y1="170" x2="510" y2="170"/>
+        <line x1="450" y1="250" x2="510" y2="250"/>
+        <line x1="450" y1="250" x2="730" y2="90"/>
+        <line x1="450" y1="330" x2="510" y2="100"/>
+        <line x1="450" y1="330" x2="730" y2="170"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section id="tech">
+  <div class="wrap">
+    <div class="eyebrow">Tech Stack</div>
+    <h2>使用技術</h2>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>類型</th><th>技術／服務</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td>AI 模型</td><td><span class="tag todo">LLM 供應商待填</span><span class="tag todo">STT/TTS 待填</span><span class="tag todo">Embedding 待填</span></td><td>角色扮演對話生成、評估推理、語音辨識合成、知識向量化</td></tr>
+        <tr><td>前端</td><td><span class="tag">React</span><span class="tag">Vite</span><span class="tag">Three.js</span><span class="tag">WebRTC</span></td><td>對練介面、3D 虛擬人渲染與口型同步、低延遲語音串流</td></tr>
+        <tr><td>後端</td><td><span class="tag">Python</span><span class="tag">FastAPI</span><span class="tag">WebSocket</span></td><td>對話編排、RAG 檢索、評估引擎、API 與即時通道</td></tr>
+        <tr><td>資料</td><td><span class="tag todo">向量 DB 待填</span><span class="tag">PostgreSQL</span></td><td>企業知識索引、使用者與對練紀錄</td></tr>
+        <tr><td>Sponsor 技術</td><td><span class="tag todo">依實際採用填寫</span></td><td>例：Google Cloud（部署 / Vertex AI）等</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="wrap">
+    <div class="eyebrow">Demo</div>
+    <h2>作品展示</h2>
+    <p class="lead">兩分鐘評選影片：從選擇情境、語音對練到評估報告的完整流程。</p>
+    <div class="video">
+      <!-- 影片就緒後，把下面 .ph 換成：
+      <iframe src="https://www.youtube.com/embed/VIDEO_ID" title="AI Coach Demo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      -->
+      <div class="ph">
+        <div class="play"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div>
+        評選影片即將上線
+      </div>
+    </div>
+    <div class="cta">
+      <a class="btn todo" href="#" aria-disabled="true">線上 Demo（即將開放）</a>
+      <a class="btn" href="https://github.com/james397520/futuremode-hackathon-AI_Coach#安裝與執行" target="_blank" rel="noopener">安裝與執行說明</a>
+    </div>
+  </div>
+</section>
+
+<section id="team">
+  <div class="wrap">
+    <div class="eyebrow">Team</div>
+    <h2>團隊</h2>
+    <div class="grid team" style="margin-top:48px">
+      <div class="card member"><div class="avatar">J</div><h3>james397520</h3><small>Repo Owner · 待填職責</small></div>
+      <div class="card member todo"><div class="avatar">?</div><h3>成員二</h3><small>待填</small></div>
+      <div class="card member todo"><div class="avatar">?</div><h3>成員三</h3><small>待填</small></div>
+      <div class="card member todo"><div class="avatar">?</div><h3>成員四</h3><small>待填</small></div>
+    </div>
+  </div>
+</section>
+
+<section id="future">
+  <div class="wrap">
+    <div class="eyebrow">Limitations &amp; Roadmap</div>
+    <h2>限制與未來工作</h2>
+    <div class="grid lim" style="margin-top:48px">
+      <div class="card">
+        <h3>目前已知限制</h3>
+        <ul>
+          <li>黑客松期間以單一語言（繁體中文）情境為主，多語系尚未驗證。</li>
+          <li>3D 虛擬人表情參數有限，情緒表現仍偏單一。</li>
+          <li>評估 rubric 由人工設定，尚未支援從歷史高分對話自動萃取。</li>
+          <li>語音延遲受第三方服務與網路狀況影響，尚無離線模式。</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>後續發展方向</h3>
+        <ul>
+          <li>多角色群體情境（如多方會議、家屬與病患同場）。</li>
+          <li>從企業既有的優秀對話錄音自動生成情境與 rubric。</li>
+          <li>與企業 LMS / HRIS 整合，把訓練成效接進人才發展流程。</li>
+          <li>學員長期成長曲線與團隊弱點熱區分析。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>© 2026 AI Coach Team · <a href="https://github.com/james397520/futuremode-hackathon-AI_Coach" target="_blank" rel="noopener" style="color:var(--fg-2)">GitHub</a></div>
+    <a class="fm" href="https://www.futuremode.xyz/" target="_blank" rel="noopener"><b>FUTUREMODE</b> 2026 · BUILDMODE Hackathon</a>
+  </div>
+</footer>
+
+</body>
+</html>
