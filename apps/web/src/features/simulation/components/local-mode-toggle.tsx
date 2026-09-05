@@ -13,7 +13,12 @@
  */
 import { useEffect } from 'react';
 
-import { localTtsUsable, macSttUsable, useSttCapabilities } from '../hooks/use-stt-capabilities';
+import {
+  localTtsSingleVoice,
+  localTtsUsable,
+  macSttUsable,
+  useSttCapabilities,
+} from '../hooks/use-stt-capabilities';
 import { insetSurface, toneText } from '../lib/tone';
 import { useSessionActions, useSessionStore } from '../store/session-store';
 import { cn } from './kit';
@@ -81,14 +86,18 @@ function Pill({
 
 /**
  * Customer voice: on this machine (local) vs ElevenLabs (cloud). "Local" means
- * the local TTS *model* (services/local-tts, Kokoro zh) when the API reports it
- * reachable, and the OS system voice otherwise — the tooltip says which.
+ * the local TTS *model* (services/local-tts — Breeze2-VITS, Taiwanese) when the
+ * API reports it reachable, and the OS system voice otherwise; the tooltip says
+ * which, and names the model the server actually answered with rather than a
+ * hard-coded one, so swapping engines cannot leave the UI lying.
  */
 export function TtsLocalToggle({ className }: { className?: string }) {
   const speechEngine = useSessionStore((s) => s.voice.speechEngine);
   const actions = useSessionActions();
   const cap = useSttCapabilities();
   const localModel = localTtsUsable(cap);
+  const oneVoice = localTtsSingleVoice(cap);
+  const model = cap?.tts?.local?.model;
   const on = speechEngine === 'system';
 
   useEffect(() => {
@@ -104,10 +113,12 @@ export function TtsLocalToggle({ className }: { className?: string }) {
       title={
         on
           ? localModel
-            ? '客戶語音：本地模型（Kokoro 中文，離線、免費、不外傳；模型無回應時改用系統語音）。點擊改用雲端 ElevenLabs。'
+            ? `客戶語音：本地模型${model ? `（${model}）` : ''}，離線、免費、不外傳${
+                oneVoice ? '；這個模型只有一個女聲，所有人物都用它' : ''
+              }。模型無回應時改用系統語音。點擊改用雲端 ElevenLabs。`
             : '客戶語音：這台電腦的系統語音（離線、免費）。點擊改用雲端 ElevenLabs。'
           : localModel
-            ? '客戶語音：雲端 ElevenLabs（音質較好，需網路）。點擊改用本地模型。'
+            ? '客戶語音：雲端 ElevenLabs（男女聲皆有，需網路）。點擊改用本地模型。'
             : '客戶語音：雲端 ElevenLabs（音質較好，需網路）。點擊改用本地系統語音。'
       }
       onClick={() => {
@@ -153,5 +164,26 @@ export function SttLocalToggle({ className }: { className?: string }) {
       }}
       className={className}
     />
+  );
+}
+
+/**
+ * The one thing about local mode that cannot live in a tooltip.
+ *
+ * Breeze2-VITS has a single female speaker, so with 「說：本地」 on, a
+ * 67-year-old male customer answers in a young woman's voice. Nobody hovers a
+ * pill mid-demo; they hear the wrong voice and start debugging something that
+ * is working exactly as designed. So it is written next to the composer, and
+ * only while it is actually true — local voice on, and the server reporting a
+ * single-speaker model.
+ */
+export function TtsLocalVoiceNote() {
+  const speechEngine = useSessionStore((s) => s.voice.speechEngine);
+  const cap = useSttCapabilities();
+  if (speechEngine !== 'system' || !localTtsSingleVoice(cap)) return null;
+  return (
+    <span className="text-text-tertiary" title="改用雲端 ElevenLabs 才有男女聲之分。">
+      本地語音：單一女聲（不分男女）
+    </span>
   );
 }

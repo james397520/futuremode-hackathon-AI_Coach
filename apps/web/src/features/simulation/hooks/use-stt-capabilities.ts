@@ -14,6 +14,8 @@ export interface LocalTtsCapability {
   available: boolean;
   model?: string;
   voices?: string[];
+  /** The model has one speaker, so the persona's gender cannot reach the voice. */
+  singleSpeaker?: boolean;
   reason?: string;
 }
 
@@ -42,4 +44,16 @@ export function macSttUsable(cap: SttCapability | null): boolean {
 /** The on-device TTS *model* (not the OS voice) answered the API's health probe. */
 export function localTtsUsable(cap: SttCapability | null): boolean {
   return Boolean(cap?.tts?.local?.available);
+}
+
+/**
+ * The local model speaks with one voice for every persona.
+ *
+ * Breeze2-VITS ships a single female speaker, so in local mode a 67-year-old
+ * male customer answers in a young woman's voice. That is a deliberate choice
+ * (HANDOFF §16.16) and the only wrong way to ship it is silently — someone
+ * would spend the demo debugging a voice that is working as designed.
+ */
+export function localTtsSingleVoice(cap: SttCapability | null): boolean {
+  return Boolean(cap?.tts?.local?.available && cap?.tts?.local?.singleSpeaker);
 }

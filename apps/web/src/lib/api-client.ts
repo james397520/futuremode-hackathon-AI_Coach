@@ -391,7 +391,13 @@ export const endpoints = {
       mac: { available: boolean; onDevice?: boolean; authorization?: string; reason?: string };
       tts?: {
         default: string;
-        local: { available: boolean; model?: string; voices?: string[]; reason?: string };
+        local: {
+          available: boolean;
+          model?: string;
+          voices?: string[];
+          singleSpeaker?: boolean;
+          reason?: string;
+        };
       };
     }>('/api/v1/sessions/stt/capabilities'),
   /** Multipart upload; the server issues signed storage URLs (§73). */

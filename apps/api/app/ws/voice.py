@@ -713,6 +713,12 @@ async def probe_local_tts(
             "voices": list(data.get("voices") or []),
             "device": data.get("device"),
             "rtf_last": data.get("rtf_last"),
+            # Breeze2-VITS has one speaker, so a persona's gender cannot reach
+            # the voice. The UI has to say so: a 67-year-old man answering in a
+            # young woman's voice reads as a bug unless it is labelled.
+            # camelCase on the wire, matching `mac.onDevice` on the same
+            # endpoint (that one comes straight out of the Swift helper).
+            "singleSpeaker": bool(data.get("single_speaker")),
         }
     except Exception as exc:
         return {"available": False, "reason": type(exc).__name__}
