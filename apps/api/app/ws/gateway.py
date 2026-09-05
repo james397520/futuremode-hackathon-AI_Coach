@@ -83,6 +83,8 @@ async def session_ws_endpoint(
     emitters: EventEmitterRegistry | None = None,
     authenticate: AuthResolver | None = None,
     session_service_factory: ServiceResolver | None = None,
+    ctx: Any = None,
+    session_factory: Any = None,
 ) -> None:
     """FastAPI websocket route body.
 
@@ -92,11 +94,17 @@ async def session_ws_endpoint(
     `SessionService`.
     """
     registry = emitters or EMITTERS
-    ctx: Any = None
     service: Any = None
     try:
-        ctx = await (authenticate or _default_authenticate)(websocket, token or "")
-        service = await (session_service_factory or _default_session_service)(ctx)
+        # The router authenticates the upgrade through its own `WsCtx`
+        # dependency (cookie + Origin allowlist) and hands the resolved context
+        # in. Re-deriving it here would verify the same token twice and, more
+        # importantly, would fail: the router never forwards a raw token.
+        if ctx is None:
+            ctx = await (authenticate or _default_authenticate)(websocket, token or "")
+        service = await (session_service_factory or _default_session_service)(
+            ctx, session_factory=session_factory
+        )
         session = await service.get(session_id)
         _authorise(session, ctx)
     except SocketAuthError as exc:
@@ -411,7 +419,17 @@ async def _default_authenticate(websocket: Any, token: str) -> Any:
     candidate = token
     if not candidate:
         cookies = getattr(websocket, "cookies", {}) or {}
-        candidate = str(cookies.get("access_token") or "")
+        # The cookie is named by settings (`COOKIE_NAME`, default
+        # `aicoach_session`) — `access_token` was a guess and never matched what
+        # the login route actually sets, so every browser socket fell through to
+        # "missing credentials" and closed 403.
+        try:
+            from app.core.config import get_settings
+
+            cookie_name = get_settings().session_cookie_name
+        except Exception:  # noqa: BLE001 - settings unavailable in isolated tests
+            cookie_name = "aicoach_session"
+        candidate = str(cookies.get(cookie_name) or cookies.get("access_token") or "")
     if not candidate:
         headers = getattr(websocket, "headers", {}) or {}
         authorization = str(headers.get("authorization") or "")
@@ -442,14 +460,20 @@ async def _default_authenticate(websocket: Any, token: str) -> Any:
     return ctx
 
 
-async def _default_session_service(ctx: Any) -> Any:
-    """Build a `SessionService` with its own DB session for the socket's lifetime."""
-    from app.db.session import get_sessionmaker  # assumed: app.db.session
+async def _default_session_service(ctx: Any, *, session_factory: Any = None) -> Any:
+    """Build a `SessionService` with its own DB session for the socket's lifetime.
+
+    The router passes its sessionmaker so the socket does not build a second
+    engine; falling back to `get_sessionmaker()` keeps direct callers working.
+    """
     from app.services.session_service import SessionService
 
-    maker = get_sessionmaker()
-    db = maker()
-    return SessionService(db, ctx, emitters=EMITTERS)
+    maker = session_factory
+    if maker is None:
+        from app.db.session import get_sessionmaker
+
+        maker = get_sessionmaker()
+    return SessionService(maker(), ctx, emitters=EMITTERS)
 
 
 def _authorise(session: Any, ctx: Any) -> None:

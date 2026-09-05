@@ -29,10 +29,10 @@
   },
   "notes": "motion/ 與 loops/ 需先安裝 LivePortrait 引擎並執行 build_expression_bank.py 才會產生；未產生時 runtime 走 static portrait backend（avatar spec §53）。",
   "geometry": {
-    "eye_y": 0.4259,
-    "mouth_y": 0.5562,
-    "eye_dx": 0.095,
-    "centre_x": 0.4948,
-    "mouth_rx": 0.0893
+    "eye_y": 0.3606,
+    "mouth_y": 0.5289,
+    "eye_dx": 0.1023,
+    "centre_x": 0.4975,
+    "mouth_rx": 0.0989
   }
 }

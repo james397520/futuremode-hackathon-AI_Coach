@@ -560,8 +560,13 @@ class MiniMaxClient:
             self._client = None
 
     def _headers(self) -> dict[str, str]:
+        # MiniMax's own reference agent (MiniMax-AI/Mini-Agent @ d76a4f6) drives
+        # this endpoint with `Authorization: Bearer`, which is what it injects
+        # into the Anthropic SDK via `default_headers`. `X-Api-Key` also works
+        # today; both are sent so a change on either side does not break auth.
         return {
             "Content-Type": "application/json",
+            "Authorization": f"Bearer {self._api_key}",
             "X-Api-Key": self._api_key,
             "anthropic-version": "2023-06-01",
         }
@@ -604,7 +609,11 @@ class MiniMaxClient:
             system = f"{system}\n\n{instruction}" if system else instruction
         body: dict[str, Any] = {
             "model": self._default_model,
-            "max_tokens": max_tokens or 2048,
+            # 16384 to match the reference agent. M2.7 emits an interleaved
+            # `thinking` block *before* the answer and both draw on the same
+            # budget, so a 2048 cap silently truncated replies mid-sentence
+            # whenever the model reasoned at any length.
+            "max_tokens": max_tokens or 16384,
             "messages": turns,
             "temperature": temperature,
             "stream": stream,
@@ -615,12 +624,30 @@ class MiniMaxClient:
 
     @staticmethod
     def _text_from_content(content: Any) -> str:
+        """The visible answer only — `thinking` blocks are deliberately excluded.
+
+        M2.7 returns `[{type: thinking, ...}, {type: text, ...}]`. The thinking
+        block is the model's private reasoning: it must never reach a trainee as
+        the customer's line. `_thinking_from_content` exposes it separately for
+        the coach view and for debugging.
+        """
         if not isinstance(content, list):
             return ""
         return "".join(
             str(block.get("text", ""))
             for block in content
             if isinstance(block, dict) and block.get("type") == "text"
+        )
+
+    @staticmethod
+    def _thinking_from_content(content: Any) -> str:
+        """The interleaved reasoning, kept for telemetry and coach insight."""
+        if not isinstance(content, list):
+            return ""
+        return "".join(
+            str(block.get("thinking", ""))
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "thinking"
         )
 
     async def complete(

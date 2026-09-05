@@ -19,9 +19,11 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Annotated, Final
+from typing import cast, TYPE_CHECKING, Annotated, Final
 
 import structlog
+from starlette.requests import HTTPConnection
+
 from fastapi import Depends, Request
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
@@ -223,7 +225,18 @@ def rate_limit(
         )
     """
 
-    async def dependency(request: Request) -> None:
+    async def dependency(conn: HTTPConnection) -> None:
+        # `HTTPConnection`, not `Request`: this is also mounted as a *global*
+        # dependency in `main.py`, so FastAPI applies it to WebSocket routes
+        # too. A WebSocket scope has no Request to inject, and asking for one
+        # made every socket upgrade fail with "missing 1 required positional
+        # argument: 'request'" — surfaced to the client as a bare 500.
+        # HTTPConnection is the base of both Request and WebSocket, so it binds
+        # in either scope. Sockets are bounded by the connection limit and the
+        # gateway's own per-session policy, so skipping them is deliberate.
+        if conn.scope.get("type") != "http":
+            return
+        request = cast(Request, conn)
         settings = get_settings()
         if not settings.rate_limit_enabled:
             return

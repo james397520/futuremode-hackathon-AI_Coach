@@ -31,7 +31,12 @@ dependencies = [
   "tenacity>=8.3.0",                  # retry / exponential backoff (§49.4/§70)
   # --- auth / crypto -------------------------------------------------------
   "python-jose[cryptography]>=3.3.0",
+  # passlib 1.7.4 is the final release and predates bcrypt 5, which enforces the
+  # 72-byte limit strictly and moved `__about__`. Under bcrypt 5 passlib cannot
+  # even read the backend version and `dummy_verify()` raises, so every login
+  # with an unknown account 500s. Pinned until this moves off passlib.
   "passlib[bcrypt]>=1.7.4",
+  "bcrypt<5",
   # --- observability -------------------------------------------------------
   "structlog>=24.1.0",
   "opentelemetry-api>=1.25.0",

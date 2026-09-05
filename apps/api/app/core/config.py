@@ -90,7 +90,13 @@ class Settings(BaseSettings):
     minimax_base_url: str = Field(
         default="https://api.minimax.io/anthropic/v1", validation_alias="MINIMAX_BASE_URL"
     )
-    minimax_model: str = Field(default="MiniMax-M2.5", validation_alias="MINIMAX_MODEL")
+    minimax_model: str = Field(
+        # Verified against the live endpoint: MiniMax-M2.7-highspeed answers,
+        # and the M2.5 default this used to carry was stale. The deployment's
+        # .env is authoritative; this is only the fallback.
+        default="MiniMax-M2.7-highspeed",
+        validation_alias="MINIMAX_MODEL",
+    )
     llm_timeout_seconds: float = Field(default=30.0, validation_alias="LLM_TIMEOUT_SECONDS")
     embedding_model: str = Field(
         default="text-embedding-3-large", validation_alias="EMBEDDING_MODEL"

@@ -10,7 +10,7 @@
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis URL |
 | `LLM_PROVIDER` | `minimax` | 對談模型供應者 |
 | `MINIMAX_API_KEY` | 空 | 僅 API/worker 可讀 |
-| `MINIMAX_MODEL` | `MiniMax-M2.5` | 可設為可用的 MiniMax 模型 |
+| `MINIMAX_MODEL` | `MiniMax-M2.7-highspeed` | 可設為可用的 MiniMax 模型 |
 | `JWT_SECRET` | `change-me` | production 必須為 32+ 字元隨機值 |
 
 ## 本機最小模式

@@ -695,6 +695,148 @@ def _duration_ms(started: Any, ended: Any) -> int:
     return max(0, int((stop - start).total_seconds() * 1000))
 
 
+# ---------------------------------------------------------------------------
+# Router-facing names
+#
+# `app/api/v1/routers/sessions.py` and this module were written against the same
+# README contract but landed on different verbs — the router says
+# `create_session`, the service says `create`. Rather than rename one side and
+# churn both files, the router's vocabulary is bound here explicitly. Aliases,
+# not reimplementations: there is exactly one code path per operation.
+#
+# The four at the end had no counterpart at all and are implemented against what
+# the service already exposes.
+# ---------------------------------------------------------------------------
+
+
+async def _session_response(self: SessionService, view: Any) -> Any:
+    """Assemble the router's `SessionResponse` around a `SessionView`.
+
+    The service returns the session row; the router's contract is the whole
+    start-up bundle the client needs in one round trip — pinned scenario and
+    persona, the opening persona state, the runtime policy and the socket URL.
+    Building it here keeps `create()` focused on persistence.
+    """
+    from app.domain.request_response import (
+        PersonaResponse,
+        ScenarioResponse,
+        SessionResponse,
+    )
+    from app.domain.runtime import RuntimePolicy
+    from app.domain.session import TrainingSession
+
+    scenario = await self.repo.get("Scenario", view.scenario_id)
+    persona = await self.repo.get("Persona", view.persona_id)
+
+    def _shape(model: Any, row: Any) -> Any:
+        if row is None:
+            return model.model_construct()
+        data = {
+            k: getattr(row, k)
+            for k in model.model_fields
+            if hasattr(row, k) and getattr(row, k) is not None
+        }
+        return model.model_construct(**data)
+
+    # SessionView is this service's row projection; the response contract wants
+    # the shared TrainingSession model. Same fields by design (ADR-0002), so the
+    # conversion is a projection rather than a mapping.
+    session_model = TrainingSession.model_validate(
+        {k: v for k, v in view.model_dump().items() if k in TrainingSession.model_fields}
+    )
+
+    return SessionResponse(
+        session=session_model,
+        scenario=_shape(ScenarioResponse, scenario),
+        persona=_shape(PersonaResponse, persona),
+        persona_state=self.initial_persona_state(self.pin(scenario, persona))
+        if scenario is not None and persona is not None
+        else None,
+        # §44 / §61 client runtime policy. Conservative by default: local model
+        # cache on (it is only weights), sensitive-data cache off, cleared on
+        # logout. An enterprise deployment tightens this from settings.
+        runtime_policy=RuntimePolicy(
+            webgpu="auto",
+            allow_local_model_cache=True,
+            allow_sensitive_data_cache=False,
+            clear_on_logout=True,
+        ),
+        # The route is registered on the sessions router as `/{session_id}/ws`,
+        # so the client-facing path is under the API prefix. Getting this wrong
+        # surfaces as a 403 rather than a 404 — Starlette rejects an unmatched
+        # WebSocket path that way — which sends you hunting for an auth bug.
+        websocket_url=f"/api/v1/sessions/{view.session_id}/ws",
+        resume_from_seq=0,
+        # §8.4: the coach is a Training-Mode affordance. Assessment must not get
+        # one, and that decision belongs here rather than in the client.
+        coach_enabled=str(getattr(view, "mode", "")) .endswith("training"),
+    )
+
+
+async def _create_session(self: SessionService, payload: Any) -> Any:
+    if isinstance(payload, CreateSessionRequest):
+        return await _session_response(self, await self.create(payload))
+    raw = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload)
+    # The router's request model carries `capability` (the browser's WebGPU probe,
+    # §59) which this service does not consume, and omits `locale`, which it
+    # defaults. Project onto the fields the service actually declares rather than
+    # splatting: an unknown key is a validation error, not a warning.
+    accepted = set(CreateSessionRequest.model_fields)
+    view = await self.create(CreateSessionRequest(**{k: v for k, v in raw.items() if k in accepted}))
+    return await _session_response(self, view)
+
+
+async def _list_events(
+    self: SessionService, session_id: str, *, since_seq: int = 0, limit: int = 200
+) -> list[dict[str, Any]]:
+    """Replay buffered stream events (§55 gap recovery over HTTP)."""
+    emitter = self.emitters.get(session_id)
+    if emitter is None:
+        return []
+    events = await emitter.replay_since(since_seq)
+    return events[:limit]
+
+
+async def _get_evaluation(self: SessionService, session_id: str) -> Any:
+    await self._require(session_id, read_only=True)      # tenant scope + existence
+    return await self.repo.get_evaluation_for_session(session_id)
+
+
+async def _override_evaluation(self: SessionService, session_id: str, payload: Any) -> Any:
+    """§28 human override. Recorded alongside the AI score, never replacing it."""
+    await self._require(session_id, read_only=True)
+    data = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload)
+    return await self.repo.override_evaluation(
+        session_id, reviewer_id=self.ctx.user_id, **data
+    )
+
+
+async def _request_hint(self: SessionService, session_id: str, payload: Any = None) -> Any:
+    """§24 Training-Mode hint. Assessment Mode must never reach this."""
+    view = await self._require(session_id, read_only=True)
+    mode = getattr(view, "mode", None) or getattr(getattr(view, "session", None), "mode", None)
+    if str(mode) == "assessment":
+        raise ValidationFailedError("hints are not available in assessment mode")
+    orchestrator = self._build_orchestrator(session_id)
+    return await orchestrator.request_hint(
+        session_id, payload.model_dump() if hasattr(payload, "model_dump") else (payload or {})
+    )
+
+
+SessionService.create_session = _create_session          # type: ignore[attr-defined]
+SessionService.end_session = SessionService.end          # type: ignore[attr-defined]
+SessionService.get_session = SessionService.get          # type: ignore[attr-defined]
+SessionService.get_transcript = SessionService.transcript  # type: ignore[attr-defined]
+SessionService.list_sessions = SessionService.list_for_user  # type: ignore[attr-defined]
+SessionService.pause_session = SessionService.pause      # type: ignore[attr-defined]
+SessionService.post_message = SessionService.handle_message  # type: ignore[attr-defined]
+SessionService.resume_session = SessionService.resume    # type: ignore[attr-defined]
+SessionService.list_events = _list_events                # type: ignore[attr-defined]
+SessionService.get_evaluation = _get_evaluation          # type: ignore[attr-defined]
+SessionService.override_evaluation = _override_evaluation  # type: ignore[attr-defined]
+SessionService.request_hint = _request_hint              # type: ignore[attr-defined]
+
+
 __all__ = [
     "LIVE_STATES",
     "SESSION_TRANSITIONS",

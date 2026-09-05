@@ -17,6 +17,7 @@ Services always talk to a `RepositoryPort`, never to SQLAlchemy directly.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from datetime import UTC, date, datetime
 from typing import Any, Protocol, runtime_checkable
 
 import structlog
@@ -210,9 +211,46 @@ class Repository:
         result = await self.db.execute(statement)
         return list(result.scalars().all())
 
+    @staticmethod
+    def _coerce_temporal(cls: Any, payload: dict[str, Any]) -> dict[str, Any]:
+        """Parse ISO strings destined for date/datetime columns.
+
+        Services build rows with `iso_now()` because that is what the JSON
+        responses need, and asyncpg rejects a string for TIMESTAMPTZ outright
+        ("expected a datetime.date or datetime.datetime instance, got 'str'").
+        Converting once here beats auditing every call site, and beats each
+        service remembering which of its fields happen to be columns.
+        """
+        table = getattr(cls, "__table__", None)
+        if table is None:
+            return payload
+        for name, value in list(payload.items()):
+            if not isinstance(value, str):
+                continue
+            column = table.columns.get(name)
+            if column is None:
+                continue
+            try:
+                python_type = column.type.python_type
+            except (NotImplementedError, AttributeError):
+                continue
+            try:
+                if python_type is datetime:
+                    parsed = datetime.fromisoformat(value)
+                    # TIMESTAMPTZ needs an aware value; iso_now() is UTC.
+                    payload[name] = parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+                elif python_type is date:
+                    payload[name] = date.fromisoformat(value)
+            except ValueError:
+                # Not a timestamp after all — leave it and let the DB complain
+                # with the real column name rather than swallowing it here.
+                continue
+        return payload
+
     async def add(self, model: str, values: Mapping[str, Any]) -> Any:
         cls = Models.get(model)
         payload = translate(model, {**self._tenant_filters(cls), **dict(values)})
+        payload = self._coerce_temporal(cls, dict(payload))
         entity = cls(**{k: v for k, v in payload.items() if hasattr(cls, k)})
         self.db.add(entity)
         await self.db.flush()
@@ -222,7 +260,8 @@ class Repository:
         entity = await self.get(model, entity_id)
         if entity is None:
             return None
-        for key, value in translate(model, values).items():
+        coerced = self._coerce_temporal(type(entity), dict(translate(model, values)))
+        for key, value in coerced.items():
             if hasattr(entity, key):
                 setattr(entity, key, value)
         await self.db.flush()

@@ -50,7 +50,7 @@ import argparse
 import json
 import sys
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -162,7 +162,10 @@ _NS = uuid.uuid5(uuid.NAMESPACE_URL, "https://ai-coach.local/seed/v1")
 
 
 def sid(*parts: str) -> str:
-    return str(uuid.uuid5(_NS, "/".join(parts)))
+    # `.hex`, not `str()`: apps/api's IdMixin is String(32) holding UUID hex, so
+    # the 36-char hyphenated form overflows the column. Same uuid, same
+    # determinism, just the storage format the schema actually declares.
+    return uuid.uuid5(_NS, "/".join(parts)).hex
 
 
 NOW = datetime.now(UTC).replace(microsecond=0).isoformat()
@@ -186,6 +189,10 @@ RUBRIC_ID = sid("rubric")
 
 ORGANIZATION: dict[str, Any] = {
     "id": ORG_ID,
+    # The ORM requires a slug; the shared contract does not declare one, so it
+    # is storage-only. Stated rather than generated because it is not derivable
+    # from a CJK name, and stable across re-seeds like the ids.
+    "_orm_extra": {"slug": "anrui-life-demo"},
     "name": "安睿人壽（示範用虛構公司）",
     "created_at": NOW,
 }
@@ -193,6 +200,7 @@ ORGANIZATION: dict[str, Any] = {
 WORKSPACE: dict[str, Any] = {
     "id": WS_ID,
     "tenant_id": ORG_ID,
+    "_orm_extra": {"slug": "personal-life-training"},
     "name": "個人壽險業務訓練中心",
     "kind": "b2b",
     "created_at": NOW,
@@ -210,6 +218,31 @@ TEAM: dict[str, Any] = {
 }
 
 
+DEMO_PASSWORD = "demo-only-not-a-secret"
+
+_DEMO_HASH_CACHE: str | None = None
+
+
+def _demo_password_hash() -> str:
+    """Hash the demo password with the API's own hasher.
+
+    Computed once and reused: bcrypt is deliberately slow, and four users would
+    otherwise cost four full rounds for no benefit — they share one password by
+    design. Falls back to a marker when apps/api is not importable, so building
+    the JSON fixture still works on a machine with no API venv; the marker is not
+    a valid hash, so it can never accidentally authenticate.
+    """
+    global _DEMO_HASH_CACHE
+    if _DEMO_HASH_CACHE is not None:
+        return _DEMO_HASH_CACHE
+    hasher = resolve("app.core.security:hash_password", "hashing the demo password")
+    if hasher is None:
+        _DEMO_HASH_CACHE = "!unhashed-seed-password"
+    else:
+        _DEMO_HASH_CACHE = hasher(DEMO_PASSWORD)
+    return _DEMO_HASH_CACHE
+
+
 def _user(key: str, email: str, name: str, roles: list[str], in_team: bool = True) -> dict[str, Any]:
     return {
         "id": sid("user", key),
@@ -221,12 +254,44 @@ def _user(key: str, email: str, name: str, roles: list[str], in_team: bool = Tru
         "team_ids": [TEAM_ID] if in_team else [],
         "created_at": NOW,
         "updated_at": NOW,
-        # Local-only demo credential. The API is expected to hash this on
-        # insert; it is never a real secret and never leaves a dev machine.
-        # `apps/api/app/core/config.py` refuses to boot outside APP_ENV=local
-        # with placeholder secrets, which is the backstop here.
-        "_demo_password": "demo-only-not-a-secret",
+        # Local-only demo credential. It is never a real secret and never leaves
+        # a dev machine; `apps/api/app/core/config.py` refuses to boot outside
+        # APP_ENV=local with placeholder secrets, which is the backstop.
+        #
+        # This used to say "the API is expected to hash this on insert" — but the
+        # reflective ORM path writes columns directly and no application code
+        # runs, so `password_hash` stayed NULL and every demo login returned 401.
+        # Hash it here, at build time, via the API's own hasher so the cost
+        # factor and scheme match what the login path verifies against.
+        "_demo_password": DEMO_PASSWORD,
+        "_orm_extra": {"password_hash": _demo_password_hash()},
     }
+
+
+# Roles and team membership are join tables, not columns on the user. The
+# reflective inserter drops `roles` / `team_ids` from the user row (the model has
+# no such columns), so without these the demo users log in with no roles and no
+# workspace — authenticated but unable to see anything.
+ROLE_ASSIGNMENTS: list[dict[str, Any]] = []
+USER_TEAMS: list[dict[str, Any]] = []
+
+
+def _expand_memberships(users: list[dict[str, Any]]) -> None:
+    for user in users:
+        for role in user["roles"]:
+            ROLE_ASSIGNMENTS.append(
+                {
+                    "id": sid("role", user["id"], role),
+                    "tenant_id": ORG_ID,
+                    "workspace_id": WS_ID,
+                    "user_id": user["id"],
+                    "role": role,
+                    "created_at": NOW,
+                    "updated_at": NOW,
+                }
+            )
+        for team_id in user["team_ids"]:
+            USER_TEAMS.append({"user_id": user["id"], "team_id": team_id})
 
 
 USERS: list[dict[str, Any]] = [
@@ -235,6 +300,8 @@ USERS: list[dict[str, Any]] = [
     _user("manager", "manager@demo.ai-coach.local", "張淑芬", ["manager", "coach"]),
     _user("admin", "admin@demo.ai-coach.local", "系統管理員", ["admin"], in_team=False),
 ]
+
+_expand_memberships(USERS)
 
 # -----------------------------------------------------------------------------
 # Persona — §59 verbatim where the spec is explicit.
@@ -583,6 +650,15 @@ for index, (section, text, tags) in enumerate(_CHUNK_TEXT):
         {
             "id": sid("chunk", str(index)),
             "document_id": DOC_ID,
+            # Denormalised onto the row by the ORM: every retrieval query filters
+            # by tenant + workspace, and a chunk that cannot be filtered without
+            # a join to its document is a chunk that will eventually be returned
+            # across a tenant boundary (§39 / §74).
+            "_orm_extra": {
+                "knowledge_base_id": KB_ID,
+                "tenant_id": ORG_ID,
+                "workspace_id": WS_ID,
+            },
             "document_version": 1,
             "index": index,
             "text": text,
@@ -699,6 +775,8 @@ def build_payload() -> dict[str, Any]:
         "personas": [PERSONA],
         "scenarios": [SCENARIO],
         "scenario_success_assertions": SCENARIO_SUCCESS_ASSERTIONS,
+        "role_assignments": ROLE_ASSIGNMENTS,
+        "user_teams": USER_TEAMS,
     }
 
 
@@ -712,6 +790,8 @@ _DOMAIN_CANDIDATES: dict[str, tuple[str, ...]] = {
     "workspaces": ("Workspace",),
     "teams": ("Team",),
     "users": ("User",),
+    "role_assignments": ("RoleAssignment",),
+    "user_teams": ("user_team",),
     "knowledge_bases": ("KnowledgeBase",),
     "documents": ("KnowledgeDocument", "Document"),
     "chunks": ("Chunk",),
@@ -840,6 +920,8 @@ _ORM_CANDIDATES: dict[str, tuple[str, ...]] = {
     "workspaces": ("Workspace",),
     "teams": ("Team",),
     "users": ("User",),
+    "role_assignments": ("RoleAssignment",),
+    "user_teams": ("user_team",),
     "knowledge_bases": ("KnowledgeBase",),
     "documents": ("KnowledgeDocument", "Document"),
     "chunks": ("Chunk",),
@@ -914,15 +996,57 @@ def persist_via_orm(payload: dict[str, Any], force: bool) -> bool:
     return True
 
 
+def _coerce(value: Any, column: Any) -> Any:
+    """Turn JSON scalars into what the driver expects for this column.
+
+    The payload is written to disk as JSON before it is inserted, so timestamps
+    arrive as ISO strings. psycopg would parse those; asyncpg will not — it
+    raises `invalid input for query argument ... (expected a datetime.date or
+    datetime.datetime instance, got 'str')` — so the conversion has to happen
+    here rather than being left to the driver.
+    """
+    if value is None or not isinstance(value, str):
+        return value
+    python_type: Any
+    try:
+        python_type = column.type.python_type
+    except (NotImplementedError, AttributeError):
+        return value
+    if python_type is datetime:
+        try:
+            parsed = datetime.fromisoformat(value)
+        except ValueError:
+            return value
+        # Postgres TIMESTAMPTZ wants an aware datetime; a naive one from the
+        # payload is UTC by construction (see _now()).
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+    if python_type is date:
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            return value
+    if python_type is uuid.UUID:
+        try:
+            return uuid.UUID(value)
+        except ValueError:
+            return value
+    return value
+
+
 def _narrow(model: Any, row: dict[str, Any], entity: str) -> dict[str, Any] | None:
     """Drop seed-only keys and keys the model has no column for."""
     table = getattr(model, "__table__", None)
     if table is None:
         MISSING.add(f"app.db.models:{model!r}.__table__", f"inserting {entity}")
         return None
-    columns = {c.name for c in table.columns}
-    data = {k: v for k, v in row.items() if not k.startswith("_") and k in columns}
-    dropped = {k for k in row if not k.startswith("_")} - columns
+    columns = {c.name: c for c in table.columns}
+    # `_orm_extra` carries columns the ORM requires but the shared contract does
+    # not declare (a URL slug, say). Validation strips every `_`-prefixed key, so
+    # these never reach the Pydantic models — which is the point: they are a
+    # storage concern, not part of the cross-language contract (ADR-0002).
+    merged = {**{k: v for k, v in row.items() if not k.startswith("_")}, **row.get("_orm_extra", {})}
+    data = {k: _coerce(v, columns[k]) for k, v in merged.items() if k in columns}
+    dropped = set(merged) - set(columns)
     if dropped:
         warn(f"{entity}: model has no column for {sorted(dropped)} — those values are not stored")
     required = {
@@ -953,6 +1077,8 @@ _ORDER = [
     "workspaces",
     "teams",
     "users",
+    "role_assignments",
+    "user_teams",
     "knowledge_bases",
     "documents",
     "chunks",
@@ -982,19 +1108,36 @@ def _insert_all_sync(session: Any, models: Any, payload: dict[str, Any], force: 
     return written
 
 
+async def _purge_async(session: Any, models: Any, payload: dict[str, Any]) -> None:
+    """Delete the demo rows in reverse dependency order.
+
+    Deleting per-entity as we go (the old behaviour) removes a parent while its
+    children are still present, so `--force` failed on the first FK it met:
+    workspace has knowledge_base rows pointing at it. Clearing the whole set
+    back-to-front first is the only order that holds.
+    """
+    for key, model, rows in _iter_models(models, payload, list(reversed(_ORDER))):
+        for row in rows:
+            row_id = row.get("id")
+            if row_id is None:
+                continue
+            existing = await session.get(model, row_id)
+            if existing is not None:
+                await session.delete(existing)
+        await session.flush()
+
+
 async def _insert_all_async(session: Any, models: Any, payload: dict[str, Any], force: bool) -> int:
+    if force:
+        await _purge_async(session, models, payload)
     written = 0
     for key, model, rows in _iter_models(models, payload, _ORDER):
         for row in rows:
             data = _narrow(model, row, key)
             if data is None:
                 continue
-            existing = await session.get(model, data.get("id"))
-            if existing is not None and not force:
+            if not force and await session.get(model, data.get("id")) is not None:
                 continue
-            if existing is not None:
-                await session.delete(existing)
-                await session.flush()
             session.add(model(**data))
             written += 1
         await session.flush()
@@ -1054,7 +1197,7 @@ def main(argv: list[str] | None = None) -> int:
             print("  Sign in as any of:")
             for user in USERS:
                 print(f"    {user['email']:<38} {'/'.join(user['roles'])}")
-            print(f"\n  Password for all demo users: {USERS[0]['_demo_password']}")
+            print(f"\n  Password for all demo users: {DEMO_PASSWORD}")
             print("  Then: Simulations → 已有保障客戶的保障缺口對談 → Start\n")
             return 0
 
