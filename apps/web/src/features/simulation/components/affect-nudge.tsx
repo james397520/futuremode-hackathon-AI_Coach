@@ -32,7 +32,10 @@ const NEGATIVE = new Set(['angry', 'sad', 'fearful', 'disgusted', 'contempt']);
 // would be offered help for an expression the customer never reacted to; if it
 // were lower, the reverse.
 const MIN_CONFIDENCE = 0.42;
-const SUSTAIN_MS = 1500;
+// How long the expression has to be held. Long enough not to fire on a blink
+// or a glance away, short enough that someone frowning at a demo sees the card
+// while they are still frowning.
+const SUSTAIN_MS = 1200;
 const COOLDOWN_MS = 30_000;
 const AUTO_HIDE_MS = 15_000;
 
@@ -48,6 +51,8 @@ export interface AffectNudgeProps {
 
 export function AffectNudge({ reading, cameraLive, traineesTurn, onAskHint, className }: AffectNudgeProps) {
   const [visible, setVisible] = useState(false);
+  // Forces the effect below to look again while a frown is still being held.
+  const [recheck, setRecheck] = useState(0);
   const sinceRef = useRef<number | null>(null);
   const lastShownRef = useRef(0);
   const armedRef = useRef(true);
@@ -72,19 +77,24 @@ export function AffectNudge({ reading, cameraLive, traineesTurn, onAskHint, clas
     // `armedRef` is the important guard: one continuous frown gets one card,
     // however long it lasts. Without it the cooldown alone re-showed the card
     // every 30s to someone who had already answered it.
-    if (
-      held < SUSTAIN_MS ||
-      visible ||
-      !armedRef.current ||
-      Date.now() - lastShownRef.current < COOLDOWN_MS
-    )
-      return;
+    if (held < SUSTAIN_MS) {
+      // The analyser only emits when the label changes or the confidence moves
+      // (`shouldEmit`), so *holding* a frown produces no further readings — and
+      // this effect, which only runs on a new reading, never got to see that
+      // the 1.5 s had elapsed. A steady frown therefore never opened the card,
+      // which is exactly the way anyone actually frowns at a demo. Come back
+      // when the time is up instead of waiting for a signal that will not
+      // arrive.
+      const timer = window.setTimeout(() => setRecheck((n) => n + 1), SUSTAIN_MS - held + 50);
+      return () => window.clearTimeout(timer);
+    }
+    if (visible || !armedRef.current || Date.now() - lastShownRef.current < COOLDOWN_MS) return;
 
     armedRef.current = false;
     lastShownRef.current = Date.now();
     setVisible(true);
     hideTimerRef.current = window.setTimeout(() => setVisible(false), AUTO_HIDE_MS);
-  }, [reading, cameraLive, traineesTurn, visible]);
+  }, [reading, cameraLive, traineesTurn, visible, recheck]);
 
   useEffect(
     () => () => {

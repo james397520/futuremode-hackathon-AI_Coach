@@ -47,8 +47,8 @@ def test_a_weak_face_reading_counts_as_silence() -> None:
 
 
 def test_agreement_beats_either_signal_alone() -> None:
-    alone = fuse_affect(text("不耐煩", "medium"), None)
-    together = fuse_affect(text("不耐煩", "medium"), face("angry", 0.8))
+    alone = fuse_affect(text("苦惱", "medium"), None)
+    together = fuse_affect(text("苦惱", "medium"), face("angry", 0.8))
     assert together.source == "both"
     assert together.confidence > alone.confidence
     assert together.conflict is False

@@ -287,9 +287,9 @@ class CustomerAgent(Agent[CustomerTurnRequest, CustomerReply]):
         weak = confidence < cls.FACE_REACT_MIN_CONFIDENCE
         if source == "none" or weak or label in ("", "不明確", "平穩"):
             return "表情沒有明顯訊號，照常回應，不要提到對方的表情。"
-        if label == "不耐煩":
+        if label == "苦惱":
             return (
-                "業務此刻明顯不太認同或不耐煩。像真人一樣先用**一句**確認："
+                "業務此刻看起來有點苦惱或不太認同。像真人一樣先用**一句**確認："
                 "「你好像不太認同我剛講的？」或「我是不是哪裡講錯了？」，"
                 "然後停下來等對方回答。不要分析對方情緒、不要道歉過頭、不要改變你的立場。"
             )

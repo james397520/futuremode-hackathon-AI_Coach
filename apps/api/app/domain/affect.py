@@ -30,7 +30,7 @@ from app.domain.common import DomainModel
 
 #: The team's six-label space (`backend/app/schemas.py::EmotionContent`), kept
 #: verbatim so readings from either system are directly comparable.
-AffectLabel = Literal["平穩", "緊張", "不耐煩", "挫折", "正向", "不明確"]
+AffectLabel = Literal["平穩", "緊張", "苦惱", "挫折", "正向", "不明確"]
 AffectIntensity = Literal["low", "medium", "high", "unknown"]
 
 #: The browser classifier's eight labels mapped into the six above. `surprised`
@@ -40,9 +40,14 @@ FACE_TO_LABEL: dict[str, AffectLabel] = {
     "neutral": "平穩",
     "happy": "正向",
     "sad": "挫折",
-    "angry": "不耐煩",
-    "disgusted": "不耐煩",
-    "contempt": "不耐煩",
+    # 苦惱, not 不耐煩. These three rules fire on a brow-lowered, mouth-tightened
+    # face, and on the *trainee* that reads as someone struggling with what they
+    # just heard, not someone impatient with the customer. The label is shown
+    # over their own picture and drives an offer of help, so it has to name the
+    # state the offer answers.
+    "angry": "苦惱",
+    "disgusted": "苦惱",
+    "contempt": "苦惱",
     "fearful": "緊張",
     "surprised": "不明確",
 }

@@ -149,9 +149,10 @@ export const FACE_TO_AFFECT_LABEL: Record<AffectLabel, string> = {
   neutral: '平穩',
   happy: '正向',
   sad: '挫折',
-  angry: '不耐煩',
-  disgusted: '不耐煩',
-  contempt: '不耐煩',
+  // 苦惱 rather than 不耐煩 — see `FACE_TO_LABEL` in the API's `domain/affect.py`.
+  angry: '苦惱',
+  disgusted: '苦惱',
+  contempt: '苦惱',
   fearful: '緊張',
   surprised: '不明確',
 };

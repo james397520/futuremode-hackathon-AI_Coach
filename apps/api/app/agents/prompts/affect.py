@@ -20,7 +20,7 @@ from __future__ import annotations
 from app.agents.prompts.common import untrusted_block
 
 #: Their six labels, kept verbatim so the two systems can be compared directly.
-AFFECT_LABELS = ("平穩", "緊張", "不耐煩", "挫折", "正向", "不明確")
+AFFECT_LABELS = ("平穩", "緊張", "苦惱", "挫折", "正向", "不明確")
 AFFECT_INTENSITIES = ("low", "medium", "high", "unknown")
 
 

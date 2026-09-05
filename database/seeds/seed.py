@@ -509,7 +509,7 @@ SCENARIO_SUCCESS_ASSERTIONS: list[dict[str, Any]] = [
 #
 #   A  模糊意圖 → 反問釐清   intent AMBIGUOUS/INCOMPLETE → CLARIFY, options listed in character
 #   B  超綱話題 → 溫和收斂   intent OFF_TOPIC / restricted_topics → REDIRECT, never a canned refusal
-#   C  不悅表情 → 主動確認   webcam affect (angry → 不耐煩) → persona checks in before continuing
+#   C  不悅表情 → 主動確認   webcam affect (angry → 苦惱) → persona checks in before continuing
 #
 # Personas carry no explicit voice_id: apps/api/app/ws/voice_catalog.py picks the
 # ElevenLabs voice from gender + age (張經理 45 → middle female; 王伯伯 67 → the
