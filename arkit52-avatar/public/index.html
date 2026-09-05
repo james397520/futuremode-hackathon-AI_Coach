@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ARKit 52 Avatar Viewer — V0</title>
+<style>
+  :root {
+    --bg: #101318;
+    --panel: #181d25;
+    --panel2: #1f2530;
+    --text: #e8ecf1;
+    --muted: #8a94a3;
+    --accent: #4f8cff;
+    --accent2: #35c28f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; overflow: hidden; }
+  #app { display: flex; height: 100%; }
+  #stage { flex: 1; position: relative; min-width: 0; }
+  #stage canvas { display: block; }
+  #hud { position: absolute; left: 12px; top: 12px; background: rgba(16,19,24,.72);
+    border: 1px solid #2a3240; border-radius: 8px; padding: 8px 12px; font-size: 12px;
+    color: var(--muted); pointer-events: none; white-space: pre; }
+  #drophint { position: absolute; left: 12px; bottom: 12px; font-size: 12px; color: var(--muted);
+    background: rgba(16,19,24,.6); padding: 6px 10px; border-radius: 6px; pointer-events: none; }
+  #panel { width: 340px; background: var(--panel); border-left: 1px solid #262e3a;
+    overflow-y: auto; padding: 14px; flex-shrink: 0; }
+  h1 { font-size: 15px; margin-bottom: 2px; }
+  .sub { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+  section { background: var(--panel2); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+  section h2 { font-size: 12px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .06em; margin-bottom: 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; }
+  button { background: #2a3342; color: var(--text); border: 1px solid #38445a;
+    border-radius: 7px; padding: 6px 10px; font-size: 13px; cursor: pointer; }
+  button:hover { background: #33405a; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { filter: brightness(1.1); }
+  button.active { background: var(--accent2); border-color: var(--accent2); color: #08281c; }
+  .mgroup { margin-bottom: 8px; }
+  .mgroup .mhead { font-size: 11px; color: var(--muted); margin-bottom: 4px; letter-spacing: .04em; }
+  label.toggle { display: flex; align-items: center; gap: 6px; font-size: 13px;
+    color: var(--text); cursor: pointer; margin: 3px 0; }
+  details { margin: 6px 0; }
+  summary { cursor: pointer; font-size: 13px; color: var(--accent); padding: 3px 0; }
+  .slider-row { display: grid; grid-template-columns: 130px 1fr 34px; align-items: center;
+    gap: 8px; margin: 2px 0; font-size: 11.5px; }
+  .slider-row .name { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .slider-row .val { text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: var(--accent); height: 4px; }
+  #progress { height: 5px; background: #2a3240; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  #progress > div { height: 100%; width: 0%; background: var(--accent); }
+  #loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 14px; background: var(--bg); z-index: 10; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <div id="loading">載入模型中…</div>
+    <div id="hud"></div>
+    <div id="drophint">拖 .glb / .vrm 進畫面換模型 · 拖 .fbx(或 Shift+.glb)當動作檔試播</div>
+  </div>
+  <div id="panel">
+    <h1>ARKit 52 Avatar — V0</h1>
+    <div class="sub">Audio2Expression 介面驗證:52 維係數 → morphTargetInfluences</div>
+
+    <section>
+      <h2>角色</h2>
+      <div id="modelBtns"></div>
+    </section>
+
+    <section>
+      <h2>外觀(套在底模上的年齡參數)</h2>
+      <div id="lookSliders"></div>
+    </section>
+
+    <section>
+      <h2>動畫播放</h2>
+      <div class="row">
+        <button id="btnPlayJson" class="primary">▶ 播放 A2E 範例(JSON)</button>
+        <button id="btnPlayTake">▶ 內建臉捕 Take</button>
+        <button id="btnStop">■ 停止</button>
+      </div>
+      <div id="progress"><div></div></div>
+    </section>
+
+    <section>
+      <h2>情緒 Preset(疊加在說話之上)</h2>
+      <div class="row" id="emotions"></div>
+    </section>
+
+    <section>
+      <h2>運動動作(Mixamo)</h2>
+      <div class="sub" style="margin:-4px 0 8px" id="motionHint">掃描 motions/ 中…</div>
+      <div id="motionBtns"></div>
+      <div class="row" style="margin-top:6px">
+        <button id="btnMotionStop">■ 停止動作</button>
+      </div>
+      <label class="toggle" style="margin-top:6px">
+        <input type="checkbox" id="ckAutoIdle" checked> 載入模型後自動播待機動作
+      </label>
+    </section>
+
+    <section>
+      <h2>視角</h2>
+      <div class="row" id="viewBtns"></div>
+    </section>
+
+    <section>
+      <h2>手臂姿勢校正(VRM 專用)</h2>
+      <div class="sub" style="margin:-4px 0 8px">已套用你確認過的角度。要微調就拖滑桿,調完把數值告訴我,我寫成新的預設值</div>
+      <div id="armSliders"></div>
+      <div class="row" style="margin-top:4px">
+        <button id="btnArmPreset">回到預設站姿</button>
+        <button id="btnArmZero">全歸零(A-pose)</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Idle 行為(procedural)</h2>
+      <label class="toggle"><input type="checkbox" id="ckBlink" checked> 自動眨眼</label>
+      <label class="toggle"><input type="checkbox" id="ckGaze" checked> 視線微動(眼球節點)</label>
+      <label class="toggle"><input type="checkbox" id="ckHead" checked> 頭部微動</label>
+    </section>
+
+    <section>
+      <h2>手動 Blendshapes(52)</h2>
+      <div class="row" style="margin-bottom:6px">
+        <button id="btnReset">全部歸零</button>
+      </div>
+      <div id="sliders"></div>
+    </section>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js" } }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from './vendor/jsm/loaders/GLTFLoader.js';
+import { KTX2Loader } from './vendor/jsm/loaders/KTX2Loader.js';
+import { MeshoptDecoder } from './vendor/jsm/libs/meshopt_decoder.module.js';
+import { OrbitControls } from './vendor/jsm/controls/OrbitControls.js';
+import { VRMLoaderPlugin, VRMUtils } from './vendor/three-vrm.module.js';
+import { FBXLoader } from './vendor/jsm/loaders/FBXLoader.js';
+import { loadMixamoClips, rigKey, ensureBindPose } from './loadMixamoAnimation.js';
+
+// ---------- 基本場景 ----------
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x151a22);
+
+const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x3a3226, 1.6));
+const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(1.5, 1.8, 2.5); scene.add(key);
+const fill = new THREE.DirectionalLight(0x88aaff, 0.7); fill.position.set(-2, 0.5, 1); scene.add(fill);
+const rim  = new THREE.DirectionalLight(0xffe0c0, 1.0); rim.position.set(0, 1.5, -2.5); scene.add(rim);
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+
+// ---------- 狀態 ----------
+let model = null;            // gltf.scene
+let morphMeshes = [];        // 所有含 morphTargetDictionary 的 mesh
+let modelKeys = [];          // 模型實際的 morph 名稱
+let eyeNodes = [];           // { node, restQ } 眼球節點/骨骼(gaze 用)
+let headBone = null;         // Head 骨骼(RPM 類模型的頭部微動)
+let headRestQ = null;
+let vrm = null;              // three-vrm 實例(VRM 模型時非 null)
+let gazeObj = null;          // VRM lookAt 目標
+let mixer = null, takeActions = [];
+let bodyAction = null;        // 身體待機骨骼動畫(修正 Avaturn A/T-pose 手臂),與 take/compose 模式無關,一律播放
+let motionAction = null;      // 目前播放中的 Mixamo 運動動作(null = 站姿待機)
+let mode = 'compose';        // 'compose' | 'take'
+// 匹配軀幹/四肢骨骼名稱:只把「姿勢矯正」用的骨骼軌跡抽出來一律播放,
+// 刻意不含 Head/Eye,避免和自己的頭部微動、視線 saccade 打架
+const BODY_POSE_BONE = /^(Hips|Spine\d*|(Left|Right)(Shoulder|Arm|ForeArm|Hand(Index|Middle|Pinky|Ring|Thumb)?\d*|UpLeg|Leg|Foot|ToeBase))$/i;
+
+// 圖層:最終值 = manual + speech(嘴部mask) + emotion(平滑) ,眨眼取 max
+const layers = {
+  manual: {},                // slider 值(以模型 key 為準)
+  speech: {},                // JSON 播放當前 frame(以模型 key 為準)
+  emotionTarget: {},         // preset 目標
+  emotionCur: {},            // 平滑後
+};
+
+// 說話 mask:嘴部/顎/舌以 lipsync 為主,情緒只保留一小部分權重疊加(而非完全歸零),
+// 否則微笑/生氣/難過…等情緒最有辨識度的嘴角形狀在講話時會完全被蓋掉,变得毫無區別
+const SPEECH_REGION = /^(jaw|mouth|tongue)/;
+const SPEECH_MASK_WEIGHT = 0.35;
+
+// ARKit 標準名 → 模型 key。三種慣例:原名、facecap 的 _L/_R、
+// Rocketbox 的 blendShape1.AK_01_BrowDownLeft(綁定時掃出來放進 arkitAlias)
+const nameCache = {};
+let arkitAlias = {};
+function resolveKey(dict, arkitName) {
+  const hit = nameCache[arkitName];
+  if (hit !== undefined) return hit;
+  let k = null;
+  if (arkitName in dict) k = arkitName;
+  else if (arkitName.endsWith('Left') && (arkitName.slice(0, -4) + '_L') in dict) k = arkitName.slice(0, -4) + '_L';
+  else if (arkitName.endsWith('Right') && (arkitName.slice(0, -5) + '_R') in dict) k = arkitName.slice(0, -5) + '_R';
+  else k = arkitAlias[arkitName.toLowerCase()] || null;
+  nameCache[arkitName] = k;
+  return k;
+}
+
+// ---------- 載入模型 ----------
+// facecap.glb 使用 KTX2 貼圖 + meshopt 壓縮,需掛上對應 decoder
+const ktx2 = new KTX2Loader()
+  .setTranscoderPath('./vendor/jsm/libs/basis/')
+  .detectSupport(renderer);
+const loader = new GLTFLoader()
+  .setKTX2Loader(ktx2)
+  .setMeshoptDecoder(MeshoptDecoder);
+loader.register(parser => new VRMLoaderPlugin(parser));   // .vrm 也走同一個 loader
+
+// ---------- 手臂姿勢:每個模型的「自然垂放」預設角度 ----------
+// 數值單位是度,來自使用者在畫面上拖滑桿實測確認的結果(不是程式推算的——先前兩次
+// 用幾何運算/固定 90° 猜角度都猜錯,一次太高、一次縮進身體裡)。滑桿保留下來,
+// 之後要微調就拖完把數字寫回這張表。
+const ARM_PRESETS = {
+  _default: { 'leftUpperArm.z': 90, 'rightUpperArm.z': -90 },   // 拖放進來的自訂 VRM
+};
+let armPreset = ARM_PRESETS._default;
+
+const ARM_BONES = ['leftUpperArm', 'leftLowerArm', 'rightUpperArm', 'rightLowerArm'];
+const armPose = {};   // { boneName: {x,y,z} } 弧度
+for (const b of ARM_BONES) armPose[b] = { x: 0, y: 0, z: 0 };
+
+function applyArmPose() {
+  if (!vrm) return;
+  for (const name of ARM_BONES) {
+    const bone = vrm.humanoid.getNormalizedBoneNode(name);
+    if (!bone) continue;
+    const p = armPose[name];
+    bone.rotation.set(p.x, p.y, p.z);
+  }
+}
+
+const armSliderInputs = {};
+function buildArmSliders() {
+  const root = document.getElementById('armSliders');
+  root.innerHTML = '';
+  for (const bone of ARM_BONES) {
+    for (const axis of ['x', 'y', 'z']) {
+      const row = document.createElement('div'); row.className = 'slider-row';
+      const nm = document.createElement('div'); nm.className = 'name'; nm.textContent = `${bone}.${axis}`;
+      const inp = document.createElement('input');
+      inp.type = 'range'; inp.min = -180; inp.max = 180; inp.step = 1; inp.value = 0;
+      const val = document.createElement('div'); val.className = 'val'; val.textContent = '0°';
+      inp.addEventListener('input', () => {
+        const deg = +inp.value;
+        armPose[bone][axis] = deg * Math.PI / 180;
+        val.textContent = deg + '°';
+        applyArmPose();
+      });
+      armSliderInputs[bone + '.' + axis] = { inp, val };
+      row.append(nm, inp, val); root.appendChild(row);
+    }
+  }
+}
+// preset 是 { 'leftUpperArm.z': 62, ... } 這種扁平的度數表;沒列到的軸一律歸零
+function setArmPose(preset) {
+  for (const b of ARM_BONES) armPose[b] = { x: 0, y: 0, z: 0 };
+  for (const k in preset) {
+    const [bone, axis] = k.split('.');
+    if (armPose[bone]) armPose[bone][axis] = preset[k] * Math.PI / 180;
+  }
+  for (const k in armSliderInputs) {
+    const [bone, axis] = k.split('.');
+    const deg = Math.round(armPose[bone][axis] * 180 / Math.PI);
+    armSliderInputs[k].inp.value = deg;
+    armSliderInputs[k].val.textContent = deg + '°';
+  }
+  applyArmPose();
+}
+buildArmSliders();
+document.getElementById('btnArmPreset').onclick = () => setArmPose(armPreset);
+document.getElementById('btnArmZero').onclick = () => setArmPose({});
+
+// presetKey:模型檔名(對應 ARM_PRESETS),拖放進來的自訂模型傳 '_default'
+function bindModel(gltf, presetKey) {
+  if (model) scene.remove(model);
+  model = gltf.scene;
+  scene.add(model);
+
+  vrm = gltf.userData.vrm || null;
+  if (vrm) VRMUtils.rotateVRM0(vrm);        // VRM 0.x 面向修正
+  // 綁定姿勢快照必須在這裡拍 —— 主迴圈的頭部微動、駝背每幀都在改骨骼,等到第一次
+  // retarget(第一次點動作)才拍的話,拍到的是被污染的姿勢,而且污染量隨你點擊的
+  // 時機變動,每次載入怪得都不一樣。位置要在 rotateVRM0 之後,否則之後每次還原
+  // 快照會把 VRM 0.x 模型轉回背面。
+  ensureBindPose(model);
+
+  morphMeshes = [];
+  eyeNodes = [];
+  headBone = null; headRestQ = null;
+  model.traverse(o => {
+    if (o.isMesh && o.morphTargetDictionary) {
+      morphMeshes.push(o);
+      o.frustumCulled = false;                       // skinned mesh 邊界不準時避免消失
+    }
+    const nm = o.name || '';
+    // 眼球:facecap 用非 skinned 的 eyeLeft/eyeRight 節點;RPM 用 LeftEye/RightEye 骨骼
+    if (/^(eye(Left|Right)|(Left|Right)Eye|Bip\d*_[LR]Eye)$/i.test(nm) && !o.isSkinnedMesh)
+      eyeNodes.push({ node: o, restQ: o.quaternion.clone() });
+    if (o.isBone && !headBone && rigKey(nm) === 'Head') {   // Bip01_Head / mixamorigHead / Head
+      headBone = o; headRestQ = o.quaternion.clone();
+    }
+  });
+  // 主要臉 mesh:morph 數最多者中,取頂點數最大的(避免選到眼球小 mesh)
+  const maxT = Math.max(...morphMeshes.map(m => Object.keys(m.morphTargetDictionary).length), 0);
+  const faceMesh = morphMeshes
+    .filter(m => Object.keys(m.morphTargetDictionary).length === maxT)
+    .reduce((a, b) => (!a || b.geometry.attributes.position.count > a.geometry.attributes.position.count) ? b : a, null);
+  modelKeys = faceMesh ? Object.keys(faceMesh.morphTargetDictionary) : [];
+  // Rocketbox 的 175 個 blendshape 裡,AK_ 開頭那 52 個就是完整的 ARKit 52
+  arkitAlias = {};
+  for (const k of modelKeys) {
+    const m = /(?:^|\.)AK_\d+_(.+)$/.exec(k);
+    if (m) arkitAlias[m[1].toLowerCase()] = k;
+  }
+  if (faceMesh) morphMeshes = [faceMesh, ...morphMeshes.filter(m => m !== faceMesh)];
+
+  if (vrm) {
+    // VRM:改用 expressionManager 驅動;sliders 列出 VRM 表情名
+    modelKeys = Object.keys(vrm.expressionManager.expressionMap);
+    eyeNodes = [];                                     // 視線交給 vrm.lookAt
+    headBone = vrm.humanoid.getNormalizedBoneNode('head');
+    headRestQ = headBone ? headBone.quaternion.clone() : null;
+    if (!gazeObj) { gazeObj = new THREE.Object3D(); scene.add(gazeObj); }
+    if (vrm.lookAt) vrm.lookAt.target = gazeObj;
+
+    // 套用這個模型確認過的垂放角度;主迴圈會在沒有運動動作播放時每幀重新套用,
+    // 避免被動畫或 idle 邏輯蓋掉
+    armPreset = ARM_PRESETS[presetKey] || ARM_PRESETS._default;
+    setArmPose(armPreset);
+  }
+
+  // 內建動畫
+  mixer = new THREE.AnimationMixer(model);
+  takeActions = (gltf.animations || []).map(c => mixer.clipAction(c));
+  document.getElementById('btnPlayTake').disabled = !takeActions.length;
+  document.getElementById('btnPlayTake').style.opacity = takeActions.length ? 1 : 0.4;
+
+  // 身體待機姿勢:從內建 clip 抽出軀幹/四肢骨骼軌跡,一律播放(修正 Avaturn 匯出的
+  // A-pose/T-pose 手臂張開問題),與 compose/take 模式無關;臉部 morph 軌跡則保留給
+  // 「內建臉捕 Take」按鈕單獨觸發,避免同一批骨骼被兩個 action 重複驅動而打架
+  bodyAction = null;
+  const bodyTracks = [];
+  for (const clip of gltf.animations || []) {
+    for (const track of clip.tracks) {
+      const bone = track.name.split('.')[0];
+      if (BODY_POSE_BONE.test(bone)) bodyTracks.push(track);
+    }
+  }
+  if (bodyTracks.length) {
+    bodyAction = mixer.clipAction(new THREE.AnimationClip('idle-body-pose', -1, bodyTracks));
+    bodyAction.play();
+  }
+
+  // 換模型時把上一個模型的運動動作快取清掉:retarget 後的軌道是綁在該模型的
+  // normalized 骨骼節點名稱上的,換模型後不能重用
+  motionAction = null; motionLabel = null; motionActiveKey = null;
+  if (motionStopTimer) { clearTimeout(motionStopTimer); motionStopTimer = null; }
+  for (const k in motionAssets) delete motionAssets[k];
+  if (motionFiles.length) rebuildEntries();
+
+  // 攝影機取景範圍:臉部特寫優先對準臉部 mesh;沒有 morph target 的全身模型(如無
+  // blendshape 的 Avaturn 匯出)則改用 Head 骨骼位置估算頭部範圍,避免拍成全身照。
+  // 運動動作需要看到全身,所以同時算好上半身/全身兩組範圍供視角按鈕切換。
+  model.updateMatrixWorld(true);
+  let box;
+  if (faceMesh) {
+    box = new THREE.Box3().setFromObject(faceMesh);
+  } else if (headBone && !vrm) {
+    const headPos = new THREE.Vector3();
+    headBone.getWorldPosition(headPos);
+    const bodyHeight = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3()).y;
+    const h = bodyHeight / 7.5, half = h / 2;                    // 人體約 7.5 個頭高
+    box = new THREE.Box3(
+      new THREE.Vector3(headPos.x - half, headPos.y, headPos.z - half),
+      new THREE.Vector3(headPos.x + half, headPos.y + h, headPos.z + half)
+    );
+  } else {
+    box = new THREE.Box3().setFromObject(model);
+  }
+  const fullBox = new THREE.Box3().setFromObject(model);
+  const fullSize = fullBox.getSize(new THREE.Vector3());
+  // 全身視角留 12% 邊距,免得深蹲起跳時頭頂/腳被切掉
+  const pad = fullSize.clone().multiplyScalar(0.12);
+  viewBoxes.face = box;
+  viewBoxes.upper = new THREE.Box3(
+    new THREE.Vector3(fullBox.min.x, fullBox.min.y + fullSize.y * 0.45, fullBox.min.z),
+    fullBox.max.clone());
+  viewBoxes.full = new THREE.Box3(fullBox.min.clone().sub(pad), fullBox.max.clone().add(pad));
+  frameView('face');
+
+  collectMaterials();
+  collectPostureBones();
+  applyAppearance(true);
+
+  buildSliders();
+  maybeAutoIdle();
+  document.getElementById('loading').style.display = 'none';
+  console.log('[avatar] morph keys:', modelKeys.length, modelKeys);
+}
+
+// ---------- 模型清單與切換 ----------
+// ---------- 角色名冊 ----------
+// 保險業務訓練的練習對象要涵蓋不同年齡/身份。底模只有三個(動漫女、動漫男、寫實男),
+// 靠 look 參數(髮色白化、膚色、駝背、動作速度)把同一個底模變成不同年齡的人。
+//
+// look:
+//   gray  0..1    髮色與眉色往灰白推(年齡最強的視覺訊號)
+//   skin  -.15..0 膚色明度位移(材質色乘算)
+//   stoop 0..0.25 駝背弧度(弳度,分攤到 spine/chest/neck)
+//   speed 0.7..1  動作播放速度
+const RBOX = f => 'rocketbox/' + f + '/' + f + '_facial.fbx';
+// 全部來自 Microsoft Rocketbox(MIT)。同一個底模的不同年齡共用 FBX,只換臉與髮片貼圖:
+// ageTex 是貼圖檔名的後綴,由 tools/rocketbox_age.py 事先烤好(皺紋用老化 GAN,
+// 白髮用亮度遮罩)。執行期的 look 只管體態與動作速度。
+const CHARACTERS = [
+  { id:'m20', band:'青年', label:'林先生・20・學生',   model:RBOX('Male_Adult_10'),
+    look:{ gray:0, skin:0, stoop:-.02, speed:1.05 } },
+  { id:'f20', band:'青年', label:'陳小姐・20・學生',   model:RBOX('Female_Adult_03'),
+    look:{ gray:0, skin:0, stoop:-.02, speed:1.05 } },
+  { id:'m30', band:'青年', label:'王先生・30・業務',   model:RBOX('Business_Male_02'),
+    look:{ gray:0, skin:0, stoop:0, speed:1.00 } },
+  { id:'f30', band:'青年', label:'李小姐・30・上班族', model:RBOX('Business_Female_03'),
+    look:{ gray:0, skin:0, stoop:0, speed:1.00 } },
+
+  { id:'f40', band:'中年', label:'李女士・40・主管',   model:RBOX('Business_Female_03'), ageTex:'40',
+    look:{ gray:0, skin:-.01, stoop:.07, speed:.95 } },
+  { id:'m50', band:'中年', label:'王先生・50',         model:RBOX('Business_Male_02'), ageTex:'50',
+    look:{ gray:0, skin:-.02, stoop:.12, speed:.90 } },
+
+  { id:'f65', band:'長者', label:'李女士・65・退休',   model:RBOX('Business_Female_03'), ageTex:'65',
+    look:{ gray:0, skin:-.04, stoop:.26, speed:.76 } },
+  { id:'m65', band:'長者', label:'王先生・65・退休',   model:RBOX('Business_Male_02'), ageTex:'65',
+    look:{ gray:0, skin:-.04, stoop:.30, speed:.74 } },
+];
+const BAND_ORDER = ['青年', '中年', '長者'];
+
+let look = { gray:0, skin:0, stoop:0, speed:1 };
+let currentCharId = null;
+
+const modelBtnRoot = document.getElementById('modelBtns');
+const charBtns = {};
+for (const band of BAND_ORDER) {
+  const items = CHARACTERS.filter(c => c.band === band);
+  if (!items.length) continue;
+  const group = document.createElement('div'); group.className = 'mgroup';
+  const head = document.createElement('div'); head.className = 'mhead'; head.textContent = band;
+  const row = document.createElement('div'); row.className = 'row';
+  for (const c of items) {
+    const b = document.createElement('button');
+    b.textContent = c.label;
+    b.onclick = () => loadCharacter(c.id);
+    charBtns[c.id] = b; row.appendChild(b);
+  }
+  group.append(head, row); modelBtnRoot.appendChild(group);
+}
+
+// 素材是逐個下載進來的(Rocketbox 一個角色 90MB 的 TGA),先探測哪些已經備妥,
+// 沒備妥的按鈕停用而不是讓使用者按下去吃 404
+async function probeCharacters() {
+  const seen = {};
+  await Promise.all(CHARACTERS.map(async c => {
+    if (seen[c.model] === undefined) {
+      seen[c.model] = false;
+      // Rocketbox 角色要等整包貼圖都轉好才算備妥。FBX 是最先下載的,只檢查它會讓
+      // 使用者在貼圖還沒到位時就載入 —— 頭部沒貼圖會變成一塊深色,跟身體對不起來。
+      // textures.json 是 rocketbox_prep.py 最後才寫的,拿它當就緒訊號。
+      const probe = /\.fbx$/i.test(c.model)
+        ? c.model.slice(0, c.model.lastIndexOf('/') + 1) + 'textures.json'
+        : c.model;
+      try {
+        const res = await fetch('./models/' + probe, { method: 'HEAD' });
+        seen[c.model] = res.ok;
+      } catch (e) { seen[c.model] = false; }
+    }
+  }));
+  for (const c of CHARACTERS) {
+    const b = charBtns[c.id];
+    if (!b) continue;
+    const ok = seen[c.model];
+    b.disabled = !ok;
+    b.style.opacity = ok ? 1 : 0.35;
+    b.title = ok ? '' : '素材尚未備妥:' + c.model;
+  }
+  return CHARACTERS.find(c => seen[c.model]) || null;
+}
+
+function loadCharacter(id) {
+  const c = CHARACTERS.find(x => x.id === id);
+  if (!c) return;
+  currentCharId = id;
+  look = Object.assign({}, c.look);
+  syncLookSliders();
+  for (const k in charBtns) charBtns[k].classList.toggle('active', k === id);
+  loadModel(c.model, c.ageTex);
+}
+
+function loadModel(file, ageTex) {
+  const loading = document.getElementById('loading');
+  loading.style.display = 'flex';
+  loading.textContent = '載入模型中…';
+  stopAll();
+  for (const k in nameCache) delete nameCache[k];
+  layers.manual = {}; layers.speech = {}; layers.emotionCur = {};
+  if (/\.fbx$/i.test(file)) { loadRocketbox(file, ageTex); return; }
+  loader.load('./models/' + file, g => {
+    bindModel(g, file);
+  }, undefined, e => { loading.textContent = '模型載入失敗:' + (e.message || e); });
+}
+
+// Microsoft Rocketbox 的角色是 FBX + 外部貼圖,而且 FBX 裡寫的是作者當年的 Windows
+// 絕對路徑(D:\temp\Humans\…\m008_head_color.tga)。tools/rocketbox_prep.py 已經把
+// TGA 轉成 jpg/png(12MB → 0.6MB)並產生 textures.json,這裡用 LoadingManager 改寫路徑:
+// 只取檔名,再依清單決定副檔名(有 alpha 的髮絲貼圖必須是 png)。
+async function loadRocketbox(file, ageTex) {
+  const base = './models/' + file.slice(0, file.lastIndexOf('/') + 1);
+  let textures = {};
+  try {
+    const res = await fetch(base + 'textures.json');
+    if (res.ok) textures = (await res.json()).textures || {};
+  } catch (e) { /* 沒有清單就一律當 jpg */ }
+  const manager = new THREE.LoadingManager();
+  manager.setURLModifier(url => {
+    const m = /([^/\\]+)\.tga$/i.exec(url);
+    if (!m) return url;
+    // 不同年齡共用同一個 FBX,只換臉與髮片:貼圖名加上年齡後綴,
+    // textures.json 裡有這個變體才用,沒有就退回原圖(身體、法線那些本來就沒有變體)
+    let name = m[1];
+    if (ageTex && textures[name + '_' + ageTex]) name = name + '_' + ageTex;
+    return base + name + '.' + (textures[name] || 'jpg');
+  });
+  // FBXLoader 看到 .tga 副檔名時會先問 manager 有沒有 tga handler,沒有就直接回一張空貼圖
+  // 而**完全不呼叫 loader**,上面的 URL 改寫因此永遠不會執行,角色會整片黑。
+  // 掛一個 TextureLoader 當 .tga 的 handler,它就會走 loader.load(),URL 才會被改寫成 jpg/png。
+  manager.addHandler(/\.tga$/i, new THREE.TextureLoader(manager));
+  new FBXLoader(manager).load('./models/' + file, obj => {
+    obj.scale.setScalar(0.01);                   // Rocketbox 的單位是公分
+    // 頭髮/睫毛是帶 alpha 的薄片,需要三個修正:
+    // 1. FBXLoader 會把同一張圖同時掛在 map 和 alphaMap 上,但 three.js 的 alphaMap 讀的是
+    //    **綠色通道**(diffuseColor.a *= texture(alphaMap).g),不是 alpha 通道。深色頭髮的
+    //    綠色通道平均只有 0.06,乘下去等於全透明 —— 實測 0% 的髮絲存活,整頭髮片消失,
+    //    畫面上剩下的是烤在頭部貼圖裡的頭皮。貼圖本身的 alpha 就在 map 上,拿掉 alphaMap。
+    // 2. 單面渲染會缺髮片背面,開雙面。
+    // 3. 純 transparent 會讓前後髮片排序錯亂,改用 alphaTest 鏤空。
+    obj.traverse(o => {
+      const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+      for (const m of ms) {
+        if (!m || !m.alphaMap) continue;
+        m.alphaMap = null;
+        m.side = THREE.DoubleSide;
+        m.alphaTest = 0.35;
+        m.transparent = false;
+        m.depthWrite = true;
+        m.needsUpdate = true;
+      }
+    });
+    bindModel({ scene: obj, animations: obj.animations || [], userData: {} }, file);
+    // FBXLoader 不像 GLTFLoader 會等貼圖 —— 綁定當下 texture.image.width 還是 0,
+    // 髮色重繪那類需要讀像素的處理會靜默失敗。等 manager 全部載完再套一次。
+    manager.onLoad = () => applyAppearance(true);
+  }, undefined, e => {
+    document.getElementById('loading').textContent = '模型載入失敗:' + (e.message || e);
+  });
+}
+
+
+// ---------- 外觀層:髮色 / 膚色 / 駝背 / 動作速度 ----------
+// 材質命名帶語意,兩種來源都認得:VRoid 是 _SKIN / _HAIR / FaceBrow(男模還多一個
+// " (Instance)" 後綴),Avaturn 是 Body / Head / avaturn_hair_*
+function matRole(name) {
+  // Rocketbox 的 _opacity 是髮絲/睫毛那層(帶 alpha),_head 是臉與脖子的皮膚;
+  // _body 含西裝所以不碰,染了會連衣服一起變色
+  if (/_HAIR|avaturn_hair|_opacity$/i.test(name)) return 'hair';
+  if (/FaceBrow|Eyelash/i.test(name)) return 'brow';
+  if (/_SKIN|_head$|^Body$|^Head$/i.test(name)) return 'skin';
+  return null;
+}
+
+// material.color 只能乘算(只會變暗),要把黑髮變白必須改貼圖本身
+function grayedTexture(src, amount) {
+  const img = src && src.image;
+  if (!img || !img.width) return null;
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+  const d = ctx.getImageData(0, 0, c.width, c.height), p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    const lum = p[i] * 0.299 + p[i + 1] * 0.587 + p[i + 2] * 0.114;
+    const g = lum * 0.5 + 118;                 // 往淺灰推但保留亮部層次,不要糊成一片死白
+    p[i]     += (g - p[i])     * amount;
+    p[i + 1] += (g - p[i + 1]) * amount;
+    p[i + 2] += (g - p[i + 2]) * amount;
+  }
+  ctx.putImageData(d, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.flipY = src.flipY; t.colorSpace = src.colorSpace;   // GLTFLoader 出來的貼圖 flipY=false
+  t.wrapS = src.wrapS; t.wrapT = src.wrapT;
+  t.needsUpdate = true;
+  return t;
+}
+
+let lookMaterials = [];        // { mat, role, baseColor, baseMap, baseShadeMap }
+let grayApplied = -1;          // 貼圖重繪很貴,值沒變就不重算
+
+function collectMaterials() {
+  lookMaterials = [];
+  grayApplied = -1;
+  if (!model) return;
+  const seen = new Set();
+  model.traverse(o => {
+    const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+    for (const m of mats) {
+      if (!m || seen.has(m.uuid)) continue;
+      seen.add(m.uuid);
+      const role = matRole(m.name || '');
+      if (!role) continue;
+      lookMaterials.push({
+        mat: m, role,
+        baseColor: m.color ? m.color.clone() : null,
+        baseMap: m.map || null,
+        baseShadeMap: m.shadeMultiplyTexture || null,   // MToon 的陰影色貼圖也要一起灰白化
+      });
+    }
+  });
+}
+
+function applyAppearance(redrawTextures) {
+  for (const e of lookMaterials) {
+    if (e.role === 'skin' && e.baseColor && e.mat.color)
+      e.mat.color.copy(e.baseColor).offsetHSL(0, 0, look.skin);
+  }
+  if (!redrawTextures || grayApplied === look.gray) return;
+  grayApplied = look.gray;
+  for (const e of lookMaterials) {
+    if (e.role !== 'hair' && e.role !== 'brow') continue;
+    if (look.gray < 0.01) {
+      if (e.baseMap) e.mat.map = e.baseMap;
+      if (e.baseShadeMap) e.mat.shadeMultiplyTexture = e.baseShadeMap;
+    } else {
+      const t = grayedTexture(e.baseMap, look.gray);
+      if (t) e.mat.map = t;
+      const st = grayedTexture(e.baseShadeMap, look.gray);
+      if (st) e.mat.shadeMultiplyTexture = st;
+    }
+    e.mat.needsUpdate = true;
+  }
+}
+
+// 駝背:老年最強的體態訊號。每幀在 mixer.update() 之後套用,所以播動作時也維持弧度
+const POSTURE_VRM = ['spine', 'chest', 'upperChest', 'neck'];
+const POSTURE_GLB = /^(Spine\d*|Neck)$/;   // 比對前先過 rigKey,Bip01_Spine1 也認得
+let postureBones = [];        // { bone, restQ } —— restQ 是歸位用的,沒有它角度會逐幀累積
+function collectPostureBones() {
+  postureBones = [];
+  const add = b => b && postureBones.push({ bone: b, restQ: b.quaternion.clone() });
+  if (vrm) {
+    for (const n of POSTURE_VRM) add(vrm.humanoid.getNormalizedBoneNode(n));
+  } else if (model) {
+    model.traverse(o => {
+      if (o.isBone && POSTURE_GLB.test(rigKey(o.name || ''))) add(o);
+    });
+  }
+}
+
+const _AXIS_X = new THREE.Vector3(1, 0, 0);
+const _pq = new THREE.Quaternion(), _pw = new THREE.Quaternion(), _pwi = new THREE.Quaternion();
+function applyPosture() {
+  if (!postureBones.length) return;
+  const per = look.stoop / postureBones.length;
+  for (const { bone, restQ } of postureBones) {
+    // 有動作在播時 mixer 每幀會覆寫骨骼,沒有的話值會留在上一幀 —— 必須先歸位,
+    // 否則每幀疊一次旋轉會愈轉愈多(頭會整個轉掉)
+    if (!motionAction) bone.quaternion.copy(restQ);
+    if (!look.stoop || !bone.parent) continue;
+    // 各骨骼的 local 軸向不一致,只有世界空間的 X 軸能保證每根都往同一個方向彎
+    _pq.setFromAxisAngle(_AXIS_X, per);
+    bone.parent.getWorldQuaternion(_pw);
+    _pwi.copy(_pw).invert().multiply(_pq).multiply(_pw);
+    bone.quaternion.premultiply(_pwi);
+  }
+  // 真實的駝背是背彎、但人會抬頭維持視線水平。駝背量分到脊椎+頸椎後頭會跟著全部
+  // 低下去(65 歲 17° 再疊動作本身的低頭,臉會直接朝地板),所以頭反向補償大部分角度,
+  // 留 15% 的低頭讓姿態自然
+  if (look.stoop && headBone && headBone.parent) {
+    _pq.setFromAxisAngle(_AXIS_X, -look.stoop * 0.85);
+    headBone.parent.getWorldQuaternion(_pw);
+    _pwi.copy(_pw).invert().multiply(_pq).multiply(_pw);
+    headBone.quaternion.premultiply(_pwi);
+  }
+}
+
+function applyMotionSpeed() {
+  if (motionAction) motionAction.setEffectiveTimeScale(look.speed);
+}
+
+const LOOK_SLIDERS = [
+  ['gray',  '髮色白化', 0, 1, 0.01],
+  ['skin',  '膚色明暗', -0.15, 0.15, 0.01],
+  ['stoop', '駝背',     -0.45, 0.45, 0.01],
+  ['speed', '動作速度', 0.6, 1.2, 0.02],
+];
+const lookInputs = {};
+for (const [key, label, min, max, step] of LOOK_SLIDERS) {
+  const root = document.getElementById('lookSliders');
+  const row = document.createElement('div'); row.className = 'slider-row';
+  const nm = document.createElement('div'); nm.className = 'name'; nm.textContent = label;
+  const inp = document.createElement('input');
+  inp.type = 'range'; inp.min = min; inp.max = max; inp.step = step; inp.value = 0;
+  const val = document.createElement('div'); val.className = 'val'; val.textContent = '0';
+  // 髮色要重繪整張貼圖,太貴不能每個 input 事件都跑,放開滑桿才重算
+  inp.addEventListener('input', () => {
+    look[key] = +inp.value;
+    val.textContent = (+inp.value).toFixed(2);
+    applyAppearance(false); applyMotionSpeed();
+  });
+  inp.addEventListener('change', () => applyAppearance(true));
+  lookInputs[key] = { inp, val };
+  row.append(nm, inp, val); root.appendChild(row);
+}
+function syncLookSliders() {
+  for (const [key] of LOOK_SLIDERS) {
+    const e = lookInputs[key]; if (!e) continue;
+    e.inp.value = look[key];
+    e.val.textContent = (+look[key]).toFixed(2);
+  }
+}
+
+// 拖放自訂 GLB
+stage.addEventListener('dragover', e => e.preventDefault());
+stage.addEventListener('drop', e => {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (!f) return;
+  // .fbx 一律當動作檔;.glb 預設是換模型,按住 Shift 拖才當動作檔
+  //(.glb 兩種都可能——Xbot 那種是動作,一般匯出是模型,靠 Shift 區分)
+  if (/\.fbx$/i.test(f.name) || (/\.glb$/i.test(f.name) && e.shiftKey)) {
+    if (!motionTarget()) { motionHint.textContent = '目前沒有可套用動作的模型'; return; }
+    const url = URL.createObjectURL(f);
+    const { label, category } = lookupLabel(f.name, stripExt(f.name));
+    const entry = { key: url, url, file: f.name, clipIndex: null, label, category };
+    motionEntries.push(entry); renderMotions();
+    playEntry(entry, true);
+    return;
+  }
+  if (!/\.(glb|vrm)$/i.test(f.name)) return;
+  f.arrayBuffer().then(buf => loader.parse(buf, '', g => {
+    for (const k in nameCache) delete nameCache[k];
+    stopAll(); bindModel(g, '_default');
+  }, err => alert('GLB 解析失敗:' + err)));
+});
+
+// ---------- 52 sliders ----------
+const GROUPS = [
+  ['眉 Brow', /^brow/], ['眼 Eye', /^eye/], ['顎 Jaw', /^jaw/],
+  ['嘴 Mouth', /^mouth/], ['頰/鼻/舌 Cheek+', /^(cheek|nose|tongue)/],
+  ['口型 Visemes', /^viseme/],
+  ['VRM 表情', /^(aa|ih|ou|ee|oh|happy|angry|sad|relaxed|surprised|neutral|blink|look)/],
+  // Rocketbox 的 175 個 blendshape 分五組,AK 那組就是完整的 ARKit 52
+  ['ARKit 52 (AK)', /AK_\d+_/], ['口型 Viseme (AA)', /AA_VI_/],
+  ['FACS AU', /AU_\d+_/], ['下顎舌頭 (HB)', /HB_\d+_/], ['SRanipal (SR)', /SR_\d+_/],
+  ['其他 Other', /./],
+];
+const sliderInputs = {};
+function buildSliders() {
+  const root = document.getElementById('sliders');
+  root.innerHTML = '';
+  for (const k in sliderInputs) delete sliderInputs[k];
+  const used = new Set();
+  for (const [label, re] of GROUPS) {
+    const keys = modelKeys.filter(k => !used.has(k) && re.test(k));
+    keys.forEach(k => used.add(k));
+    if (!keys.length) continue;
+    const det = document.createElement('details');
+    const sum = document.createElement('summary');
+    sum.textContent = `${label}(${keys.length})`;
+    det.appendChild(sum);
+    for (const k of keys) {
+      const row = document.createElement('div'); row.className = 'slider-row';
+      const nm = document.createElement('div'); nm.className = 'name'; nm.textContent = k;
+      const inp = document.createElement('input');
+      inp.type = 'range'; inp.min = 0; inp.max = 1; inp.step = 0.01; inp.value = 0;
+      const val = document.createElement('div'); val.className = 'val'; val.textContent = '0';
+      inp.addEventListener('input', () => {
+        layers.manual[k] = +inp.value;
+        val.textContent = (+inp.value).toFixed(2);
+      });
+      sliderInputs[k] = { inp, val };
+      row.append(nm, inp, val); det.appendChild(row);
+    }
+    root.appendChild(det);
+  }
+}
+document.getElementById('btnReset').onclick = () => {
+  layers.manual = {};
+  for (const k in sliderInputs) { sliderInputs[k].inp.value = 0; sliderInputs[k].val.textContent = '0'; }
+};
+
+// ---------- 情緒 presets(ARKit 標準名)----------
+const EMOTIONS = {
+  '中性': {},
+  '微笑': { mouthSmileLeft:.55, mouthSmileRight:.5, cheekSquintLeft:.3, cheekSquintRight:.3,
+            eyeSquintLeft:.15, eyeSquintRight:.15, browInnerUp:.1 },
+  '懷疑': { browDownLeft:.55, browDownRight:.2, browInnerUp:.2, eyeSquintLeft:.4, eyeSquintRight:.2,
+            mouthPressLeft:.4, mouthPressRight:.4, mouthLeft:.2, noseSneerLeft:.15 },
+  '驚訝': { browInnerUp:.7, browOuterUpLeft:.6, browOuterUpRight:.6, eyeWideLeft:.6, eyeWideRight:.6,
+            jawOpen:.25, mouthFunnel:.2 },
+  '生氣': { browDownLeft:.8, browDownRight:.8, eyeSquintLeft:.4, eyeSquintRight:.4,
+            noseSneerLeft:.4, noseSneerRight:.4, mouthFrownLeft:.4, mouthFrownRight:.4,
+            mouthPressLeft:.3, mouthPressRight:.3, jawForward:.2 },
+  '難過': { browInnerUp:.7, mouthFrownLeft:.5, mouthFrownRight:.5, mouthShrugLower:.3,
+            eyeLookDownLeft:.2, eyeLookDownRight:.2 },
+};
+const emoRoot = document.getElementById('emotions');
+let emoButtons = {};
+for (const name of Object.keys(EMOTIONS)) {
+  const b = document.createElement('button');
+  b.textContent = name;
+  b.onclick = () => {
+    layers.emotionTarget = EMOTIONS[name];
+    for (const k in emoButtons) emoButtons[k].classList.toggle('active', k === name);
+  };
+  emoButtons[name] = b; emoRoot.appendChild(b);
+}
+emoButtons['中性'].classList.add('active');
+
+// ---------- 視角(臉部特寫 / 上半身 / 全身)----------
+// 原本只有臉部特寫,但深蹲、開合跳這類動作會整個切出畫面,所以把取景抽成可切換的
+const viewBoxes = { face: null, upper: null, full: null };
+let currentView = 'face';
+const VIEWS = [['face', '臉部特寫'], ['upper', '上半身'], ['full', '全身']];
+const viewBtnRoot = document.getElementById('viewBtns');
+const viewBtns = {};
+for (const [k, label] of VIEWS) {
+  const b = document.createElement('button');
+  b.textContent = label;
+  b.onclick = () => frameView(k);
+  viewBtns[k] = b; viewBtnRoot.appendChild(b);
+}
+
+function frameView(which) {
+  const box = viewBoxes[which] || viewBoxes.full;
+  if (!box) return;
+  const size = box.getSize(new THREE.Vector3());
+  const target = box.getCenter(new THREE.Vector3());
+  const dist = Math.max(size.y, size.x) * 1.6 / Math.tan(camera.fov * Math.PI / 360);
+  camera.position.set(target.x + dist * 0.2, target.y + size.y * 0.15, target.z + dist);
+  controls.target.copy(target);
+  camera.near = Math.max(dist / 100, 0.005); camera.far = dist * 100;
+  camera.updateProjectionMatrix();
+  currentView = which;
+  for (const k in viewBtns) viewBtns[k].classList.toggle('active', k === which);
+}
+
+// ---------- 運動動作(Mixamo 骨架 → VRM retarget)----------
+// 動作來源有兩種形狀:一個檔一個動作(Mixamo 直接下載的 .fbx),或一個檔多個動作
+// (例如 Xbot.glb 有 7 個)。後者在首次載入後會把那顆按鈕展開成「每個動作一顆」。
+// 中文名稱與分類放在 public/motions/motions.json,沒列到的檔案自動歸「其他」、標籤用檔名,
+// 所以之後從 Mixamo 抓新動作丟進資料夾就能用,要中文名再補進 manifest 即可。
+const motionAssets = {};       // url → [{ name, clip }](首次點擊才載入 + retarget)
+const motionBtns = {};         // key → button
+let motionFiles = [];          // 掃描到的檔案 [{ file, url }]
+let motionEntries = [];        // 目前的按鈕項目 [{ key, url, file, clipIndex, label, category }]
+let motionManifest = { categories: {}, labels: {}, defaultMotion: null };
+let motionLabel = null;        // HUD 顯示用
+let motionStopTimer = null;    // 淡出結束後才真正停掉 action
+let motionsReady = false;      // 掃描完成(和模型載入是兩條非同步線,兩邊都好才自動播待機)
+const motionBtnRoot = document.getElementById('motionBtns');
+const motionHint = document.getElementById('motionHint');
+
+const CATEGORY_ORDER = ['idle', 'gesture', 'move', 'sport', 'other'];
+const stripExt = f => f.replace(/\.(fbx|glb|gltf)$/i, '');
+
+// manifest 查得到就用中文名 + 分類,查不到退回檔名/clip 名並歸到「其他」
+function lookupLabel(key, fallback) {
+  const hit = motionManifest.labels[key];
+  return hit ? { label: hit[0], category: hit[1] || 'other' }
+             : { label: fallback, category: 'other' };
+}
+
+// python3 -m http.server 會回目錄列表 HTML,直接從裡面撈檔名 ——
+// 之後把新動作丟進 public/motions/ 重新整理就自動多一顆按鈕,不用改程式
+async function scanMotions() {
+  try {
+    const res = await fetch('./motions/motions.json');
+    if (res.ok) motionManifest = Object.assign(motionManifest, await res.json());
+  } catch (e) { /* 沒有 manifest 就全部用檔名 */ }
+
+  let files = [];
+  try {
+    const res = await fetch('./motions/');
+    if (res.ok) {
+      const html = await res.text();
+      files = [...html.matchAll(/href="([^"]+\.(?:fbx|glb))"/gi)]
+        .map(m => decodeURIComponent(m[1].split('/').pop()));
+    }
+  } catch (e) { /* 伺服器不給目錄列表:退回拖放模式 */ }
+
+  motionFiles = [...new Set(files)].sort()
+    .map(file => ({ file, url: './motions/' + encodeURIComponent(file) }));
+  rebuildEntries();
+  motionsReady = true;
+  maybeAutoIdle();
+}
+
+// 回到「一個檔一顆按鈕」的初始狀態(換模型時 clip 快取會清掉,展開的按鈕也要收回去)
+function rebuildEntries() {
+  motionEntries = motionFiles.map(({ file, url }) => {
+    const { label, category } = lookupLabel(file, stripExt(file));
+    return { key: url, url, file, clipIndex: null, label, category };
+  });
+  renderMotions();
+}
+
+// 單檔多動作:把該檔的項目換成每個 clip 一項
+function expandEntries(url, file, clips) {
+  const at = motionEntries.findIndex(e => e.url === url);
+  const made = clips.map((c, i) => {
+    const { label, category } = lookupLabel(file + '#' + c.name, c.name);
+    return { key: url + '#' + i, url, file, clipIndex: i, label, category };
+  });
+  if (at >= 0) motionEntries.splice(at, 1, ...made);
+  else motionEntries.push(...made);
+  renderMotions();
+}
+
+function renderMotions() {
+  motionBtnRoot.innerHTML = '';
+  for (const k in motionBtns) delete motionBtns[k];
+  if (!motionEntries.length) {
+    motionHint.textContent = 'public/motions/ 還沒有動作檔。從 Mixamo 下載後丟進去重新整理,或直接把 .fbx 拖進畫面試';
+    return;
+  }
+  const cats = [...new Set([...CATEGORY_ORDER, ...motionEntries.map(e => e.category)])];
+  for (const cat of cats) {
+    const items = motionEntries.filter(e => e.category === cat);
+    if (!items.length) continue;
+    const group = document.createElement('div'); group.className = 'mgroup';
+    const head = document.createElement('div'); head.className = 'mhead';
+    head.textContent = motionManifest.categories[cat] || cat;
+    const row = document.createElement('div'); row.className = 'row';
+    for (const e of items) {
+      const b = document.createElement('button');
+      b.textContent = e.label; b.dataset.label = e.label;
+      b.onclick = () => playEntry(e, true);
+      if (motionAction && motionActiveKey === e.key) b.classList.add('active');
+      motionBtns[e.key] = b; row.appendChild(b);
+    }
+    group.append(head, row); motionBtnRoot.appendChild(group);
+  }
+  motionHint.textContent = `${motionEntries.length} 個動作 · 分類與中文名稱在 motions/motions.json`;
+}
+
+async function ensureClips(entry, btn) {
+  if (motionAssets[entry.url]) return motionAssets[entry.url];
+  if (btn) btn.textContent = '載入中…';
+  const clips = await loadMixamoClips(entry.url, motionTarget(), entry.file);
+  motionAssets[entry.url] = clips;
+  if (btn) btn.textContent = btn.dataset.label;
+  // 首次載入才知道這個檔有幾個動作,多個就地展開成多顆按鈕
+  if (clips.length > 1 && entry.clipIndex === null) expandEntries(entry.url, entry.file, clips);
+  return clips;
+}
+
+// autoFrame:使用者主動點的才切全身視角;自動待機不要動鏡位
+// 動作的套用對象:VRM 走 humanoid 正規化骨架,一般模型(Rocketbox 的 Biped、
+// Avaturn 的 Mixamo 骨架)則由 loadMixamoAnimation.js 的 retargetDirect 直接處理
+function motionTarget() { return vrm || model; }
+
+async function playEntry(entry, autoFrame) {
+  if (!motionTarget()) { motionHint.textContent = '目前沒有可套用動作的模型'; return; }
+  const btn = motionBtns[entry.key];
+  try {
+    const clips = await ensureClips(entry, btn);
+    const i = entry.clipIndex === null ? 0 : entry.clipIndex;
+    const key = entry.clipIndex === null && clips.length > 1 ? entry.url + '#0' : entry.key;
+    startClip(clips[i].clip, key, autoFrame);
+  } catch (err) {
+    if (btn && btn.dataset.label) btn.textContent = btn.dataset.label;
+    motionHint.textContent = '載入失敗:' + (err.message || err);
+    console.error('[motion]', entry.file, err);
+  }
+}
+
+let motionActiveKey = null;
+function startClip(clip, key, autoFrame) {
+  if (!mixer) return;
+  if (motionStopTimer) { clearTimeout(motionStopTimer); motionStopTimer = null; }
+  if (bodyAction) bodyAction.stop();          // 內建待機姿勢讓位給運動動作
+  const prev = motionAction;
+  const next = mixer.clipAction(clip);
+  next.reset().setLoop(THREE.LoopRepeat, Infinity).setEffectiveTimeScale(look.speed).play();
+  if (prev && prev !== next) prev.crossFadeTo(next, 0.3, false);
+  else next.fadeIn(0.3);
+  motionAction = next;
+  motionActiveKey = key;
+  motionLabel = motionBtns[key] ? motionBtns[key].dataset.label : clip.name;
+  for (const k in motionBtns) motionBtns[k].classList.toggle('active', k === key);
+  if (autoFrame && currentView !== 'full') frameView('full');   // 已經切過就別打斷使用者的鏡位
+}
+
+// 模型載入與動作掃描是兩條非同步線,兩邊都好了才播預設待機
+function maybeAutoIdle() {
+  if (!motionsReady || !motionTarget() || motionAction) return;
+  if (!document.getElementById('ckAutoIdle').checked) return;
+  const want = motionManifest.defaultMotion;
+  const entry = motionEntries.find(e => e.key === want || e.file === want) || motionEntries[0];
+  if (entry) playEntry(entry, false);
+}
+
+document.getElementById('btnMotionStop').onclick = stopMotion;
+function stopMotion() {
+  for (const k in motionBtns) motionBtns[k].classList.remove('active');
+  motionActiveKey = null;
+  if (!motionAction) return;
+  const a = motionAction;
+  a.fadeOut(0.3);
+  // motionAction 要等淡出結束才清空:期間主迴圈的 applyArmPose 若提早介入會跟動畫搶骨骼
+  motionStopTimer = setTimeout(() => {
+    motionStopTimer = null;
+    a.stop();
+    motionAction = null; motionLabel = null;
+    if (bodyAction) bodyAction.play();
+    setArmPose(armPreset);
+    frameView('face');
+  }, 320);
+}
+
+// ---------- A2E JSON 播放器(LAM-A2E 介面:fps + names[52] + frames[N][52])----------
+let a2e = null, a2ePlaying = false, a2eTime = 0;
+const progressBar = document.querySelector('#progress > div');
+
+async function loadA2E() {
+  if (a2e) return a2e;
+  const res = await fetch('./sample_a2e.json');
+  a2e = await res.json();
+  return a2e;
+}
+document.getElementById('btnPlayJson').onclick = async () => {
+  await loadA2E(); stopTake();
+  mode = 'compose'; a2eTime = 0; a2ePlaying = true;
+};
+document.getElementById('btnPlayTake').onclick = () => {
+  if (!takeActions.length) return;
+  a2ePlaying = false; layers.speech = {};
+  mode = 'take';
+  if (bodyAction) bodyAction.stop();     // 完整 take clip 本身含軀幹軌跡,避免與待機姿勢重複驅動
+  takeActions.forEach(a => a.reset().play());
+};
+document.getElementById('btnStop').onclick = stopAll;
+function stopTake() { takeActions.forEach(a => a.stop()); }
+function stopAll() {
+  a2ePlaying = false; a2eTime = 0; layers.speech = {};
+  stopTake(); mode = 'compose'; progressBar.style.width = '0%';
+  if (bodyAction && !motionAction) bodyAction.play();   // 恢復待機姿勢(運動動作播放中則不搶骨骼)
+}
+
+function sampleA2E(dt) {
+  if (!a2ePlaying || !a2e || (!vrm && !morphMeshes.length)) return;
+  a2eTime += dt;
+  const dur = a2e.frames.length / a2e.fps;
+  if (a2eTime >= dur) a2eTime -= dur;                 // loop
+  const x = a2eTime * a2e.fps;
+  const i0 = Math.floor(x) % a2e.frames.length;
+  const i1 = (i0 + 1) % a2e.frames.length;
+  const t = x - Math.floor(x);
+  const dict = morphMeshes.length ? morphMeshes[0].morphTargetDictionary : {};
+  const f0 = a2e.frames[i0], f1 = a2e.frames[i1];
+  layers.speech = {};
+  for (let j = 0; j < a2e.names.length; j++) {
+    const v = f0[j] + (f1[j] - f0[j]) * t;            // 幀間線性插值
+    if (v <= 0.001) continue;
+    if (vrm) { layers.speech[a2e.names[j]] = v; continue; }   // VRM:保留 ARKit 名
+    const k = resolveKey(dict, a2e.names[j]);
+    if (k) layers.speech[k] = v;
+  }
+  progressBar.style.width = (a2eTime / dur * 100).toFixed(1) + '%';
+}
+
+// ---------- ARKit 52 → VRM 表情映射 ----------
+function arkitToVrm(m, blink) {
+  const g = n => m[n] || 0;
+  const c = v => Math.min(1, Math.max(0, v));
+  return {
+    aa: c(g('jawOpen') * 1.15),
+    ou: c(Math.max(g('mouthPucker'), g('mouthFunnel')) * 1.1),
+    ih: c((g('mouthStretchLeft') + g('mouthStretchRight')) * 0.5),
+    ee: c((g('mouthUpperUpLeft') + g('mouthUpperUpRight')) * 0.5),
+    happy: c((g('mouthSmileLeft') + g('mouthSmileRight')) * 0.6 + (g('cheekSquintLeft') + g('cheekSquintRight')) * 0.15),
+    angry: c((g('browDownLeft') + g('browDownRight')) * 0.5 + (g('noseSneerLeft') + g('noseSneerRight')) * 0.25),
+    sad: c(g('browInnerUp') * 0.5 + (g('mouthFrownLeft') + g('mouthFrownRight')) * 0.45),
+    surprised: c((g('eyeWideLeft') + g('eyeWideRight')) * 0.5 + g('browOuterUpLeft') * 0.3),
+    relaxed: c((g('eyeSquintLeft') + g('eyeSquintRight')) * 0.35),
+    blinkLeft: c(Math.max(g('eyeBlinkLeft'), blink)),
+    blinkRight: c(Math.max(g('eyeBlinkRight'), blink)),
+  };
+}
+
+// ---------- Idle:眨眼 / 視線 / 頭部微動 ----------
+const ck = id => document.getElementById(id).checked;
+let blinkT = 1.5, blinkPhase = -1;
+let gazeT = 0, gazeTarget = new THREE.Vector2(), gazeCur = new THREE.Vector2();
+function idleUpdate(dt, time) {
+  // 眨眼(獨立通道,與其他圖層取 max)
+  let blink = 0;
+  if (ck('ckBlink') && mode === 'compose') {
+    blinkT -= dt;
+    if (blinkT <= 0 && blinkPhase < 0) { blinkPhase = 0; blinkT = 1.5 + Math.random() * 3.5; }
+    if (blinkPhase >= 0) {
+      blinkPhase += dt / 0.14;
+      blink = Math.sin(Math.min(blinkPhase, 1) * Math.PI);
+      if (blinkPhase >= 1) blinkPhase = -1;
+    }
+  }
+  // 視線 saccade(以綁定時的 rest 姿態為基準疊加小角度)
+  if (ck('ckGaze') && (eyeNodes.length || vrm)) {
+    gazeT -= dt;
+    if (gazeT <= 0) {
+      gazeTarget.set((Math.random() - 0.5) * 0.22, (Math.random() - 0.5) * 0.16);
+      gazeT = 0.8 + Math.random() * 2.2;
+    }
+    gazeCur.lerp(gazeTarget, 1 - Math.exp(-dt * 12));
+    for (const eye of eyeNodes) {
+      eye.node.quaternion.copy(eye.restQ);
+      eye.node.rotateY(gazeCur.x);
+      eye.node.rotateX(gazeCur.y);
+    }
+  } else {
+    gazeCur.lerp(gazeTarget.set(0, 0), 1 - Math.exp(-dt * 8));
+  }
+  if (vrm && gazeObj) {
+    // VRM:讓 lookAt 目標繞著攝影機附近漂移(基本是眼神接觸+微飄)
+    gazeObj.position.copy(camera.position);
+    gazeObj.position.x += gazeCur.x * 3;
+    gazeObj.position.y += gazeCur.y * 3;
+  }
+  // 頭部微動:有 Head 骨骼(RPM)就轉骨骼,否則轉整個模型(facecap)
+  const amp = ck('ckHead') ? 1 : 0;
+  const hy = amp * (Math.sin(time * 0.45) * 0.035 + Math.sin(time * 1.1) * 0.012);
+  const hx = amp * Math.sin(time * 0.6) * 0.02;
+  const hz = amp * Math.sin(time * 0.32) * 0.012;
+  if (headBone) {
+    // 播運動動作時不要覆寫頭部,否則會蓋掉動捕資料裡的頭部軌跡
+    if (!motionAction) {
+      headBone.quaternion.copy(headRestQ);
+      headBone.rotateY(hy * 2); headBone.rotateX(hx * 2); headBone.rotateZ(hz * 2);
+    }
+  } else if (model) {
+    model.rotation.set(hx, hy, hz);
+  }
+  return blink;
+}
+
+// ---------- 合成:manual + speech + emotion,blink 取 max ----------
+function compose(blink, dt) {
+  if (mode !== 'compose' || (!vrm && !morphMeshes.length)) return 0;
+  // 情緒平滑
+  const keys = new Set([...Object.keys(layers.emotionCur), ...Object.keys(layers.emotionTarget)]);
+  const k1 = 1 - Math.exp(-dt * 6);
+  for (const n of keys) {
+    const cur = layers.emotionCur[n] || 0, tgt = layers.emotionTarget[n] || 0;
+    const v = cur + (tgt - cur) * k1;
+    if (v < 0.001 && tgt === 0) delete layers.emotionCur[n]; else layers.emotionCur[n] = v;
+  }
+
+  // --- VRM 路徑:ARKit 空間合成後映射到 VRM 表情 ---
+  if (vrm) {
+    const em = vrm.expressionManager;
+    const ark = {};
+    for (const k in layers.speech) ark[k] = (ark[k] || 0) + layers.speech[k];
+    for (const k in layers.emotionCur) {
+      const w = (a2ePlaying && SPEECH_REGION.test(k)) ? SPEECH_MASK_WEIGHT : 1;
+      ark[k] = (ark[k] || 0) + layers.emotionCur[k] * w;
+    }
+    const vals = arkitToVrm(ark, blink);
+    for (const k in layers.manual) vals[k] = (vals[k] || 0) + layers.manual[k];  // slider 直接操作 VRM 名
+    let active = 0;
+    for (const name of modelKeys) {
+      const v = Math.min(1, Math.max(0, vals[name] || 0));
+      em.setValue(name, v);
+      if (v > 0.01) active++;
+    }
+    return active;
+  }
+
+  const dict0 = morphMeshes[0].morphTargetDictionary;
+  // 逐 mesh 寫入 morphTargetInfluences
+  let active = 0;
+  for (const mesh of morphMeshes) {
+    const dict = mesh.morphTargetDictionary, inf = mesh.morphTargetInfluences;
+    inf.fill(0);
+    for (const k in layers.manual) if (k in dict) inf[dict[k]] += layers.manual[k];
+    for (const k in layers.speech) if (k in dict) inf[dict[k]] += layers.speech[k];
+    for (const n in layers.emotionCur) {
+      const k = resolveKey(dict0, n);
+      if (!k || !(k in dict)) continue;
+      // 說話中,嘴部/顎/舌以 lipsync 為主,情緒保留一部分權重疊加(而非完全歸零)
+      const w = (a2ePlaying && SPEECH_REGION.test(k)) ? SPEECH_MASK_WEIGHT : 1;
+      inf[dict[k]] += layers.emotionCur[n] * w;
+    }
+    if (blink > 0) for (const bn of ['eyeBlinkLeft', 'eyeBlinkRight']) {
+      const bk = resolveKey(dict0, bn);          // 各家命名不同,交給同一套解析
+      if (bk && bk in dict) inf[dict[bk]] = Math.max(inf[dict[bk]], blink);
+    }
+    for (let i = 0; i < inf.length; i++) {
+      inf[i] = Math.min(1, Math.max(0, inf[i]));
+      if (mesh === morphMeshes[0] && inf[i] > 0.01) active++;
+    }
+  }
+  return active;
+}
+
+// ---------- 主迴圈 ----------
+const hud = document.getElementById('hud');
+const clock = new THREE.Clock();
+let fpsAcc = 0, fpsN = 0, fpsShow = 0;
+function loop() {
+  requestAnimationFrame(loop);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  const time = clock.elapsedTime;
+
+  sampleA2E(dt);
+  const blink = idleUpdate(dt, time);
+  const active = compose(blink, dt);
+  if (mixer) mixer.update(dt);       // bodyAction 一律播放;take clip 只在 mode==='take' 時處於 playing 狀態
+  // 沒有運動動作在播時,每幀把手臂壓回預設垂放角度(mixer 會把骨骼改回綁定姿勢,
+  // 只在載入時套一次會被蓋掉);必須在 vrm.update 之前,它才會把 normalized 骨骼寫進實際骨架
+  if (vrm && !motionAction) applyArmPose();
+  applyPosture();                    // 疊在動畫之上,所以播動作時駝背仍然保持
+  if (vrm) vrm.update(dt);          // 套用表情/lookAt/spring bones(頭髮、衣物物理)
+
+  controls.update();
+  renderer.render(scene, camera);
+
+  fpsAcc += dt; fpsN++;
+  if (fpsAcc > 0.5) { fpsShow = Math.round(fpsN / fpsAcc); fpsAcc = 0; fpsN = 0; }
+  hud.textContent =
+    `render ${fpsShow} fps\n` +
+    `mode   ${mode === 'take' ? '臉捕 take' : (a2ePlaying ? 'A2E JSON 播放中' : 'idle/manual')}\n` +
+    `motion ${motionLabel || '站姿待機'}\n` +
+    `active ${active} morphs` +
+    (!vrm && modelKeys.length === 0 ? '\n⚠ 此模型無 blendshapes,無法做表情/口型動畫' : '');
+}
+resize();
+probeCharacters().then(first => {
+  if (first) loadCharacter(first.id);
+  else document.getElementById('loading').textContent =
+    '沒有可用的角色素材,先跑 tools/rocketbox_prep.py';
+});
+scanMotions();
+loop();
+</script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+# MediaPipe 目前只發到 Python 3.12 的 wheel（沒有 cp313），
+# 因此這個資料夾請用 Python 3.9–3.12 執行。
+mediapipe>=0.10.14
+opencv-python>=4.9.0

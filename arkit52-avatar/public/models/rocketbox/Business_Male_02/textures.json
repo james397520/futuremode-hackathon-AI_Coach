@@ -1,0 +1,16 @@
+{
+  "fbx": "Business_Male_02_facial.fbx",
+  "textures": {
+    "m008_body_color": "jpg",
+    "m008_body_normal": "jpg",
+    "m008_body_specular": "jpg",
+    "m008_head_color": "jpg",
+    "m008_head_normal": "jpg",
+    "m008_head_specular": "jpg",
+    "m008_opacity_color": "png",
+    "m008_head_color_50": "jpg",
+    "m008_head_color_65": "jpg",
+    "m008_opacity_color_50": "png",
+    "m008_opacity_color_65": "png"
+  }
+}
