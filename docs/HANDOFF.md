@@ -424,3 +424,22 @@ exit code=139   # SIGSEGV  (兩次)
 ### 16.3 尚未完成
 - ElevenLabs TTS 音檔傳輸（`audio_sink` → 瀏覽器）尚未接；目前雲端 TTS 只在 `/tmp` 實測過，產品內實際出聲的是系統語音。
 - API key 權限受限（缺 `voices_read`/`user_read`），所以 voice 清單寫死在 catalog。**key 曾以純文字出現在聊天室，demo 後請 revoke。**
+
+## 17. 三個能力展示情境（`database/seeds/seed.py` → `EXTRA_SCENARIOS`）
+
+每個情境都設計成**在觀眾面前必然觸發**一種能力，觸發方式寫在情境 description 的【示範觸發】裡，任何主持人照做即可。
+
+| 情境 | 人物 | 觸發機制 | 學員要輸入／做的事 |
+|---|---|---|---|
+| 模糊提問的釐清對談 | 林佳穎 29♀ | `intent` 判 `AMBIGUOUS/INCOMPLETE → CLARIFY`；候選意思與建議反問句進客戶 prompt（`server_intent_verdict.candidate_meanings`） | 輸入「這個划算嗎？」「那這樣呢？」「要多少？」 |
+| 超綱話題的溫和收斂 | 王國棟 67♂ | `OFF_TOPIC_SIGNALS` 或情境 `restricted_topics` → `REDIRECT`；客戶 prompt 規則 6 禁止「我無法回答」；導演扣 patience；教練標記離題 | 輸入「你覺得今天天氣如何？」「總統選舉你怎麼看？」 |
+| 續保費率調漲告知 | 張若瑄 45♀ | 鏡頭 `angry → 不耐煩`，`CustomerTurnRequest.trainee_face` 進客戶 prompt，`_face_directive` 要求先用一句確認再繼續 | 開鏡頭皺眉；或輸入「這太離譜了」 |
+
+### 17.1 這輪為此補的機制
+- `intent.py`：新增五組無指涉評價句型（「這個怎麼樣」「那這樣呢」「要多少」「有差嗎」「這樣夠嗎」）。
+- `customer_agent.py`：`server_intent_verdict` 多帶 `candidate_meanings` / `suggested_clarifying_question`，客戶反問時才會**列出選項**而不是只問「你指什麼」；新增 `trainee_face` 與 `_face_directive()`（信心 < 0.55 或 不明確/平穩 → 不提表情）。
+- `orchestrator.py`：臉部讀數在**回合開始**就傳給客戶（文字情緒要等回覆存在才算得出，所以客戶只用臉部）。
+
+### 17.2 注意
+- 三個新 persona 沒填 `voice_id`，由 `voice_catalog.py` 依性別年齡選；王伯伯 67 歲用中年男聲（ElevenLabs 沒有老年聲），系統語音 fallback 則有 Grandpa。
+- seed 是**增量**的：既有列不動、新 id 插入；重跑不會覆蓋（除非 `--force`）。

@@ -500,6 +500,231 @@ SCENARIO_SUCCESS_ASSERTIONS: list[dict[str, Any]] = [
 # than reusing this one.
 # -----------------------------------------------------------------------------
 
+
+# -----------------------------------------------------------------------------
+# Three capability-demo scenarios. Each one is built to *reliably trigger* one
+# behaviour of the agent stack in front of an audience, and says so in its
+# description (the 示範觸發 line) so any presenter can reproduce it:
+#
+#   A  模糊意圖 → 反問釐清   intent AMBIGUOUS/INCOMPLETE → CLARIFY, options listed in character
+#   B  超綱話題 → 溫和收斂   intent OFF_TOPIC / restricted_topics → REDIRECT, never a canned refusal
+#   C  不悅表情 → 主動確認   webcam affect (angry → 不耐煩) → persona checks in before continuing
+#
+# Personas carry no explicit voice_id: apps/api/app/ws/voice_catalog.py picks the
+# ElevenLabs voice from gender + age (張經理 45 → middle female; 王伯伯 67 → the
+# middle-aged male voice by design; the OS fallback has a real elderly voice).
+# -----------------------------------------------------------------------------
+
+def _voice(style: str, speed: float = 1.0) -> dict[str, Any]:
+    return {"provider": "elevenlabs", "voice_id": None, "language": "zh-TW",
+            "speed": speed, "stability": 0.5, "emotion_style": style}
+
+
+PERSONA_CLARIFY_ID = sid("persona", "clarify")
+PERSONA_OFFTOPIC_ID = sid("persona", "offtopic")
+PERSONA_AFFECT_ID = sid("persona", "affect")
+SCENARIO_CLARIFY_ID = sid("scenario", "clarify")
+SCENARIO_OFFTOPIC_ID = sid("scenario", "offtopic")
+SCENARIO_AFFECT_ID = sid("scenario", "affect")
+
+EXTRA_PERSONAS: list[dict[str, Any]] = [
+    {
+        "id": PERSONA_CLARIFY_ID, "tenant_id": ORG_ID, "workspace_id": WS_ID,
+        "name": "林佳穎", "version": 1, "status": "published",
+        "gender": "female", "age": 29, "occupation": "行銷專員", "industry": "零售 / 電商",
+        "background": (
+            "29 歲，單身，第一次認真考慮買保險。月薪約 4 萬 8，剛開始分擔家裡部分開銷。"
+            "對保險名詞幾乎沒有概念，講話常常只講一半——「那個」「這樣」「划算嗎」——"
+            "自己也說不清楚在問價格、保障還是期限。被『猜著回答』時會覺得對方沒在聽。"
+        ),
+        "language": "zh-TW", "locale": "zh-TW",
+        "traits": {"trust": 55, "patience": 60, "price_sensitivity": 70, "risk_aversion": 50,
+                   "product_knowledge": 15, "resistance": 40, "openness": 70},
+        "hidden": {
+            "primary_goal": "搞懂自己到底需要什麼，而不是被話術牽著走",
+            "hidden_need": "剛開始負擔家裡開銷，怕自己生病或出意外反而讓爸媽多花錢",
+            "main_concern": "聽不懂專有名詞，怕買錯、怕被當成好騙的年輕人",
+            "budget": 1500,
+            "trigger_points": ["用她聽得懂的生活例子解釋", "先問她的生活狀況再談商品",
+                               "把選項攤開讓她自己選", "被反問釐清時覺得『你有在聽我講』"],
+            "objections": ["我朋友說直接買儲蓄險就好？", "這個…划算嗎？", "那這樣夠嗎？",
+                           "要多少？", "我再想想好了"],
+            "forbidden_knowledge": ["保單條款細節", "同業費率與商品比較", "業務員佣金結構"],
+            "opening_attitude": "友善、有點緊張。開口常是半句話，指涉不明；若業務直接猜答，她會愣住然後說「呃…不是那個意思」。",
+            "exit_condition": "連續兩次被猜著回答而沒有被反問釐清，覺得對方沒在聽，說「我再想想」離開。",
+            "success_condition": "覺得被聽懂，願意主動說出每月可負擔金額與最擔心的情況。",
+        },
+        "voice": _voice("warm_uncertain", 1.0),
+        "created_at": NOW, "updated_at": NOW,
+    },
+    {
+        "id": PERSONA_OFFTOPIC_ID, "tenant_id": ORG_ID, "workspace_id": WS_ID,
+        "name": "王國棟", "version": 1, "status": "published",
+        "gender": "male", "age": 67, "occupation": "退休國中老師", "industry": "教育 / 退休",
+        "background": (
+            "67 歲，退休國中老師，太太已過世，獨子在國外工作。很健談，"
+            "見面先聊天氣、颱風、選舉和孫子，可以聊二十分鐘不進正題。"
+            "對投資型商品有陰影（朋友賠過），非常保守，任何『利率』『報酬』的字眼都讓他警戒。"
+        ),
+        "language": "zh-TW", "locale": "zh-TW",
+        "traits": {"trust": 60, "patience": 45, "price_sensitivity": 60, "risk_aversion": 80,
+                   "product_knowledge": 25, "resistance": 50, "openness": 65},
+        "hidden": {
+            "primary_goal": "確認退休金和醫療保障夠不夠用到 85 歲",
+            "hidden_need": "怕自己住院沒人照顧，也怕拖累孫子的教育費",
+            "main_concern": "怕被推銷投資型商品，把退休金賠掉",
+            "budget": 4000,
+            "trigger_points": ["講到孫子", "講到住院有沒有人照顧", "業務把離題的話溫和帶回保單而不是硬切",
+                               "業務承認『您的顧慮很合理』"],
+            "objections": ["這個利率跟股票比怎麼樣？", "你們公司會不會倒？", "我兒子說不要買投資型的",
+                           "我再問問我兒子"],
+            "forbidden_knowledge": ["保單條款細節", "同業商品比較", "股市或匯率預測"],
+            "opening_attitude": "熱情健談。開場先聊颱風、選舉、孫子；業務若跟著聊，他就一直聊；業務若硬切，他會覺得被打斷而不高興。",
+            "exit_condition": "一小時內沒進入正題，或覺得業務只想賣東西不想聽他講話。",
+            "success_condition": "同意讓業務整理現有保單清單，並約下次帶兒子一起談。",
+        },
+        "voice": _voice("chatty_grandfather", 0.95),
+        "created_at": NOW, "updated_at": NOW,
+    },
+    {
+        "id": PERSONA_AFFECT_ID, "tenant_id": ORG_ID, "workspace_id": WS_ID,
+        "name": "張若瑄", "version": 1, "status": "published",
+        "gender": "female", "age": 45, "occupation": "財務部經理", "industry": "製造業",
+        "background": (
+            "45 歲，製造業財務部經理，負責公司團保。時間極少、講話直接、對數字敏感。"
+            "公司剛裁員一波，她自己也在觀望。對含糊的回答會明顯皺眉，"
+            "對『沒注意到她不高興』的業務會直接失去耐心。"
+        ),
+        "language": "zh-TW", "locale": "zh-TW",
+        "traits": {"trust": 40, "patience": 30, "price_sensitivity": 75, "risk_aversion": 55,
+                   "product_knowledge": 70, "resistance": 75, "openness": 40},
+        "hidden": {
+            "primary_goal": "用最少的時間確認續保費率調漲是否合理、能不能跟老闆交代",
+            "hidden_need": "擔心自己也被裁，想知道失業後個人保障怎麼延續",
+            "main_concern": "被當成好糊弄的客戶，或被用故事拖時間",
+            "budget": 6000,
+            "trigger_points": ["業務察覺她的不悅並主動確認『我是不是哪裡講錯了』",
+                               "直接給數字與依據", "承認調漲確實不好接受、不過度道歉",
+                               "主動提到離職後保障的延續"],
+            "objections": ["漲 18% 你要我怎麼跟老闆解釋？", "你們去年不是說費率穩定？",
+                           "別家報價比你便宜", "我沒時間聽你講故事"],
+            "forbidden_knowledge": ["精算費率公式", "同業內部報價", "業務員佣金"],
+            "opening_attitude": "冷靜、直接、不耐煩，常看手錶。任何含糊都會讓她皺眉、語氣變硬。",
+            "exit_condition": "連續兩次覺得業務在迴避數字，或沒注意到她已經不耐煩。",
+            "success_condition": "接受一份調漲原因的書面說明，並同意保留現有保單。",
+        },
+        "voice": _voice("sharp_impatient", 1.08),
+        "created_at": NOW, "updated_at": NOW,
+    },
+]
+
+EXTRA_SCENARIOS: list[dict[str, Any]] = [
+    {
+        "id": SCENARIO_CLARIFY_ID, "tenant_id": ORG_ID, "workspace_id": WS_ID,
+        "name": "模糊提問的釐清對談——第一次買保險的林佳穎", "version": 1, "status": "published",
+        "description": (
+            "客戶講話只講一半，業務必須先反問釐清再回答。"
+            "【示範觸發】學員輸入沒有指涉對象的句子——「這個划算嗎？」「那這樣呢？」「要多少？」——"
+            "系統會在角色內反問並列出可能的意思（價格／保費、保障範圍、投資報酬、風險與除外）；"
+            "林佳穎自己也會用半句話發問，訓練學員主動追問補齊關鍵資訊。"
+        ),
+        "industry": "保險 / 個人壽險", "training_type": "needs_discovery",
+        "persona_id": PERSONA_CLARIFY_ID, "knowledge_base_ids": [KB_ID],
+        "difficulty": "easy", "mode": "training",
+        "opening_context": (
+            "林佳穎是同事介紹的，29 歲，第一次考慮買保險。她一坐下就說："
+            "「我朋友說我應該買一個…那個，你覺得划算嗎？」——"
+            "你不知道她指的是哪種保險，也不知道她的預算。"
+        ),
+        "learning_objectives": [
+            "面對指涉不明的提問，先反問釐清（在問價格？保障？期限？），不要猜著回答",
+            "把選項攤開讓客戶選，而不是替客戶決定",
+            "用客戶聽得懂的生活語言解釋專有名詞",
+            "在任何商品說明前完成基本需求探索（收入、負擔、最擔心的情況）",
+        ],
+        "required_knowledge": ["定期壽險與終身壽險的差異", "實支實付醫療的自負額與限額概念",
+                               "保障缺口的計算方式"],
+        "required_talking_points": ["至少一次以反問釐清客戶的模糊提問", "確認每月可負擔金額",
+                                    "確認客戶最擔心的情況", "明確說明本次對話不構成投資或稅務建議"],
+        "key_objections": ["我朋友說直接買儲蓄險就好？", "這個…划算嗎？", "那這樣夠嗎？", "我再想想好了"],
+        "restricted_topics": ["保證投資報酬率", "稅務規劃建議", "同業商品的具體費率比較"],
+        "success_condition": "學員至少一次以反問釐清模糊提問 + 客戶說出每月可負擔金額 + Trust >= 65 + 無 critical 合規風險",
+        "failure_condition": "連續兩次對模糊提問直接猜答而未釐清，或出現 critical 合規風險",
+        "time_limit_seconds": 600, "max_turns": 30, "minimum_score": 70, "rubric_id": RUBRIC_ID,
+        "created_at": NOW, "updated_at": NOW,
+    },
+    {
+        "id": SCENARIO_OFFTOPIC_ID, "tenant_id": ORG_ID, "workspace_id": WS_ID,
+        "name": "超綱話題的溫和收斂——健談的王伯伯", "version": 1, "status": "published",
+        "description": (
+            "客戶很愛聊，天氣、選舉、孫子什麼都聊；業務要一句回應、一句帶回主題，"
+            "而且不能用機械式拒絕。"
+            "【示範觸發】學員輸入「你覺得今天天氣如何？」「總統選舉你怎麼看？」「明天股票會不會漲？」——"
+            "系統以客戶身分短短帶過並自然導回保單，不會說「我無法回答」；"
+            "王伯伯也會主動離題，教練會標記離題並給出收斂建議。"
+        ),
+        "industry": "保險 / 個人壽險", "training_type": "conversation_control",
+        "persona_id": PERSONA_OFFTOPIC_ID, "knowledge_base_ids": [KB_ID],
+        "difficulty": "medium", "mode": "training",
+        "opening_context": (
+            "王伯伯 67 歲，退休國中老師，兒子只給他一小時。他一坐下就說："
+            "「今天颱風好像要來了？你們年輕人有去投票嗎？」——他很愛聊，正事還沒開始。"
+        ),
+        "learning_objectives": [
+            "對離題話題溫和收斂：一句回應、一句帶回主題",
+            "不使用「我無法回答」這類機械式拒絕",
+            "在客戶主動離題時仍守住合規邊界（不預測股市、不評論政治）",
+            "一小時內完成現有保單盤點的需求探索",
+        ],
+        "required_knowledge": ["醫療險與長照險的差異", "退休後保障的延續性", "投資型與傳統型保單的差異"],
+        "required_talking_points": ["離題後兩輪內回到保單主題", "盤點現有保單項目與保額",
+                                    "確認住院照護與長照的顧慮", "說明不提供股市或政治意見"],
+        "key_objections": ["這個利率跟股票比怎麼樣？", "你們公司會不會倒？", "我兒子說不要買投資型的",
+                           "我再問問我兒子"],
+        "restricted_topics": ["天氣", "颱風", "選舉", "政治", "總統", "股市預測", "股票會不會漲",
+                              "比特幣", "醫療診斷", "同業商品比較"],
+        "success_condition": "完成現有保單盤點 + 每次離題後兩輪內回到主題 + Patience >= 50 + 無 critical 合規風險",
+        "failure_condition": "連續三輪跟著客戶離題、出現機械式拒絕、或 critical 合規風險",
+        "time_limit_seconds": 900, "max_turns": 40, "minimum_score": 70, "rubric_id": RUBRIC_ID,
+        "created_at": NOW, "updated_at": NOW,
+    },
+    {
+        "id": SCENARIO_AFFECT_ID, "tenant_id": ORG_ID, "workspace_id": WS_ID,
+        "name": "續保費率調漲告知——不悅的張經理", "version": 1, "status": "published",
+        "description": (
+            "要告知客戶團保續保費率調漲 18%，對方全程表情嚴肅。"
+            "【示範觸發・自然互動】開啟鏡頭後，學員在鏡頭前皺眉或露出不悅——"
+            "系統把表情融合進判讀，張經理會在角色內先確認一句「你好像不太認同我剛講的？」"
+            "或「我是不是哪裡講錯了？」再等學員回答。文字同樣有效：輸入「這太離譜了」也會觸發；"
+            "教練卡會依學員情緒調整提示語氣。"
+        ),
+        "industry": "保險 / 企業團保", "training_type": "difficult_conversation",
+        "persona_id": PERSONA_AFFECT_ID, "knowledge_base_ids": [KB_ID],
+        "difficulty": "hard", "mode": "training",
+        "opening_context": (
+            "張經理是製造業財務主管，你要告知她公司團保續保費率調漲 18%。"
+            "她開場：「我只有十分鐘，直接講重點。」——她表情嚴肅，任何含糊都會讓她皺眉。"
+        ),
+        "learning_objectives": [
+            "察覺對方的情緒訊號，並在一句話內確認而非忽略",
+            "在壓力下仍以數字與依據回應，不迴避",
+            "接受客戶不滿而不過度道歉、不改變事實",
+            "全程不觸發 critical 合規風險（不承諾『以後不會再漲』）",
+        ],
+        "required_knowledge": ["團體保險費率調整的常見因素（理賠率、年齡結構、醫療通膨）",
+                               "團保與個人保單的保障延續性", "離職後保障轉換的選項"],
+        "required_talking_points": ["說明調漲的具體原因與數字依據", "至少一次正確回應對方的情緒訊號",
+                                    "提出離職後保障延續的選項", "不承諾未來費率"],
+        "key_objections": ["漲 18% 你要我怎麼跟老闆解釋？", "你們去年不是說費率穩定？", "別家報價比你便宜",
+                           "我沒時間聽你講故事"],
+        "restricted_topics": ["精算費率公式", "同業內部報價", "保證費率不再調漲", "醫療診斷"],
+        "success_condition": "客戶同意保留保單 + 學員至少一次正確回應對方情緒訊號 + Trust >= 60 + 無 critical 合規風險",
+        "failure_condition": "忽略客戶不悅連續兩輪、承諾「以後不會再漲」（critical）、或 Resistance 升至 90 以上",
+        "time_limit_seconds": 600, "max_turns": 30, "minimum_score": 75, "rubric_id": RUBRIC_ID,
+        "created_at": NOW, "updated_at": NOW,
+    },
+]
+
 SKILL_WEIGHTS: dict[str, int] = {
     "needs_discovery": 16,
     "objection_handling": 14,
@@ -773,8 +998,8 @@ def build_payload() -> dict[str, Any]:
         "chunks": CHUNKS,
         "compliance_rules": COMPLIANCE_RULES,
         "rubrics": [RUBRIC],
-        "personas": [PERSONA],
-        "scenarios": [SCENARIO],
+        "personas": [PERSONA, *EXTRA_PERSONAS],
+        "scenarios": [SCENARIO, *EXTRA_SCENARIOS],
         "scenario_success_assertions": SCENARIO_SUCCESS_ASSERTIONS,
         "role_assignments": ROLE_ASSIGNMENTS,
         "user_teams": USER_TEAMS,
@@ -1179,6 +1404,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     ok(counts)
     note(f"persona={PERSONA['name']} scenario={SCENARIO['name']!r}")
+    for extra in EXTRA_SCENARIOS:
+        note(f"  + {extra['name']}")
     note(f"success condition: {SCENARIO['success_condition']}")
 
     step("Validating against the contract")
