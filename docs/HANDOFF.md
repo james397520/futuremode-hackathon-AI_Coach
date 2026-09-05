@@ -61,6 +61,7 @@ bash scripts/check-contracts.sh                      # TS/Python 事件契約同
 
 ---
 
+
 ## 2. 目錄與歸屬（詳見 `docs/PROJECT_STRUCTURE.md`）
 
 | 路徑 | 是什麼 |
@@ -655,3 +656,20 @@ out: y[N,1,L] float
 - three-vrm 3.x 同時支援 0.x 與 1.0；`rotateVRM0()` 對 1.0 是 no-op（1.0 本身面向 +Z）。
 - `ARM_POSE` 是照舊 VRoid 模型量的；Rocketbox 的 rest pose 若不同，用 `window.__aiCoachVrm.setArms({...})` 重量後改常數。
 - **授權待確認**：Rocketbox 授權條款在模型 meta 的 `licenseUrl`（github.com/microsoft/Microsoft-Rocketbox）；商用與再散布條件請看該檔。
+
+### 19.2 六個虛擬人：性別 × 年齡自動對應，以及三個必修的 render bug
+
+`public/models/` 現在是六個 Microsoft Rocketbox 角色——`avatar_{male,female}_{young,middle,senior}.vrm`，共 160 MB——由 `features/avatar/lib/avatar-body.ts` 依 persona 的性別與年齡自動挑，門檻與語音那套相同（<35 青年、35–64 中年、≥65 長者），所以不會出現 65 歲的臉配年輕的聲音。年齡差異是事先烤好的貼圖（皺紋來自老化 GAN、白髮來自亮度遮罩），同一個性別的三個年齡共用同一具 mesh。
+
+`avatar_male_suit.vrm` / `avatar_female_suit.vrm` / `avatar_male_real.glb` 已從工作目錄移除（§19 與 §19.1 描述的那三個），沒有程式再引用它們。
+
+執行期的 look 參數逐字抄自參考專案 viewer 的 `CHARACTERS`：膚色明暗與駝背弧度（m50 −0.02 / 0.12、m65 −0.04 / 0.30、f40 −0.01 / 0.07、f65 −0.04 / 0.26）。駝背照它的做法在世界空間 X 軸疊加到 spine/chest/upperChest/neck，並讓頭部反向補償 85%——不補償的話 65 歲會直接看著地板。它的第四條滑桿「髮色白化」沒有移植：這六個模型的白髮已經烤進貼圖，那條滑桿是給沒有年齡變體的模型用的。
+
+**三個 render bug，都不是模型壞掉，是轉檔流程與 three.js 的落差**（細節見 `docs/AVATAR_RENDER_REPAIRS.md`，修正在 `features/avatar/vrm/model-repairs.ts`，19 個測試）：
+
+1. **貼圖上下顛倒。** 參考專案的轉檔先把貼圖從材質上拿掉才跑 `GLTFExporter`，之後才用 `vrm_finalize.py` 把原始 JPEG/PNG bytes 塞回 GLB——這樣就跳過了 exporter 本來會做的垂直翻轉。臉部圖集因此整個上下相反，看起來是頭頂一頂黑帽、眼睛橫著一條深色帶。修法是載入後把 `m008_*`/`f016_*` 這些材質的 V 座標翻回來（clone accessor，因為 GLTFLoader 會共用）。
+2. **手臂張開。** Rocketbox「rest 是 A-pose,不是 T-pose」（來源專案 README），手臂在綁定姿勢就是垂的。先前套 VRoid 量到的 62°／−63° 讓手臂舉到一半，參考專案給拖放 VRM 的 fallback 90°／−90° 則讓手臂直接平舉——**任何修正都是在把手臂往外轉**。現在改成量測每具骨架自己的肩／肘／腕方向再算出放鬆姿勢。
+3. **老年版白瞳孔。** 老化腳本把臉部橢圓之外的深色像素一律推成灰白，虹膜的 UV 島剛好在圖集底部、落在橢圓外，於是被一起漂白。修法是只有那一塊 UV 島改採未老化的原始貼圖（`rocketbox_{male,female}_head_original.jpg`）。
+
+**授權**：Rocketbox 是 MIT，但這六個檔是經過老化 GAN 重繪的衍生貼圖，商用前要確認 GAN 權重（Fast-AgingGAN，MIT）與 Rocketbox 條款疊起來的結果。
+

@@ -584,6 +584,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
               restrictedTopics={bootstrap.scenario.restrictedTopics}
               personaName={bootstrap.persona.name}
               personaGender={bootstrap.persona.gender}
+              personaAge={bootstrap.persona.age}
               personaSubtitle={bootstrap.persona.subtitle ?? bootstrap.persona.occupation}
               personaAvatarUrl={bootstrap.persona.avatarUrl}
               speaking={personaSpeaking}

@@ -503,6 +503,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                   className="h-full min-h-0"
                   personaName={bootstrap.persona.name}
                   personaGender={bootstrap.persona.gender}
+                  personaAge={bootstrap.persona.age}
                   subtitle={bootstrap.persona.subtitle ?? bootstrap.persona.occupation}
                   avatarUrl={bootstrap.persona.avatarUrl}
                   personaState={personaState}
@@ -528,7 +529,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                     persona's face. */}
                 {/* Same two-column, chest-height glass stack as PersonaColumn's
                     stage-fill layout — keep the two in step. */}
-                <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3">
+                <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3 pb-14">
                   <div className="sim-scroll sim-stage-overlay pointer-events-auto grid max-h-[36%] w-full grid-cols-1 content-start items-stretch gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
                     <PersonaStateCard
                       state={personaState}

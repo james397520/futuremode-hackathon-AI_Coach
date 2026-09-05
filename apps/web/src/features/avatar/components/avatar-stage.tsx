@@ -68,6 +68,8 @@ export interface AvatarStageProps {
    * (explicit contract field → name → voice → female).
    */
   personaGender?: AvatarBodyGender;
+  /** Persona age — picks the young / middle / senior body (`avatar-body.ts`). */
+  personaAge?: number | null;
   /** Scenario portrait, used when the runtime has none of its own. */
   portraitUrl?: string;
   /** The live persona state — the single source of expression truth (§8/§13). */
@@ -119,6 +121,7 @@ export function AvatarStage({
   avatarId,
   personaName,
   personaGender = 'female',
+  personaAge = null,
   portraitUrl,
   personaState = null,
   speaking,
@@ -266,6 +269,7 @@ export function AvatarStage({
       {wantVrm ? (
         <VrmStage
           gender={personaGender}
+          age={personaAge}
           ariaLabel={canvasLabel}
           speaking={speaking}
           onStatus={onVrmStatus}

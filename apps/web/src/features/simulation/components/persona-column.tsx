@@ -50,6 +50,7 @@ export interface PersonaColumnProps {
 
   personaName: string;
   personaGender?: AvatarBodyGender;
+  personaAge?: number | null;
   personaSubtitle?: string;
   personaAvatarUrl?: string;
 
@@ -105,6 +106,7 @@ export function PersonaColumn(props: PersonaColumnProps) {
     restrictedTopics,
     personaName,
     personaGender,
+    personaAge,
     personaSubtitle,
     personaAvatarUrl,
     speaking,
@@ -138,6 +140,7 @@ export function PersonaColumn(props: PersonaColumnProps) {
     <PersonaStage
       personaName={personaName}
       personaGender={personaGender}
+      personaAge={personaAge}
       subtitle={personaSubtitle}
       avatarUrl={personaAvatarUrl}
       speaking={speaking}
@@ -219,8 +222,13 @@ export function PersonaColumn(props: PersonaColumnProps) {
         */}
         {/* Full-height wrapper, bottom-aligned: the stack's `max-h` is a
             percentage, and against an auto-height `bottom-0` box it resolves to
-            nothing — so the cards would grow until they covered the face. */}
-        <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3">
+            nothing — so the cards would grow until they covered the face.
+
+            `pb-14` is not cosmetic spacing: the stage's own status chip
+            (說話中／聆聽中／待命中) and the waveform sit in an `inset-x-0 bottom-0
+            p-4` strip up to 48 px tall, and without this the bottom card was
+            painted over 「待命中」. */}
+        <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3 pb-14">
           <div className="sim-scroll sim-stage-overlay pointer-events-auto grid max-h-[36%] w-full grid-cols-1 content-start items-stretch gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
             {cards}
           </div>

@@ -23,9 +23,10 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { VRMLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
+import { VRMLoaderPlugin, VRMMetaLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
 
 import { useAvatarStore } from '../avatar-store';
+import { avatarLook, materialRole, modelUrlFor } from '../lib/avatar-body';
 import type { AvatarBodyGender } from '../lib/persona-gender';
 import { cn } from '../lib/tone';
 import {
@@ -40,11 +41,14 @@ import {
 } from './expression-to-vrm';
 import { IdleAnimator, prefersReducedMotion } from './idle';
 import { A2EPlayer, ProceduralLipsync } from './lipsync';
+import { createRelaxedArmPose, repairRocketboxMaterials, restoreRocketboxIrises } from './model-repairs';
 
 export type VrmStageStatus = 'loading' | 'ready' | 'failed';
 
 export interface VrmStageProps {
   gender: AvatarBodyGender;
+  /** The persona's age. Picks the young / middle / senior body and its look. */
+  age?: number | null;
   /** For the canvas `aria-label`; pixels are invisible to assistive tech. */
   ariaLabel: string;
   speaking: boolean;
@@ -53,13 +57,9 @@ export interface VrmStageProps {
   className?: string;
 }
 
-/** Same-origin model files (`apps/web/public/models`). */
-export function modelUrlFor(gender: AvatarBodyGender): string {
-  // The male body is a Ready Player Me export: plain glTF with the ARKit-52
-  // morph targets and a Mixamo skeleton, no VRM extension. The stage drives it
-  // through the generic branch below; the female body is still a VRM.
-  return gender === 'male' ? '/models/avatar_male_real.glb' : `/models/avatar_${gender}_suit.vrm`;
-}
+// `modelUrlFor` now lives in `../lib/avatar-body` with the rest of the roster;
+// re-exported so existing importers keep working.
+export { modelUrlFor } from '../lib/avatar-body';
 
 /**
  * Black → purple ground (see the JSX note). Built from the theme's violet /
@@ -179,6 +179,8 @@ interface VrmDebugHandle {
   head: () => { yaw: number; pitch: number; roll: number } | null;
   /** Dial the arms in live, in degrees; see `ARM_POSE`. */
   setArms: (degrees: Partial<typeof ARM_POSE>) => void;
+  /** The loaded root, so a check can read materials and bones it did not author. */
+  root: () => THREE.Object3D | null;
 }
 declare global {
   interface Window {
@@ -203,19 +205,31 @@ const DEG = Math.PI / 180;
  *
  * `dev` builds expose `window.__aiCoachVrm.setArms({...degrees})` so this can be
  * re-measured the same way instead of re-guessed.
+ *
+ * Rocketbox uses A-pose: 90° raises its arms, while zero still leaves them
+ * spread diagonally (verified in the rendered stage). The bundled bodies use
+ * createRelaxedArmPose to calibrate their actual rest directions. These values
+ * are only the explicit dev-slider override / legacy model fallback.
+ *
+ * Kept as a table rather than deleted: the mechanism is still needed the moment
+ * a T-posed body is added, and `setArms` is how its numbers get measured.
  */
 const ARM_POSE = {
-  leftUpperArmZ: 62,
-  leftLowerArmX: -24,
-  rightUpperArmZ: -63,
-  rightLowerArmX: -30,
+  leftUpperArmZ: 0,
+  leftLowerArmX: 0,
+  rightUpperArmZ: 0,
+  rightLowerArmX: 0,
 };
+
+/** Viewer's `POSTURE_VRM` — the joints the stoop is shared across. */
+const POSTURE_BONES = ['spine', 'chest', 'upperChest', 'neck'] as const;
+const WORLD_X = new THREE.Vector3(1, 0, 0);
 
 /** Viewer's `BODY_POSE_BONE` — trunk/limbs only, never head or eyes. */
 const BODY_POSE_BONE =
   /^(Hips|Spine\d*|(Left|Right)(Shoulder|Arm|ForeArm|Hand(Index|Middle|Pinky|Ring|Thumb)?\d*|UpLeg|Leg|Foot|ToeBase))$/i;
 
-export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: VrmStageProps) {
+export function VrmStage({ gender, age = null, ariaLabel, speaking, onStatus, className }: VrmStageProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const speakingRef = useRef(speaking);
@@ -236,6 +250,10 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
 
     // Re-applied by the dev-only `setArms`, so the pose can be dialled in live.
     let applyArmPose: (() => void) | null = null;
+    let manualArmPose = false;
+    let applyPosture: (() => void) | null = null;
+    let loadedRoot: THREE.Object3D | null = null;
+    let irisTextures: THREE.Texture[] = [];
 
     const report = (status: VrmStageStatus, reason?: string): void => {
       if (DEBUG_HANDLE && window.__aiCoachVrm) window.__aiCoachVrm.status = status;
@@ -431,6 +449,12 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
       gazeTarget.position.y += pose.gazeY * 3;
 
       mixer?.update(dt);
+      // Both after the mixer (which would overwrite these bones) and before
+      // `vrm.update` (which writes the normalized rig into the real bones).
+      // The arms are re-applied every frame rather than once at load, as the
+      // reference viewer does, so nothing downstream can quietly reset them.
+      if (!mixer) applyArmPose?.();
+      applyPosture?.();
       vrm?.update(dt);
       rig.renderer.render(rig.scene, camera);
     };
@@ -464,20 +488,38 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
         weights: () => lastWeights,
         head: () => lastHead,
         setArms: (degrees) => {
+          manualArmPose = true;
           Object.assign(ARM_POSE, degrees);
           applyArmPose?.();
         },
+        root: () => loadedRoot,
       };
     }
 
     // --- model -------------------------------------------------------------
     report('loading');
     const loader = new GLTFLoader();
-    loader.register((parser) => new VRMLoaderPlugin(parser));
+    loader.register(
+      (parser) =>
+        new VRMLoaderPlugin(parser, {
+          // three-vrm refuses any VRM 1.0 whose meta.licenseUrl is not the
+          // official VRM licence — the whole model fails to load, silently
+          // becoming the portrait fallback. The Rocketbox body carries its own
+          // licence URL, accepted here explicitly (its terms are in that file;
+          // see HANDOFF §19.1), not by disabling the check.
+          metaPlugin: new VRMMetaLoaderPlugin(parser, {
+            acceptLicenseUrls: [
+              'https://vrm.dev/licenses/1.0/',
+              'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+            ],
+            needThumbnailImage: false,
+          }),
+        }),
+    );
 
     loader
-      .loadAsync(modelUrlFor(gender))
-      .then((gltf) => {
+      .loadAsync(modelUrlFor(gender, age))
+      .then(async (gltf) => {
         const vrm = (gltf.userData as { vrm?: VRM }).vrm;
         if (!vrm) {
           // Plain glTF (Ready Player Me). No VRM extension, so no expression
@@ -487,6 +529,7 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
             return;
           }
           const root = gltf.scene;
+          loadedRoot = root;
           const morphMeshes: THREE.Mesh[] = [];
           let head: THREE.Object3D | null = null;
           const eyes: { node: THREE.Object3D; rest: THREE.Quaternion }[] = [];
@@ -543,6 +586,21 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
 
         // Standard three-vrm hygiene: fewer draw calls, one skeleton, no
         // backface culling on skinned meshes that flicker at the edge.
+        loadedRoot = vrm.scene;
+        const isRocketbox = repairRocketboxMaterials(vrm.scene);
+        if (isRocketbox && (age == null || age >= 35)) {
+          try {
+            irisTextures = await restoreRocketboxIrises(vrm.scene);
+          } catch (error) {
+            // Missing optional atlas must not hide an otherwise usable avatar.
+            if (DEBUG_HANDLE) console.warn('[vrm-stage] original iris texture unavailable', error);
+          }
+          if (disposed) {
+            for (const texture of irisTextures) texture.dispose();
+            VRMUtils.deepDispose(vrm.scene);
+            return;
+          }
+        }
         VRMUtils.removeUnnecessaryVertices(gltf.scene);
         VRMUtils.combineSkeletons(gltf.scene);
         VRMUtils.rotateVRM0(vrm); // VRM 0.x faces −Z; turn it to the camera.
@@ -552,21 +610,82 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
           if ((o as THREE.Mesh).isMesh) o.frustumCulled = false;
         });
 
-        // VRoid exports rest in T-pose. Drop the arms so the shoulders read as
-        // a seated customer rather than a scarecrow — normalized bones rest at
-        // identity, so this is an absolute rotation.
+        // Calibrate A-pose from the actual rig, preserving facial bones.
         const humanoid = vrm.humanoid;
         const leftArm = humanoid.getNormalizedBoneNode('leftUpperArm');
         const rightArm = humanoid.getNormalizedBoneNode('rightUpperArm');
         const leftFore = humanoid.getNormalizedBoneNode('leftLowerArm');
         const rightFore = humanoid.getNormalizedBoneNode('rightLowerArm');
+        const relaxedArms = isRocketbox ? createRelaxedArmPose(humanoid) : null;
         applyArmPose = () => {
+          if (relaxedArms && !manualArmPose) {
+            relaxedArms();
+            return;
+          }
           if (leftArm) leftArm.rotation.set(0, 0, ARM_POSE.leftUpperArmZ * DEG);
           if (rightArm) rightArm.rotation.set(0, 0, ARM_POSE.rightUpperArmZ * DEG);
           if (leftFore) leftFore.rotation.set(ARM_POSE.leftLowerArmX * DEG, 0, 0);
           if (rightFore) rightFore.rotation.set(ARM_POSE.rightLowerArmX * DEG, 0, 0);
         };
         applyArmPose();
+
+        // --- age look ------------------------------------------------------
+        // The aged textures carry the wrinkles and the grey hair; posture and
+        // skin tone are the half of the roster's `look` that has to happen at
+        // runtime. Both numbers come from `avatarLook` (the viewer's table).
+        const look = avatarLook(gender, age);
+
+        if (look.skin !== 0) {
+          const tinted = new Set<string>();
+          vrm.scene.traverse((o) => {
+            const mesh = o as THREE.Mesh;
+            if (!mesh.isMesh) return;
+            const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+            for (const mat of mats) {
+              const m = mat as THREE.MeshStandardMaterial;
+              if (!m || tinted.has(m.uuid) || materialRole(m.name ?? '') !== 'skin') continue;
+              tinted.add(m.uuid);
+              // Multiplying `color` can only darken, which is all the roster
+              // asks for here (every skin offset is negative).
+              m.color?.offsetHSL(0, 0, look.skin);
+            }
+          });
+        }
+
+        if (look.stoop !== 0) {
+          // Stoop is the strongest age signal in the body. Each joint's local
+          // axes point somewhere different, so the bend is applied about the
+          // *world* X axis, and the bones are reset to their rest rotation first
+          // or the rotation compounds every frame until the model folds over.
+          const postureBones = POSTURE_BONES.map((name) =>
+            humanoid.getNormalizedBoneNode(name),
+          ).filter((b): b is THREE.Object3D => b !== null);
+          const rests = postureBones.map((b) => b.quaternion.clone());
+          const per = look.stoop / Math.max(postureBones.length, 1);
+          const axisQ = new THREE.Quaternion();
+          const parentQ = new THREE.Quaternion();
+          const worldQ = new THREE.Quaternion();
+          const bendAboutWorldX = (bone: THREE.Object3D, radians: number): void => {
+            if (!bone.parent) return;
+            axisQ.setFromAxisAngle(WORLD_X, radians);
+            bone.parent.getWorldQuaternion(parentQ);
+            worldQ.copy(parentQ).invert().multiply(axisQ).multiply(parentQ);
+            bone.quaternion.premultiply(worldQ);
+          };
+          applyPosture = () => {
+            postureBones.forEach((bone, i) => {
+              const rest = rests[i];
+              if (rest) bone.quaternion.copy(rest);
+              bendAboutWorldX(bone, per);
+            });
+            // A real stoop bends the back but the person still lifts their head
+            // to keep their eyes level; without this the 65-year-old looks at
+            // the floor. 15% of the bend is left in, which reads as age rather
+            // than as a correction.
+            const headBone = rig.head;
+            if (headBone) bendAboutWorldX(headBone, -look.stoop * 0.85);
+          };
+        }
 
         // Body idle from the file, if any (the viewer's Avaturn A/T-pose fix).
         let mixer: THREE.AnimationMixer | null = null;
@@ -613,6 +732,9 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
       })
       .catch((err: unknown) => {
         if (disposed) return;
+        // A failed body silently becomes the portrait fallback, which is the
+        // right UX and the wrong debugging experience: log the cause in dev.
+        if (DEBUG_HANDLE) console.error('[vrm-stage] model load failed:', modelUrlFor(gender, age), err);
         report('failed', err instanceof Error ? err.message : 'model load failed');
       });
 
@@ -624,6 +746,7 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
       motionQuery?.removeEventListener?.('change', onMotionChange);
       document.removeEventListener('visibilitychange', onVisibility);
       rig.mixer?.stopAllAction();
+      for (const texture of irisTextures) texture.dispose();
       if (rig.vrm) {
         rig.scene.remove(rig.vrm.scene);
         VRMUtils.deepDispose(rig.vrm.scene);
@@ -636,8 +759,9 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
       rig.renderer.dispose();
       if (DEBUG_HANDLE && window.__aiCoachVrm?.step === step) delete window.__aiCoachVrm;
     };
-    // `gender` swaps the model, which means a new rig; everything else is a ref.
-  }, [gender]);
+    // `gender` and `age` swap the model, which means a new rig; everything else
+    // is a ref.
+  }, [gender, age]);
 
   return (
     <div ref={hostRef} className={cn('relative h-full w-full overflow-hidden', className)}>
