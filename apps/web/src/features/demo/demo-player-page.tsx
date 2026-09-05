@@ -40,14 +40,22 @@ import type { DemoBeat, DemoScript } from './demo-scripts';
 const SESSION = 'demo-session';
 const PERSONA_VISIBLE_TIMEOUT_MS = 6000; // fallback if the avatar never reports
 const TYPING_MS = 1100; // persona "typing" before a reply
-const READ_MS = 2200; // pause so a viewer can read the previous line
 const AFTER_EVENT_MS = 900; // pause after a coach / compliance card
 const OPENING_MS = 700; // small beat after the avatar appears
 const RETRIEVE_MS = 850; // knowledge-retrieval step before a cited reply
+const AFTER_SPEECH_MS = 1000; // breath after the customer finishes speaking
 
 const TTS_ENGINE = 'local' as const;
 const TTS_TUNING = { stability: 0.5, similarity: 0.75, style: 0.3, speed: 1 };
 const speakMsFor = (text: string) => Math.min(6000, Math.max(1200, text.length * 90));
+
+// Dev-only breadcrumb trail for pacing checks (`window.__demoTrace`). No-op in production.
+const trace = (label: string): void => {
+  if (process.env.NODE_ENV === 'production' || typeof window === 'undefined') return;
+  const w = window as unknown as { __demoTrace?: string[]; __demoT0?: number };
+  w.__demoT0 ??= Date.now();
+  (w.__demoTrace ??= []).push(`${((Date.now() - w.__demoT0) / 1000).toFixed(1)}s ${label}`);
+};
 
 function baseState(script: DemoScript): PersonaSimulationState {
   const t = script.personaTraits;
@@ -92,6 +100,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   const rootRef = useRef<HTMLDivElement>(null); // scopes DOM control of the real composer
   const resumeRef = useRef(0); // beat index to resume at after the trainee line is sent
   const pstateRef = useRef<PersonaSimulationState>(baseState(script)); // mirror for merge
+  const runRef = useRef(0); // bumped on begin/restart/unmount; stale continuations check it
 
   // Advance the persona state so the 目前狀態 card and avatar expression move
   // exactly as the real engine drives them. Card logic is untouched.
@@ -140,34 +149,107 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
     };
   }, [script.ttsScenarioId]);
 
-  const speakLine = useCallback((text: string) => {
-    const token = (speakTokenRef.current += 1);
-    const stopTimer = setTimeout(() => {
-      if (speakTokenRef.current === token) setSpeaking(false);
-    }, speakMsFor(text));
-    timers.current.push(stopTimer);
-    setSpeaking(true);
-    const sid = ttsSessionRef.current;
-    if (!sid) return;
-    void (async () => {
-      try {
-        const blob = await endpoints.synthesizeSpeech(sid, text, TTS_TUNING, TTS_ENGINE);
-        if (speakTokenRef.current !== token) return;
-        const url = URL.createObjectURL(blob);
-        audioRef.current?.pause();
-        const el = new Audio(url);
-        audioRef.current = el;
-        clearTimeout(stopTimer);
-        el.onended = () => {
-          if (speakTokenRef.current === token) setSpeaking(false);
-          URL.revokeObjectURL(url);
+  /**
+   * Wait for the "thinking" delay AND the prepared audio, whichever is later —
+   * capped so a slow synth cannot stall the demo. Rendering the bubble on this
+   * makes the subtitle and the voice land together instead of text leading.
+   */
+  const whenReady = useCallback(
+    (minMs: number, prepared: Promise<Blob | null>, capMs = 6000): Promise<Blob | null> =>
+      new Promise((resolve) => {
+        let blob: Blob | null = null;
+        let gotBlob = false;
+        let minDone = false;
+        let done = false;
+        const tryFinish = () => {
+          if (done) return;
+          if (minDone && gotBlob) {
+            done = true;
+            resolve(blob);
+          }
         };
-        await el.play();
-      } catch {
-        /* keep the timer-driven mouth movement */
-      }
-    })();
+        void prepared.then((b) => {
+          blob = b;
+          gotBlob = true;
+          tryFinish();
+        });
+        timers.current.push(
+          setTimeout(() => {
+            minDone = true;
+            tryFinish();
+          }, minMs),
+        );
+        timers.current.push(
+          setTimeout(() => {
+            if (done) return;
+            done = true;
+            resolve(blob); // cap: go with whatever we have (null → procedural mouth)
+          }, capMs),
+        );
+      }),
+    [],
+  );
+
+  /** Start synthesis now; resolves to the audio blob, or null when TTS is unavailable. */
+  const prepareSpeech = useCallback((text: string): Promise<Blob | null> => {
+    const sid = ttsSessionRef.current;
+    if (!sid) return Promise.resolve(null);
+    return endpoints.synthesizeSpeech(sid, text, TTS_TUNING, TTS_ENGINE).catch(() => null);
   }, []);
+
+  /**
+   * Speak one persona line. Resolves when the line has FINISHED (audio `ended`,
+   * or the fallback timer when there is no TTS). The mouth opens only once
+   * `el.play()` actually starts — same as the real voice page — so lips and
+   * sound line up instead of the mouth leading by the synthesis round-trip.
+   */
+  const speakLine = useCallback((text: string, prepared?: Promise<Blob | null>): Promise<void> => {
+    const token = (speakTokenRef.current += 1);
+    return new Promise<void>((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        trace(`speech:finish token=${token} cur=${speakTokenRef.current}`);
+        if (speakTokenRef.current === token) setSpeaking(false);
+        resolve();
+      };
+      const fallback = () => {
+        // No usable audio: procedural mouth for a text-length-based duration.
+        trace(`speech:fallback token=${token} cur=${speakTokenRef.current} sid=${ttsSessionRef.current ? 'y' : 'n'}`);
+        if (speakTokenRef.current !== token) return finish();
+        setSpeaking(true);
+        timers.current.push(setTimeout(finish, speakMsFor(text)));
+      };
+      if (!prepared && !ttsSessionRef.current) return fallback();
+      void (async () => {
+        try {
+          const blob = await (prepared ?? prepareSpeech(text));
+          if (speakTokenRef.current !== token) return finish(); // superseded
+          if (!blob) return fallback();
+          const url = URL.createObjectURL(blob);
+          audioRef.current?.pause();
+          const el = new Audio(url);
+          audioRef.current = el;
+          el.onended = () => {
+            URL.revokeObjectURL(url);
+            finish();
+          };
+          el.onerror = () => {
+            URL.revokeObjectURL(url);
+            fallback();
+          };
+          await el.play();
+          trace(`speech:audio-start token=${token}`);
+          if (speakTokenRef.current === token) setSpeaking(true); // mouth starts WITH the audio
+          // Safety net if `ended` never fires (e.g. tab throttled).
+          timers.current.push(setTimeout(finish, speakMsFor(text) * 3 + 4000));
+        } catch {
+          fallback();
+        }
+      })();
+    });
+  }, [prepareSpeech]);
 
   const addTrainee = useCallback(
     (text: string) => {
@@ -177,7 +259,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
     [nextTs],
   );
   const addPersona = useCallback(
-    (beat: Extract<DemoBeat, { speaker: 'persona' }>) => {
+    (beat: Extract<DemoBeat, { speaker: 'persona' }>, prepared?: Promise<Blob | null>): Promise<void> => {
       const ts = nextTs();
       setTurns((p) => [
         ...p,
@@ -190,7 +272,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
           ...(beat.citations ? { citations: beat.citations } : {}),
         },
       ]);
-      speakLine(beat.text);
+      const done = speakLine(beat.text, prepared);
       // Drive the persona-column cards: a cited reply reads as progress into the
       // presentation phase and lifts interest/trust; a plain reply nudges it.
       if (beat.citations?.length) {
@@ -208,6 +290,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
             trust: clamp(pstateRef.current.trust + 3),
           });
       }
+      return done;
     },
     [nextTs, speakLine, evolve],
   );
@@ -253,6 +336,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   // The auto-player: walk every beat with human-readable pacing. No input.
   const play = useCallback(
     (i: number) => {
+      trace(`play(${i})`);
       if (i >= script.beats.length) {
         setActiveAgent(null);
         setStatus('completed');
@@ -274,12 +358,16 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
         setStatus('ready');
         setActiveAgent(null);
         resumeRef.current = i + 1;
-        after(READ_MS, () => fillComposer(beat.text));
+        after(AFTER_SPEECH_MS, () => {
+          trace('fillComposer');
+          fillComposer(beat.text);
+        });
         return;
       }
 
       if (beat.speaker === 'persona') {
         setStatus('persona_speaking');
+        const prepared = prepareSpeech(beat.text); // synth while "thinking" shows
         // Pretend the answer is being generated. When the reply cites the
         // knowledge base, show the retrieval step first (查找核准資料) and then
         // the customer composing — mirroring the real RAG → generate pipeline —
@@ -290,19 +378,27 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
           after(RETRIEVE_MS, () => {
             setActiveAgent('customer');
             setAgentAtMs(Date.now());
-            after(TYPING_MS, () => {
-              addPersona(beat);
+            const run = runRef.current;
+            void whenReady(TYPING_MS, prepared).then((blob) => {
+              if (runRef.current !== run) return;
               setActiveAgent(null);
-              after(READ_MS, () => play(i + 1));
+              void addPersona(beat, Promise.resolve(blob)).then(() => {
+                if (runRef.current !== run) return;
+                after(AFTER_SPEECH_MS, () => play(i + 1));
+              });
             });
           });
         } else {
           setActiveAgent('customer');
           setAgentAtMs(Date.now());
-          after(TYPING_MS, () => {
-            addPersona(beat);
+          const run = runRef.current;
+          void whenReady(TYPING_MS, prepared).then((blob) => {
+            if (runRef.current !== run) return;
             setActiveAgent(null);
-            after(READ_MS, () => play(i + 1));
+            void addPersona(beat, Promise.resolve(blob)).then(() => {
+              if (runRef.current !== run) return;
+              after(AFTER_SPEECH_MS, () => play(i + 1));
+            });
           });
         }
         return;
@@ -350,7 +446,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
         after(AFTER_EVENT_MS, () => play(i + 1));
       });
     },
-    [script, after, addPersona, fillComposer, nextTs, evolve],
+    [script, after, addPersona, fillComposer, nextTs, evolve, prepareSpeech, whenReady],
   );
 
   useEffect(() => {
@@ -363,6 +459,8 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   const begin = useCallback(() => {
     if (startedRef.current) return;
     startedRef.current = true;
+    runRef.current += 1;
+    trace(`begin run=${runRef.current}`);
     startRef.current = Date.now();
     setElapsedMs(0);
     pstateRef.current = baseState(script);
@@ -370,26 +468,34 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
     setStatus('ready');
     const opening = script.opening;
     if (opening.speaker === 'persona') {
-      after(OPENING_MS, () => {
+      const prepared = prepareSpeech(opening.text);
+      const run = runRef.current;
+      void whenReady(OPENING_MS, prepared).then((blob) => {
+        if (runRef.current !== run) return;
         const ts = nextTs();
         setTurns([
           { id: `p${ts}`, session_id: SESSION, speaker: 'persona', text: opening.text, timestamp_ms: ts },
         ]);
-        speakLine(opening.text);
-        after(READ_MS, () => play(0));
+        void speakLine(opening.text, Promise.resolve(blob)).then(() => {
+          trace(`opening:then run=${run} cur=${runRef.current}`);
+          if (runRef.current !== run) return;
+          after(AFTER_SPEECH_MS, () => play(0));
+        });
       });
     } else {
       after(OPENING_MS, () => play(0));
     }
-  }, [script, after, nextTs, speakLine, play]);
+  }, [script, after, nextTs, speakLine, play, prepareSpeech, whenReady]);
 
   useEffect(() => {
     const fallback = setTimeout(begin, PERSONA_VISIBLE_TIMEOUT_MS);
     timers.current.push(fallback);
     return () => {
+      trace('effect:cleanup');
       clearTimers();
       audioRef.current?.pause();
       speakTokenRef.current += 1;
+      runRef.current += 1;
     };
   }, [begin, clearTimers]);
 
@@ -397,6 +503,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
     clearTimers();
     audioRef.current?.pause();
     speakTokenRef.current += 1;
+    runRef.current += 1;
     seqRef.current = 1;
     startedRef.current = false;
     setTurns([]);
