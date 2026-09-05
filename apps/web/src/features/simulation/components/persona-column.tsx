@@ -232,7 +232,21 @@ export function PersonaColumn(props: PersonaColumnProps) {
             p-4` strip up to 48 px tall, and without this the bottom card was
             painted over 「待命中」. */}
         <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3 pb-11">
-          <div className="sim-stage-overlay pointer-events-auto grid max-h-[38%] w-full grid-cols-1 items-end gap-2 sm:grid-cols-2 [&>*]:sim-scroll [&>*]:max-h-full [&>*]:overflow-y-auto">
+          <div className={cn(
+                      'sim-stage-overlay pointer-events-auto grid w-full items-stretch gap-2',
+                      // Two columns of equal height whose tops line up, each
+                      // scrolling inside its own rounded box. `sm:grid-rows-1`
+                      // is what makes that work: Tailwind emits
+                      // `minmax(0, 1fr)`, so the row is the container's height
+                      // rather than the content's, and `min-h-0` on the cards
+                      // lets them shrink into it. Without it the row sized to
+                      // the tallest card (522px inside a 275px box) and the
+                      // container simply cut it off — the meters were sliced
+                      // through the middle and nothing scrolled.
+                      'max-h-[38%] grid-cols-1 overflow-y-auto',
+                      'sm:grid-cols-2 sm:grid-rows-1 sm:overflow-hidden',
+                      '[&>*]:min-h-0 [&>*]:overflow-y-auto',
+                    )}>
             {cards}
           </div>
         </div>

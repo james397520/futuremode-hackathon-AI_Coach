@@ -121,6 +121,13 @@ export interface UseVoiceSessionOptions {
    * itself reacts in tens of milliseconds, which is right for the level meter
    * and barge-in but wrong for segmentation — at that granularity every
    * breath became its own message.
+   *
+   * 900 ms was still too eager in practice. A salesperson mid-sentence pauses
+   * to pick the next number — 「這次的費率……大概是多少來著」 — and at 900 ms that
+   * pause posted the half sentence and started transcribing the rest as a new
+   * one. 1.4 s is the shortest value that survived reading a rate explanation
+   * aloud without being cut, and it is still well inside the beat where a
+   * listener would start to wonder whether you had finished.
    */
   utteranceEndSilenceMs?: number;
   /**
@@ -219,7 +226,7 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     personaSpeaking,
     pushToTalk = false,
     silenceTimeoutMs = 8000,
-    utteranceEndSilenceMs = 900,
+    utteranceEndSilenceMs = 1400,
     personaGender = null,
     personaAge = null,
     locale = 'zh-TW',
