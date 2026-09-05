@@ -10,13 +10,15 @@ from __future__ import annotations
 from app.ws.voice_catalog import VOICES, age_band, resolve_voice_id, select_voice_id
 
 
-def test_the_four_supplied_voices_are_reachable() -> None:
+def test_the_chosen_voices_are_reachable_by_gender() -> None:
     got = {
         select_voice_id(gender=g, age=a, persona_id="p")
         for g in ("male", "female")
         for a in (24, 45)
     }
     assert got == {v[0] for v in VOICES.values()}
+    # One voice per gender, and they differ.
+    assert len(got) == 2
 
 
 def test_young_and_middle_split_at_35() -> None:

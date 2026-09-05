@@ -498,3 +498,8 @@ key 缺 `voices_read`，列不出 voice 清單；改用 ElevenLabs 內建（prem
 - **上飄根因**：英文母語 voice 唸中文時 `stability` 太低（原 0.5）加上 persona `emotion_style` 把 `style` 推到 0.4。ElevenLabs 預設改為 **stability 0.75、style 0（有 emotion_style 時 0.15）、speaker_boost on**，並限制 speed 0.7–1.2。
 - **設定條**（音訊與語音對話框）：雲端 穩定度／風格／相似度／速度，系統 速度／音高，各有「試聽」；存在 `localStorage['aicoach.voice.tuning']`。
 - **中文 voice**：Voice Library 的 8 支中文聲音（Anna Su、Yui、LeeTingTing、Stacy、Ian、Devon、Kevin Tu、Chen）**不需 voices_write 就能直接用 id 合成**（實測 16/16 成功）。選定後填進 `voice_catalog.py`。
+
+### 16.13 選定的線上聲音與 macOS 原生評估
+- 線上：**Yui**（女，`kGjJqO6wdwRN9iJsoeIC`）、**Ian**（男，`tSv4yoTPFFmCMaJpNf0A`），模型 `eleven_flash_v2_5`。`voice_catalog.py` 各年齡格暫時同一支；老年沿用中年。
+- macOS 原生（`say -v '?'` 的 zh_TW）：**美佳**是唯一進階引擎，其餘 Eddy/Flo/Grandma/Grandpa/Reed/Rocko/Sandy/Shelley 是同一顆精簡引擎（同句輸出 byte 數完全相同、md5 不同）。要提升本地品質：系統設定 → 輔助使用 → 朗讀內容 → 系統語音 → 管理語音，下載「美佳（進階／高級）」等；下載後 `say` 與瀏覽器 `speechSynthesis` 都會多出這些聲音，前端 `pickVoice` 以名稱包含比對會自動吃到。
+- 注意：`say -v <不存在的名稱>` 會**靜默退回預設聲音且 exit 0**，驗證聲音是否正確要比 md5，不能看退出碼。
