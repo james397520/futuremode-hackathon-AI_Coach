@@ -79,6 +79,14 @@ export interface VoiceSliceState {
   permission: MicPermission;
   lastError: string | null;
   bargeInCount: number;
+  /**
+   * Which synthesiser speaks. `auto` uses ElevenLabs when the server sends
+   * audio for a turn and falls back to the OS voice when it does not, which is
+   * also what happens with no network. `system` forces the OS voice (free,
+   * offline, on-device); `cloud` forces ElevenLabs and stays silent if the
+   * server sent nothing, so a demo cannot be quietly downgraded.
+   */
+  speechEngine: 'auto' | 'system' | 'cloud';
 }
 
 export interface SimulationData {
@@ -142,6 +150,7 @@ export const initialVoiceState: VoiceSliceState = {
   permission: 'unknown',
   lastError: null,
   bargeInCount: 0,
+  speechEngine: 'auto',
 };
 
 export function createInitialData(sessionId: ID, mode: SessionMode = 'training'): SimulationData {

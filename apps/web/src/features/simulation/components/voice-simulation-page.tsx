@@ -127,6 +127,9 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
 
   const voice = useVoiceSession({
     enabled: true,
+    personaGender: bootstrap?.persona.gender ?? null,
+    personaAge: bootstrap?.persona.age ?? null,
+    locale: bootstrap?.persona.language ?? 'zh-TW',
     personaSpeaking: status === 'persona_speaking',
     pushToTalk: false,
     onBargeIn: () => {
@@ -155,8 +158,12 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
       // Auto-play the persona's synthesised audio in voice mode (§22.1).
       if (event.type === 'agent.response.final' || event.type === 'speech.final') {
         const turn = event.turn;
-        if (turn?.speaker === 'persona' && turn.audio_url) {
-          void voiceRef.current?.playTts(turn.audio_url);
+        if (turn?.speaker === 'persona' && turn.text) {
+          // Not `playTts(audio_url)`: that only spoke when the server had
+          // synthesised audio, so with no key, no network, or the transport
+          // still unbuilt the customer was simply mute. `speakTurn` prefers the
+          // server clip and falls back to the on-device voice.
+          void voiceRef.current?.speakTurn(turn.text, turn.audio_url ?? null);
         }
       }
     },

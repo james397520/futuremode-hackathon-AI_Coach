@@ -6,6 +6,7 @@
  * §94 says deserves a modal, so this is a modal — and it explains the state
  * rather than just failing.
  */
+import type { ReactNode } from 'react';
 import type { AudioDeviceOption, MicPermission } from '../lib/types';
 import { insetSurface, toneText } from '../lib/tone';
 import { CheckIcon, HeadphonesIcon, MicIcon, RestartIcon } from './icons';
@@ -23,6 +24,8 @@ export interface AudioDevicePickerProps {
   onSelectOutput: (deviceId: string) => void;
   onRefresh: () => void;
   onRequestPermission: () => void;
+  /** Speech-engine slot. Optional so the dialog still works without voice wired. */
+  speechEngine?: ReactNode;
 }
 
 const PERMISSION_COPY: Record<MicPermission, { tone: 'mint' | 'warning' | 'danger' | 'neutral'; text: string }> = {
@@ -77,13 +80,14 @@ export function AudioDevicePicker({
   onSelectOutput,
   onRefresh,
   onRequestPermission,
+  speechEngine,
 }: AudioDevicePickerProps) {
   const inputs = devices.filter((d) => d.kind === 'audioinput');
   const outputs = devices.filter((d) => d.kind === 'audiooutput');
   const copy = PERMISSION_COPY[permission];
 
   return (
-    <Modal open={open} onClose={onClose} title="音訊裝置">
+    <Modal open={open} onClose={onClose} title="音訊與語音">
       <div className="grid gap-4">
         <div
           className="rounded-card-sm border p-3 text-body-sm"
@@ -168,6 +172,11 @@ export function AudioDevicePicker({
             完成
           </button>
         </div>
+        {speechEngine ? (
+          <div className="border-t pt-4" style={{ borderColor: 'var(--border-soft)' }}>
+            {speechEngine}
+          </div>
+        ) : null}
       </div>
     </Modal>
   );

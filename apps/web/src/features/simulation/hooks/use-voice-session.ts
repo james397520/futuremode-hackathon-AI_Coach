@@ -21,6 +21,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { AudioDeviceOption, MicPermission } from '../lib/types';
 import { useSessionActions, useSessionStore } from '../store/session-store';
+import {
+  cancelSpeech,
+  pickVoice,
+  recognitionCapability,
+  speak,
+  synthesisCapability,
+  type RecognitionCapability,
+  type SpeechGender,
+} from '../lib/system-speech';
 
 const PROCESSOR_NAME = 'ai-coach-level-vad';
 
@@ -103,6 +112,10 @@ export interface UseVoiceSessionOptions {
   /** Fired after this much continuous silence while the floor is the trainee's. */
   onSilenceTimeout?: () => void;
   silenceTimeoutMs?: number;
+  /** Persona identity, so the OS fallback picks a matching system voice. */
+  personaGender?: SpeechGender | null;
+  personaAge?: number | null;
+  locale?: string;
 }
 
 export interface VoiceSessionApi {
@@ -130,6 +143,16 @@ export interface VoiceSessionApi {
   refreshDevices: () => Promise<void>;
   /** Play a TTS clip through the selected output device. */
   playTts: (url: string) => Promise<void>;
+  /**
+   * Speak a persona turn. Prefers server audio (ElevenLabs); falls back to the
+   * on-device system voice when there is none — which is also the no-network
+   * and no-API-key case. Returns which engine actually spoke.
+   */
+  speakTurn: (text: string, audioUrl?: string | null) => Promise<'cloud' | 'system' | 'none'>;
+  /** OS voices for this locale, once probed. Empty until the first probe. */
+  systemVoices: SpeechSynthesisVoice[];
+  /** Where the browser's speech *recognition* runs. Disclosed, never assumed. */
+  recognition: RecognitionCapability;
   /** Stop TTS immediately (barge-in, pause, end call). */
   cancelTts: () => void;
   ttsPlaying: boolean;
@@ -158,6 +181,9 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     personaSpeaking,
     pushToTalk = false,
     silenceTimeoutMs = 8000,
+    personaGender = null,
+    personaAge = null,
+    locale = 'zh-TW',
   } = options;
 
   const actions = useSessionActions();
@@ -175,6 +201,20 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
   const [vadActive, setVadActive] = useState(false);
   const [pushToTalkHeld, setPushToTalkHeldState] = useState(false);
   const [ttsPlaying, setTtsPlaying] = useState(false);
+  const [systemVoices, setSystemVoices] = useState<SpeechSynthesisVoice[]>([]);
+  // Probed once and cached: the engine is a property of the machine, not the turn.
+  const [recognition] = useState<RecognitionCapability>(() => recognitionCapability());
+  const speechEngine = useSessionStore((s) => s.voice.speechEngine);
+  const speechEngineRef = useRef(speechEngine);
+  speechEngineRef.current = speechEngine;
+  const systemVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  const personaGenderRef = useRef<SpeechGender | null>(personaGender);
+  personaGenderRef.current = personaGender;
+  const personaAgeRef = useRef<number | null>(personaAge);
+  personaAgeRef.current = personaAge;
+  const localeRef = useRef(locale);
+  localeRef.current = locale;
+  const playTtsRef = useRef<(url: string) => Promise<void>>(async () => undefined);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
 
   const graphRef = useRef<Graph | null>(null);
@@ -198,6 +238,9 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
   // ---- TTS -----------------------------------------------------------------
 
   const cancelTts = useCallback(() => {
+    // Barge-in has to silence whichever engine is talking, not just the one we
+    // would have chosen — the other may still be mid-sentence.
+    cancelSpeech();
     const el = audioElRef.current;
     if (!el) return;
     try {
@@ -208,6 +251,58 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     }
     setTtsPlaying(false);
   }, []);
+
+  /**
+   * Speak one persona turn. `auto` prefers the server's ElevenLabs audio and
+   * falls back to the on-device voice when the server sent none — which is the
+   * same path taken with no API key and with no network. `cloud` deliberately
+   * stays silent rather than downgrading, so a demo cannot quietly lose the
+   * voice it was set up to show.
+   */
+  const speakTurn = useCallback(
+    async (text: string, audioUrl?: string | null): Promise<'cloud' | 'system' | 'none'> => {
+      const engine = speechEngineRef.current;
+      if (mutedRef.current) return 'none';
+
+      if (audioUrl && engine !== 'system') {
+        try {
+          await playTtsRef.current(audioUrl);
+          return 'cloud';
+        } catch {
+          // Fall through: a broken clip is exactly when the fallback earns itself.
+        }
+      }
+      if (engine === 'cloud') return 'none';
+
+      const voice = pickVoice(systemVoicesRef.current, personaGenderRef.current, personaAgeRef.current);
+      const started = speak(text, {
+        voice,
+        lang: localeRef.current,
+        onEnd: () => setTtsPlaying(false),
+        onError: () => setTtsPlaying(false),
+      });
+      if (started) setTtsPlaying(true);
+      return started ? 'system' : 'none';
+    },
+    [],
+  );
+
+  // Probe the OS voices once the mic side is enabled; the list is per-machine.
+  // Deliberately NOT gated on `enabled`. That flag means "the microphone is
+  // wanted", and speaking has nothing to do with listening: gating the probe on
+  // it left the engine picker showing "no system voices" — and the system
+  // option disabled — on any page where the trainee had not started their mic.
+  useEffect(() => {
+    let cancelled = false;
+    void synthesisCapability(locale).then((cap) => {
+      if (cancelled) return;
+      setSystemVoices(cap.voices);
+      systemVoicesRef.current = cap.voices;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
 
   const playTts = useCallback(
     async (url: string) => {
@@ -240,6 +335,8 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     },
     [storedOutputDevice],
   );
+
+  playTtsRef.current = playTts;
 
   // ---- Devices -------------------------------------------------------------
 
@@ -654,6 +751,9 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       selectOutputDevice,
       refreshDevices,
       playTts,
+      speakTurn,
+      systemVoices,
+      recognition,
       cancelTts,
       ttsPlaying,
     }),
@@ -668,6 +768,7 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       permission,
       playTts,
       pushToTalkHeld,
+      recognition,
       refreshDevices,
       selectInputDevice,
       selectOutputDevice,
@@ -678,7 +779,9 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       stop,
       storedInputDevice,
       storedMuted,
+      speakTurn,
       storedOutputDevice,
+      systemVoices,
       toggleMute,
       ttsPlaying,
       vadActive,

@@ -60,6 +60,7 @@ import {
   useCaptionsEnabled,
 } from '../store/session-store';
 import { AudioDevicePicker } from './audio-device-picker';
+import { SpeechEngineToggle } from './speech-engine-toggle';
 import { ConversationPanel } from './conversation-panel';
 import { SelfView } from './self-view';
 import { CloseIcon, RestartIcon } from './icons';
@@ -94,6 +95,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
   const complianceFindings = useComplianceFindings();
   const personaState = usePersonaState();
   const traineeAffect = useTraineeAffect();
+  const speechEngine = useSessionStore((st) => st.voice.speechEngine);
   const personaHistory = usePersonaHistory();
   const timeline = useTimeline();
   const liveScores = useLiveScores();
@@ -141,6 +143,9 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
 
   const voice = useVoiceSession({
     enabled: Boolean(bootstrap?.voiceEnabled) && micWanted,
+    personaGender: bootstrap?.persona.gender ?? null,
+    personaAge: bootstrap?.persona.age ?? null,
+    locale: bootstrap?.persona.language ?? 'zh-TW',
     personaSpeaking: status === 'persona_speaking',
     pushToTalk: pushToTalkMode,
     onBargeIn: () => {
@@ -163,6 +168,17 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
     mode,
     enabled: Boolean(bootstrap),
     epoch,
+    onEvent: (event) => {
+      // The training page has always had voice available but never spoke: only
+      // the voice page wired playback. Same path as there — server audio when
+      // there is any, on-device voice when there is not.
+      if (event.type === 'agent.response.final' || event.type === 'speech.final') {
+        const turn = event.turn;
+        if (turn?.speaker === 'persona' && turn.text && bootstrap?.voiceEnabled) {
+          void voiceRef.current?.speakTurn(turn.text, turn.audio_url ?? null);
+        }
+      }
+    },
     onRuntimeFallback: (to, reason) => {
       pushNotice(
         `runtime-${to}`,
@@ -591,6 +607,14 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
           setMicWanted(true);
           void voice.start();
         }}
+        speechEngine={
+          <SpeechEngineToggle
+            value={speechEngine}
+            onChange={(next) => actions.setVoice({ speechEngine: next })}
+            systemVoiceCount={voice.systemVoices.length}
+            recognition={voice.recognition}
+          />
+        }
       />
 
       {/* Knowledge peek is a Training-only affordance (§8.4). */}
