@@ -1,0 +1,24 @@
+# Build output and dependencies
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+.turbo/
+
+# Lockfiles are generated; never reformat them.
+pnpm-lock.yaml
+
+# The specification is a source document. Prettier would reflow its tables and
+# code fences, producing a diff that hides real content changes.
+docs/spec/
+
+# Python is formatted by ruff (apps/api/pyproject.toml), not Prettier.
+apps/api/
+
+# Generated seed fixture.
+infra/seed/demo-seed.json
+
+# Certificates.
+infra/certs/

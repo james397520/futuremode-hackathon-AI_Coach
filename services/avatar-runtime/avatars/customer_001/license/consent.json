@@ -1,0 +1,25 @@
+{
+  "likeness_kind": "synthetic",
+  "depicts_real_person": false,
+  "consent_required": false,
+  "consent_basis": "以生成式影像模型（ChatGPT / DALL·E）產生的合成人像。畫面中的人不對應任何真實個人，未使用任何人的照片、掃描或肖像作為輸入，因此不存在需要取得同意的對象。",
+  "owner": "AI Coach project",
+  "license": "與本專案原始碼相同",
+  "source_asset": "source/portrait.png",
+  "generator": "ChatGPT image generation",
+  "generated_at": "2026-09-05",
+  "created_at": "2026-09-05",
+  "third_party_assets": [],
+  "commercial_use": {
+    "portrait": "allowed",
+    "note": "肖像本身可商用。但 LivePortrait 預設的 InsightFace 偵測模型為 non-commercial research only（avatar spec §74）——商業部署前必須替換該偵測模型。本專案的臉部校準改用 YuNet（Apache-2.0），不受該限制。"
+  },
+  "verification": {
+    "note": "生成式模型偶有輸出近似真實人物的風險。正式使用前建議做一次反向圖片搜尋確認，並在此記錄結果。",
+    "reverse_image_search_done": false,
+    "checked_by": null,
+    "checked_at": null
+  },
+  "reviewed_by": null,
+  "reviewed_at": null
+}

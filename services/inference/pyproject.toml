@@ -1,0 +1,158 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ai-coach-inference"
+version = "0.1.0"
+description = "AI Coach — private AI inference service (embedding / reranking) for the AMD AUP environment. Spec docs/spec/AI_Coach_Spec_v3.md §2.1/§12.1/§72."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+
+dependencies = [
+  # --- web framework -------------------------------------------------------
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.30.0",
+  "orjson>=3.10.0",                   # fast JSON: an /embed response is a big float matrix
+  # --- validation / settings ----------------------------------------------
+  "pydantic>=2.11.0",
+  "pydantic-settings>=2.3.0",
+  # --- numerics / inference ------------------------------------------------
+  "numpy>=1.26.0",
+  # CPU build by default. A CPU-only deployment must never pull a multi-gigabyte
+  # GPU wheel, so the accelerated runtimes live in the `gpu` / `rocm` extras
+  # below and are installed *instead of* this one (same import name).
+  "onnxruntime>=1.18.0",
+  "tokenizers>=0.19.0",               # HuggingFace fast tokenizers, no torch dependency
+  # --- outbound ------------------------------------------------------------
+  "httpx>=0.27.0",                    # optional private-LLM upstream + test client
+  "tenacity>=8.3.0",                  # retry / backoff on model load (§49.4)
+  # --- observability -------------------------------------------------------
+  "structlog>=24.1.0",
+  "prometheus-client>=0.20.0",
+]
+
+[project.optional-dependencies]
+# `pip install .[gpu]` — NVIDIA/CUDA. Provides the same `onnxruntime` import name,
+# so pip must not be asked to install both; the Dockerfile's RUNTIME_VARIANT build
+# arg picks exactly one.
+gpu = ["onnxruntime-gpu>=1.18.0"]
+# `pip install .[rocm]` — AMD AUP (§72). AMD publishes ROCm/MIGraphX-enabled
+# onnxruntime wheels outside PyPI, so this extra pins the same package name and
+# the deployment supplies `--extra-index-url`; see the Dockerfile.
+rocm = ["onnxruntime-gpu>=1.18.0"]
+# `pip install .[otel]` — distributed tracing across apps/api and this service.
+# Imported lazily in `app.main._configure_tracing` and gated on OTEL_ENABLED, so a
+# deployment without this extra starts normally and simply emits no spans.
+otel = [
+  "opentelemetry-sdk>=1.25.0",
+  "opentelemetry-instrumentation-fastapi>=0.46b0",
+  "opentelemetry-exporter-otlp-proto-http>=1.25.0",
+]
+dev = [
+  "pytest>=8.2.0",
+  "pytest-asyncio>=0.23.0",
+  "httpx>=0.27.0",
+  "ruff>=0.5.0",
+  "mypy>=1.10.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+# ---------------------------------------------------------------------------
+# ruff — same configuration as apps/api/pyproject.toml so both Python projects
+# lint identically. Divergence here would mean one tree fails the other's CI.
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["app"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",    # pycodestyle
+  "F",         # pyflakes
+  "I",         # isort
+  "N",         # pep8-naming
+  "UP",        # pyupgrade
+  "B",         # bugbear
+  "C4",        # comprehensions
+  "S",         # bandit (security)
+  "A",         # builtin shadowing
+  "T20",       # no print()
+  "SIM",       # simplify
+  "PTH",       # pathlib
+  "RUF",       # ruff-specific
+  "ASYNC",     # async pitfalls
+  "ANN",       # missing annotations
+  "TID",       # tidy imports
+]
+ignore = [
+  "ANN401",   # allow `Any` in narrowly-typed adapter seams (the ONNX session port)
+  "B008",     # FastAPI Depends(...) in defaults is the idiom
+  "S101",     # asserts guard array-shape invariants in the inference kernels
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests assert on internals and build deliberately absurd inputs.
+"tests/*" = ["S101", "ANN401", "PLR2004"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+# ---------------------------------------------------------------------------
+# mypy — strict, matching apps/api
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+files = ["app"]
+plugins = ["pydantic.mypy"]
+strict = true
+warn_unreachable = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+no_implicit_reexport = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+# Third-party packages without bundled type information.
+module = [
+  "onnxruntime.*",
+  "tokenizers.*",
+]
+ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+# So `pytest` works against a checkout that has not been `pip install -e .`'d:
+# both `app` and `tests` resolve from the project root.
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra --strict-markers --strict-config"
+filterwarnings = [
+  # Our own deprecations must fail the suite.
+  "error::DeprecationWarning",
+  # ...but not a third-party one we cannot fix. Importing fastapi.testclient pulls
+  # starlette, which still touches the `anyio.abc.BlockingPortal` alias; with anyio
+  # >= 4.11 that alias warns at import time, so the strict filter above turns test
+  # *collection* into an error and nothing runs at all. Scoped to that one alias so
+  # every other DeprecationWarning still fails.
+  "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning",
+]

@@ -1,0 +1,58 @@
+# EditorConfig — https://editorconfig.org
+# The baseline every editor agrees on, so a contributor without our Prettier /
+# ruff setup still produces a clean diff.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+# Soft guide only; Prettier enforces 100 for JS/TS and ruff enforces 100 for
+# Python (see apps/api/pyproject.toml, line-length = 100).
+max_line_length = 100
+
+# Python follows PEP 8 rather than the repo default.
+[*.py]
+indent_size = 4
+
+# Tabs are part of Makefile syntax, not a style choice.
+[{Makefile,makefile,*.mk}]
+indent_style = tab
+trim_trailing_whitespace = false
+
+[*.{yml,yaml}]
+indent_size = 2
+
+[*.{json,jsonc}]
+indent_size = 2
+
+[*.md]
+# Markdown uses two trailing spaces as a hard line break. Stripping them
+# silently changes rendered output.
+trim_trailing_whitespace = false
+
+[*.{sh,bash}]
+indent_size = 2
+
+# Dockerfiles: continuation-heavy, and 4 spaces makes the `&& \` chains readable.
+[{Dockerfile,*.Dockerfile,Dockerfile.*}]
+indent_size = 4
+
+# nginx config convention.
+[*.conf]
+indent_size = 4
+
+# Never reformat a generated lockfile.
+[{pnpm-lock.yaml,package-lock.json,yarn.lock,uv.lock,poetry.lock}]
+indent_size = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+
+# The spec is the source document. Do not touch its whitespace — a diff there
+# should only ever be a deliberate content change.
+[docs/spec/**]
+trim_trailing_whitespace = false
+insert_final_newline = unset

@@ -1,0 +1,153 @@
+/* Soft lavender stage and restrained workspace surfaces. */
+
+.aurora-canvas {
+  background:
+    radial-gradient(circle at 20% 12%, rgba(255, 255, 255, 0.32), transparent 34%),
+    radial-gradient(circle at 84% 88%, rgba(112, 103, 232, 0.12), transparent 34%),
+    var(--bg-canvas);
+  background-attachment: fixed;
+}
+
+/* Pure black (product decision): no bloom in dark — a lavender wash over black
+   is exactly the tint the "background must be pure black" call ruled out. */
+[data-theme='dark'] .aurora-canvas {
+  background: var(--bg-canvas);
+  background-attachment: fixed;
+}
+
+/* 只用在左上背景 / Hero / 空狀態 / processing，禁止整頁鋪滿（§2） */
+.dot-matrix {
+  background-image: radial-gradient(circle, rgba(105, 96, 170, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+[data-theme='dark'] .dot-matrix {
+  background-image: radial-gradient(circle, rgba(146, 183, 232, 0.1) 3px, transparent 3.5px);
+}
+
+/* §3.1 外層玻璃大框 */
+/* ---------------------------------------------------------------------------
+ * Liquid glass
+ *
+ * A frosted panel is `backdrop-filter: blur()` and stops there. Real glass does
+ * four things that blur alone cannot, and all four are what make the reference
+ * read as a physical slab:
+ *
+ *   1. the RIM catches light — bright along the top-left, dark along the
+ *      bottom-right, because the edge is a curved surface, not a 1px line;
+ *   2. the edge REFRACTS, so the background bends where the glass thickens;
+ *   3. that bending splits colour slightly — a faint cyan/magenta fringe;
+ *   4. the body is brighter and more saturated than what is behind it, because
+ *      glass gathers light rather than just scattering it.
+ *
+ * Elements 1, 3 and 4 are layered inset shadows and filter values. True
+ * refraction (2) needs a displacement map; `--glass-refract` carries one where
+ * the browser supports `backdrop-filter: url()`, and its absence costs only the
+ * bend, not the effect.
+ *
+ * Legibility outranks all of it: the body stays opaque enough that the contrast
+ * ratios measured for text still hold.
+ * ------------------------------------------------------------------------- */
+
+.glass-shell,
+.glass-card,
+.liquid-glass {
+  position: relative;
+  isolation: isolate;
+}
+
+/* The rim: a light-catching bevel rather than a border. Two inset highlights
+ * (top-left) and two inset shadows (bottom-right) give the edge thickness, and
+ * the two coloured hairlines are the dispersion fringe.
+ *
+ * z-index -1 inside the element's own stacking context (`isolation: isolate`
+ * above, and backdrop-filter creates one regardless) paints the pseudo above
+ * the element's background but *below* its in-flow content. A positive or
+ * zero z-index would paint it over plain text — pseudo-elements are
+ * positioned, text is not — so the rim and sheen must both be negative. */
+.glass-shell::after,
+.glass-card::after,
+.liquid-glass::after { content: none; }
+
+.glass-shell {
+  background: var(--glass-shell);
+  backdrop-filter: blur(var(--blur-shell)) saturate(var(--saturate-shell))
+    brightness(1.06);
+  -webkit-backdrop-filter: blur(var(--blur-shell)) saturate(var(--saturate-shell))
+    brightness(1.06);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-shell);
+  /* contact + ambient terms both live in the token */
+  box-shadow: var(--shadow-shell);
+}
+
+/* §3.2 內層玻璃卡 */
+.glass-card {
+  background: var(--glass-card);
+  backdrop-filter: blur(var(--blur-card)) saturate(150%) brightness(1.04);
+  -webkit-backdrop-filter: blur(var(--blur-card)) saturate(150%) brightness(1.04);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+}
+
+/* A sheen across the top third — light entering the slab and scattering.
+ * z-index -1 (see the rim note): at 0 this was a 26% white veil painted *over*
+ * every heading in the top third of every card. Under the text it only
+ * brightens the ground, which for dark-on-light text raises contrast. */
+.glass-shell::before,
+.glass-card::before,
+.liquid-glass::before { content: none; }
+
+[data-theme='dark'] .glass-shell::after,
+[data-theme='dark'] .glass-card::after,
+[data-theme='dark'] .liquid-glass::after {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.24),
+    inset 1px 0 0 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.5),
+    inset -1px 0 0 0 rgba(0, 0, 0, 0.35),
+    inset 0 2px 3px -2px rgba(120, 220, 255, 0.28),
+    inset 0 -2px 3px -2px rgba(200, 130, 255, 0.2);
+}
+
+[data-theme='dark'] .glass-shell::before,
+[data-theme='dark'] .glass-card::before,
+[data-theme='dark'] .liquid-glass::before {
+  /* .10 -> .06: in dark mode the sheen brightens the ground under *light*
+   * text, and at .10 --text-tertiary fell to 4.0:1 in the top third. */
+  background:
+    linear-gradient(
+      168deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.02) 34%,
+      transparent 62%
+    );
+}
+
+/* §3.3 Strong surface：transcript / 表單 / 設定頁（要保證文字可讀） */
+.glass-strong {
+  background: var(--glass-card-strong);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-card);
+}
+
+/* §86 小面積漸層狀態 pill — 不做大面積漸層 */
+.gradient-pill {
+  border-radius: var(--radius-pill);
+  background: linear-gradient(120deg, var(--accent-blue), var(--accent-cyan) 48%, var(--accent-mint));
+  /* pastel gradient → navy ink; white measured 1.9–2.6:1 across the stops */
+  color: var(--text-on-pastel);
+}
+
+/* Theme 切換要柔和，禁止整頁 flash（§6） */
+.theme-transition,
+.theme-transition * {
+  transition:
+    background-color var(--dur-theme) var(--ease-out-soft),
+    border-color var(--dur-theme) var(--ease-out-soft),
+    color var(--dur-theme) var(--ease-out-soft);
+}

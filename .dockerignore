@@ -1,0 +1,91 @@
+# =============================================================================
+# Build-context exclusions.
+#
+# Both Dockerfiles use the repository ROOT as their build context (a pnpm
+# workspace cannot be built from a subdirectory), so this file is doing real
+# work: without it every `docker build` uploads node_modules, .next, the git
+# pack and any local .env before the first instruction runs.
+#
+# Two rules that are not merely about speed:
+#   * .env and infra/certs/ are excluded so a credential cannot be baked into
+#     an image layer by an accidental `COPY . .` — layers are readable by
+#     anyone who can pull the image (spec §73).
+#   * node_modules is excluded because a host-installed tree contains binaries
+#     built for the host's libc and CPU. Copying macOS/arm64 artefacts into a
+#     linux/amd64 image produces failures that look like source bugs.
+# =============================================================================
+
+# ---- secrets and local state (never in an image) ----------------------------
+.env
+.env.*
+!.env.example
+infra/certs/
+*.pem
+*.key
+*.p12
+*.pfx
+.npmrc
+.netrc
+
+# ---- version control --------------------------------------------------------
+.git/
+.gitignore
+.gitattributes
+
+# ---- dependencies (reinstalled inside the image for the target platform) ----
+node_modules/
+**/node_modules/
+.pnpm-store/
+**/.venv/
+**/venv/
+**/__pycache__/
+**/*.py[cod]
+**/.mypy_cache/
+**/.ruff_cache/
+**/.pytest_cache/
+**/*.egg-info/
+
+# ---- build output (rebuilt inside the image) --------------------------------
+**/.next/
+**/out/
+**/dist/
+**/build/
+**/.turbo/
+**/coverage/
+**/.tsbuildinfo
+**/*.tsbuildinfo
+
+# ---- editor / OS noise ------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+# ---- CI and infra: not needed by any application build ----------------------
+# infra/ is excluded EXCEPT the Dockerfiles themselves, which BuildKit reads
+# via -f before the context is sent, so their exclusion here is harmless.
+.github/
+docker-compose.yml
+scripts/
+infra/seed/
+
+# ---- docs: large, and nothing in an image reads them ------------------------
+# The 5,400-line spec plus the architecture docs are pure context weight.
+docs/
+*.md
+!apps/api/README.md
+!apps/web/README.md
+# apps/api/README.md is kept because pyproject.toml declares it as the project
+# readme and hatchling reads it during `pip install .`.
+
+# ---- test artefacts ---------------------------------------------------------
+**/tests/__snapshots__/
+**/playwright-report/
+**/test-results/
+
+# ---- logs -------------------------------------------------------------------
+*.log
+npm-debug.log*
+pnpm-debug.log*

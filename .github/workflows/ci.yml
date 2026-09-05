@@ -1,0 +1,270 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Cancel a superseded run on the same ref. Cheap and it keeps queue times sane
+# when someone pushes three fixups in a row. `main` is excluded from
+# cancellation so a merge-queue run is never killed by the next merge.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  # Keep in sync with .nvmrc and the
+  # `packageManager` field in package.json.
+  NODE_VERSION: "20.18.0"
+  PYTHON_VERSION: "3.11"
+  FORCE_COLOR: "1"
+
+jobs:
+  # ===========================================================================
+  # web — apps/web + packages/*
+  #
+  # ┌─────────────────────────────────────────────────────────────────────────┐
+  # │ THE LOCKFILE IS A HARD PRECONDITION                                     │
+  # │                                                                         │
+  # │ `pnpm install --frozen-lockfile` requires a committed pnpm-lock.yaml.   │
+  # │ Without one this job fails immediately with                             │
+  # │   ERR_PNPM_NO_LOCKFILE  Cannot install with "frozen-lockfile" because   │
+  # │   pnpm-lock.yaml is absent                                              │
+  # │                                                                         │
+  # │ That was the state when this workflow was written, and the fix is one   │
+  # │ local command, once:                                                    │
+  # │   pnpm install && git add pnpm-lock.yaml && git commit                  │
+  # │ The "Assert a lockfile exists" step below turns the failure into a      │
+  # │ readable message instead of a pnpm error code.                          │
+  # │                                                                         │
+  # │ We deliberately do NOT soften this to a plain `pnpm install`. A CI job  │
+  # │ that resolves versions itself is not reproducible: it can pass on a     │
+  # │ patch release nobody has ever run locally, and it would silently paper  │
+  # │ over a lockfile a PR forgot to update. `continue-on-error` stays false  │
+  # │ everywhere in this file for the same reason.                            │
+  # └─────────────────────────────────────────────────────────────────────────┘
+  # ===========================================================================
+  web:
+    name: web (typecheck · lint · build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: false
+    steps:
+      - uses: actions/checkout@v4
+
+      # corepack activates the pnpm version pinned by package.json's
+      # `packageManager` field, so CI and every developer machine agree.
+      - name: Enable corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          # setup-node's built-in pnpm cache keys on pnpm-lock.yaml and caches
+          # the pnpm store, which is the right granularity for a workspace.
+          cache: pnpm
+
+      - name: Assert a lockfile exists
+        run: |
+          if [ ! -f pnpm-lock.yaml ]; then
+            echo "::error title=Missing pnpm-lock.yaml::Run 'pnpm install' locally and commit pnpm-lock.yaml. See the comment above the 'web' job in .github/workflows/ci.yml."
+            exit 1
+          fi
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Typecheck first: it is the fastest way to surface a contract change that
+      # packages/shared made and apps/web has not absorbed.
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      - name: Lint
+        run: pnpm -r lint
+
+      - name: Build
+        run: pnpm -r build
+
+      # Guard §96: the WebGPU / ML runtime must not land in the initial bundle.
+      # Advisory only — it prints, it does not gate — because the budget
+      # numbers belong to the web team, not to CI.
+      - name: Bundle report (advisory)
+        if: always()
+        run: |
+          if [ -d apps/web/.next ]; then
+            echo "### Next.js build output" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            du -sh apps/web/.next 2>/dev/null >> "$GITHUB_STEP_SUMMARY" || true
+            find apps/web/.next/static/chunks -name '*.js' -size +200k 2>/dev/null \
+              | head -20 >> "$GITHUB_STEP_SUMMARY" || true
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "Spec §96: dynamic-import the local-inference runtime; it must not be in the initial bundle." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # ===========================================================================
+  # api — apps/api
+  #
+  # CI installs native PostgreSQL and Redis packages. This keeps the repository
+  # free of a container-runtime dependency while retaining real database tests.
+  # ===========================================================================
+  api:
+    name: api (ruff · mypy · pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    continue-on-error: false
+
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+asyncpg://aicoach:aicoach@localhost:5432/aicoach_test
+      REDIS_URL: redis://localhost:6379/0
+      VECTOR_BACKEND: memory
+      OBJECT_STORAGE_ENABLED: "false"
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: ai-coach-test
+      # Not a secret — a fixed test value long enough to satisfy the
+      # >=32-character check in app/core/config.py.
+      JWT_SECRET: ci-test-secret-not-used-anywhere-real-0001
+      # No provider keys in CI. Anything reaching OpenAI/ElevenLabs must be
+      # mocked; a test that needs a live key is a test in the wrong place.
+      LLM_PROVIDER: none
+      TTS_PROVIDER: none
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install native data services
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql redis-server
+          sudo systemctl start postgresql redis-server
+          sudo -u postgres psql -c "CREATE USER aicoach WITH PASSWORD 'aicoach';"
+          sudo -u postgres createdb -O aicoach aicoach_test
+          pg_isready -h localhost -U aicoach -d aicoach_test
+          redis-cli ping
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          # setup-python's pip cache keys on the dependency files it is told
+          # about. Without this it hashes requirements*.txt, which we do not
+          # have, and the cache would never hit.
+          cache-dependency-path: apps/api/pyproject.toml
+
+      - name: Install
+        working-directory: apps/api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+
+      # Lint before types: ruff is seconds, mypy is tens of seconds, and ruff
+      # catches the import-order and unused-import noise that would otherwise
+      # clutter the mypy output.
+      - name: Ruff (lint)
+        working-directory: apps/api
+        run: ruff check --output-format=github .
+
+      - name: Ruff (format check)
+        working-directory: apps/api
+        run: ruff format --check .
+
+      - name: Mypy
+        working-directory: apps/api
+        run: mypy
+
+      # Migrations before tests: this also proves the migration chain actually
+      # applies to an empty database, which a test-only `create_all` would hide.
+      - name: Alembic upgrade head
+        working-directory: apps/api
+        run: |
+          if [ -f alembic.ini ]; then
+            alembic upgrade head
+          else
+            echo "::notice title=No alembic.ini::Migrations not present yet; skipping."
+          fi
+
+      - name: Pytest
+        working-directory: apps/api
+        run: pytest -ra --tb=short
+
+  # ===========================================================================
+  # contracts — the cross-language drift guard
+  #
+  # Its own job on purpose. It needs no toolchain, finishes in about a second,
+  # and it is the check most likely to catch a genuinely expensive bug (see
+  # docs/adr/0002). Keeping it independent means it still reports even when the
+  # web or api job is red for an unrelated reason.
+  # ===========================================================================
+  contracts:
+    name: contracts (TS ↔ Pydantic)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Streaming-event contract drift
+        run: scripts/check-contracts.sh
+
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "### Streaming-event contract"
+            echo '```'
+            scripts/check-contracts.sh --list 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ===========================================================================
+  # shell — the infra scripts are load-bearing; a syntax error in bootstrap.sh
+  # is a broken onboarding for everyone.
+  # ===========================================================================
+  shell:
+    name: shell (shellcheck)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bash syntax
+        run: |
+          for f in scripts/*.sh; do
+            bash -n "$f" && echo "ok  $f"
+          done
+
+      - name: Shellcheck
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          shellcheck --severity=warning \
+            scripts/*.sh
+
+      - name: Seed script self-check
+        run: python3 scripts/seed.py --dry-run
+
+  # ===========================================================================
+  # A single required status check for branch protection. Protect this one job
+  # instead of listing five, so adding a job later does not need a settings
+  # change — and so a skipped-but-required job can never block a merge.
+  # ===========================================================================
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    needs: [web, api, contracts, shell]
+    if: always()
+    steps:
+      - name: Verify all jobs succeeded
+        run: |
+          results='${{ join(needs.*.result, ",") }}'
+          echo "job results: $results"
+          case "$results" in
+            *failure*|*cancelled*) echo "::error::one or more CI jobs did not succeed"; exit 1 ;;
+            *) echo "all CI jobs succeeded" ;;
+          esac

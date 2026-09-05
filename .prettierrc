@@ -1,0 +1,77 @@
+# =============================================================================
+# Prettier configuration.
+#
+# Written as YAML rather than JSON purely so the reasoning can live next to the
+# values — Prettier accepts either for `.prettierrc`.
+#
+# These are settled. Formatting arguments are the cheapest possible thing to
+# have an opinion about and the most expensive thing to relitigate: changing
+# any value here reformats the repository and hands every open branch a
+# conflict. If you disagree, that is fine, and it is still not worth changing.
+# =============================================================================
+
+# Semicolons: yes.
+#
+# Not an aesthetic call. ASI hazards are real — a line beginning with `(`, `[`
+# or a template literal gets glued to the previous statement, and the resulting
+# bug does not look like a formatting bug. Beyond that, every ambient example
+# in the Next.js, React and TypeScript documentation uses semicolons, and
+# matching the ecosystem beats matching a preference.
+semi: true
+
+# Single quotes in TS/JS, double quotes in JSX attributes. This is where the
+# TypeScript and React ecosystems landed, and mixed-quote JSX reads worse than
+# either convention applied consistently.
+singleQuote: true
+jsxSingleQuote: false
+
+# 100 columns, matching ruff's line-length in apps/api/pyproject.toml — so a
+# TypeScript file and a Python file wrap at the same column in a side-by-side
+# review. 80 is too narrow for TSX carrying Tailwind class strings; 120 makes
+# two-up review on a 13-inch laptop unpleasant.
+printWidth: 100
+
+tabWidth: 2
+useTabs: false
+
+# Trailing commas everywhere: a one-line diff when something is appended,
+# instead of two.
+trailingComma: all
+
+bracketSpacing: true
+bracketSameLine: false
+
+# Always parenthesise arrow parameters, so adding a type annotation to a single
+# parameter never requires touching the parentheses.
+arrowParens: always
+
+endOfLine: lf
+quoteProps: as-needed
+singleAttributePerLine: false
+
+overrides:
+  # Markdown: preserve the author's wrapping. Reflowing prose makes review
+  # diffs unreadable, and two trailing spaces are a meaningful hard line break.
+  - files: ['*.md', '*.mdx']
+    options:
+      proseWrap: preserve
+      printWidth: 100
+
+  # YAML: single quotes are not idiomatic there, and requoting GitHub Actions
+  # `${{ }}` expressions makes them harder to read.
+  - files: ['*.yml', '*.yaml']
+    options:
+      singleQuote: false
+      printWidth: 120
+
+  # JSON has no single-quote form and no trailing commas.
+  - files: ['*.json', '*.jsonc']
+    options:
+      singleQuote: false
+      trailingComma: none
+
+  # CSS/SCSS: double quotes are the convention, and `url()` values must not be
+  # requoted.
+  - files: ['*.css', '*.scss']
+    options:
+      singleQuote: false
