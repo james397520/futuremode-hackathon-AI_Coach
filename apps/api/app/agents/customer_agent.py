@@ -121,6 +121,10 @@ class CustomerTurnRequest(BaseModel):
     #: classifier, mapped into the shared six-label space). Empty when the
     #: camera is off. Untrusted and advisory — it shapes *how* the customer
     #: reacts, never what facts they know.
+    #: The *fused* reading (`app.domain.affect.TraineeAffect`), not the raw face.
+    #: Text and face are both in here, already reconciled, so a trainee who
+    #: types 「這太離譜了」 with the camera off reaches the customer exactly like a
+    #: frown does — which is what the scenario descriptions have been promising.
     trainee_face: dict[str, Any] = Field(default_factory=dict)
 
     @property
@@ -231,7 +235,7 @@ class CustomerAgent(Agent[CustomerTurnRequest, CustomerReply]):
         if request.trainee_face:
             blocks.append(
                 data_block(
-                    "trainee_face_right_now",
+                    "trainee_affect_right_now",
                     {
                         **request.trainee_face,
                         "how_to_use": self._face_directive(request.trainee_face),
@@ -263,23 +267,29 @@ class CustomerAgent(Agent[CustomerTurnRequest, CustomerReply]):
 
     @classmethod
     def _face_directive(cls, face: dict[str, Any]) -> str:
-        """How a real customer reacts to the salesperson's expression.
+        """How a real customer reacts to the salesperson's state.
 
         A customer *notices* the person across the table. When the trainee looks
-        displeased the natural thing is to check, in one sentence, whether the
-        customer said something wrong — not to describe the trainee's emotion
-        back at them, and not to change the facts of the conversation.
+        or sounds displeased the natural thing is to check, in one sentence,
+        whether the customer said something wrong — not to describe the
+        trainee's emotion back at them, and not to change the facts.
+
+        Reads the fused affect, so this fires on a frown, on the words, or on
+        both. It used to take the raw face only, which meant the text fallback
+        every scenario description offers — 「文字同樣有效」 — quietly did nothing.
         """
         try:
             confidence = float(face.get("confidence") or 0.0)
         except (TypeError, ValueError):
             confidence = 0.0
         label = str(face.get("label") or "")
-        if confidence < cls.FACE_REACT_MIN_CONFIDENCE or label in ("", "不明確", "平穩"):
+        source = str(face.get("source") or "")
+        weak = confidence < cls.FACE_REACT_MIN_CONFIDENCE
+        if source == "none" or weak or label in ("", "不明確", "平穩"):
             return "表情沒有明顯訊號，照常回應，不要提到對方的表情。"
         if label == "不耐煩":
             return (
-                "業務此刻看起來不太認同或不耐煩。像真人一樣先用**一句**確認："
+                "業務此刻明顯不太認同或不耐煩。像真人一樣先用**一句**確認："
                 "「你好像不太認同我剛講的？」或「我是不是哪裡講錯了？」，"
                 "然後停下來等對方回答。不要分析對方情緒、不要道歉過頭、不要改變你的立場。"
             )
