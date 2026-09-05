@@ -49,8 +49,16 @@ export interface DemoScript {
   ttsScenarioId: string;
   difficulty: Difficulty;
   personaOccupation: string;
+  industry: string;
+  trainingType: string;
+  timeLimitSeconds: number;
+  maxTurns: number;
   learningObjectives: string[];
+  requiredTalkingPoints: string[];
+  keyObjections: string[];
   restrictedTopics: string[];
+  successCondition: string;
+  personaTraits: { trust: number; interest: number; resistance: number; patience: number };
   /** 客戶第一句（伺服器直接播的固定開場）。 */
   opening: DemoBeat;
   beats: DemoBeat[];
@@ -99,9 +107,27 @@ export const DEMO_CLARIFY: DemoScript = {
   personaAge: 29,
   ttsScenarioId: '9061e279791b5ba08f9b02f4a36d5075',
   difficulty: 'easy',
-  personaOccupation: '29 歲・第一次買保險',
-  learningObjectives: ['辨識模糊提問並主動反問釐清', '用知識庫佐證定期與終身壽險差異', '避免對理賠作出保證'],
-  restrictedTopics: [],
+  personaOccupation: '行銷專員',
+  industry: '保險 / 個人壽險',
+  trainingType: 'needs_discovery',
+  timeLimitSeconds: 600,
+  maxTurns: 30,
+  learningObjectives: [
+    '面對指涉不明的提問，先反問釐清（在問價格？保障？期限？），不要猜著回答',
+    '把選項攤開讓客戶選，而不是替客戶決定',
+    '用客戶聽得懂的生活語言解釋專有名詞',
+    '在任何商品說明前完成基本需求探索（收入、負擔、最擔心的情況）',
+  ],
+  requiredTalkingPoints: [
+    '至少一次以反問釐清客戶的模糊提問',
+    '確認每月可負擔金額',
+    '確認客戶最擔心的情況',
+    '明確說明本次對話不構成投資或稅務建議',
+  ],
+  keyObjections: ['我朋友說直接買儲蓄險就好？', '這個…划算嗎？', '那這樣夠嗎？', '我再想想好了'],
+  restrictedTopics: ['保證投資報酬率', '稅務規劃建議', '同業商品的具體費率比較'],
+  successCondition: '學員至少一次以反問釐清模糊提問 + 客戶說出每月可負擔金額 + 信任度 ≥ 65 + 無重大合規風險',
+  personaTraits: { trust: 55, interest: 50, resistance: 40, patience: 60 },
   capabilities: ['模糊意圖 → 反問釐清', 'Enterprise RAG 引用', '即時合規攔截'],
   opening: {
     speaker: 'persona',
@@ -173,9 +199,27 @@ export const DEMO_REDIRECT: DemoScript = {
   personaAge: 67,
   ttsScenarioId: 'a3d5670bbc0858b3a4a0f6a1a9749bfe',
   difficulty: 'medium',
-  personaOccupation: '67 歲・退休國中老師',
-  learningObjectives: ['把離題溫和收斂回保單盤點', '用團保知識點出保障缺口', '避免保證費率或給付'],
-  restrictedTopics: ['颱風', '選舉', '政治', '股市預測'],
+  personaOccupation: '退休國中老師',
+  industry: '保險 / 個人壽險',
+  trainingType: 'conversation_control',
+  timeLimitSeconds: 900,
+  maxTurns: 40,
+  learningObjectives: [
+    '對離題話題溫和收斂：一句回應、一句帶回主題',
+    '不使用「我無法回答」這類機械式拒絕',
+    '在客戶主動離題時仍守住合規邊界（不預測股市、不評論政治）',
+    '一小時內完成現有保單盤點的需求探索',
+  ],
+  requiredTalkingPoints: [
+    '離題後兩輪內回到保單主題',
+    '盤點現有保單項目與保額',
+    '確認住院照護與長照的顧慮',
+    '說明不提供股市或政治意見',
+  ],
+  keyObjections: ['這個利率跟股票比怎麼樣？', '你們公司會不會倒？', '我兒子說不要買投資型的', '我再問問我兒子'],
+  restrictedTopics: ['天氣', '颱風', '選舉', '政治', '總統', '股市預測', '股票會不會漲', '比特幣', '醫療診斷', '同業商品比較'],
+  successCondition: '完成現有保單盤點 + 每次離題後兩輪內回到主題 + 耐心 ≥ 50 + 無重大合規風險',
+  personaTraits: { trust: 60, interest: 55, resistance: 50, patience: 45 },
   capabilities: ['超綱話題 → 溫和收斂', '團保知識引用', '缺口試算', '即時合規攔截'],
   opening: {
     speaker: 'persona',

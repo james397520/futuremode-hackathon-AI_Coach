@@ -1,18 +1,23 @@
 'use client';
 
 /**
- * 展示模式播放頁（螢幕錄影用）——介面與正式模擬頁一模一樣。
+ * 展示模式播放頁（螢幕錄影用）——介面與正式模擬頁一模一樣，且**全自動跑完整流程**。
  *
  * 直接用正式產品的版面元件：SessionHeader ＋ TrainingGrid(stage-left) ＋
- * ConversationPanel（對談、composer、教練卡、合規卡、引用晶片）＋
+ * ConversationPanel（對談、composer、教練卡、合規卡、引用晶片、事件列）＋
  * PersonaColumn(stage-fill)（大虛擬人＋自拍位＋情境資訊卡）。差別只有資料來源：
- * 對話照 `demo-scripts.ts` 的劇本走，不呼叫後端對話、不呼叫模型，所以錄影逐字
- * 一致、不會中斷。TTS 只借一個真實 session 呼叫 /sessions/{id}/speak（本地
- * Breeze 女聲），對話本身仍照劇本；session 或 TTS 不可用時，虛擬人改用計時器
- * 動嘴，錄影不會停。
+ * 對話照 `demo-scripts.ts` 的劇本自動播出，不需使用者輸入、不呼叫後端對話、
+ * 不呼叫模型，所以錄影逐字一致、不會中斷。
+ *
+ * 兩個時序保證：
+ * 1. 整段流程與第一句 TTS 都**等虛擬人出現後**才開始（onPersonaVisible，含逾時
+ *    後備），避免語音在畫面還沒好時就提前播。
+ * 2. TTS 只借一個真實 session 呼叫 /sessions/{id}/speak（本地 Breeze 女聲），
+ *    對話本身仍照劇本；session 或 TTS 不可用時虛擬人改用計時器動嘴，錄影不會停。
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
+  AgentName,
   CoachInsight,
   ComplianceFinding,
   PersonaSimulationState,
@@ -27,38 +32,32 @@ import { SimulationStyles } from '@/features/simulation/components/simulation-st
 import { endpoints } from '@/lib/api-client';
 import type { DemoBeat, DemoScript } from './demo-scripts';
 
-const TYPING_MS = 900;
-const BETWEEN_MS = 550;
 const SESSION = 'demo-session';
+const PERSONA_VISIBLE_TIMEOUT_MS = 6000; // fallback if the avatar never reports
+const TYPING_MS = 1100; // persona "typing" before a reply
+const READ_MS = 2200; // pause so a viewer can read the previous line
+const AFTER_EVENT_MS = 900; // pause after a coach / compliance card
+const OPENING_MS = 700; // small beat after the avatar appears
 
 const TTS_ENGINE = 'local' as const;
 const TTS_TUNING = { stability: 0.5, similarity: 0.75, style: 0.3, speed: 1 };
 const speakMsFor = (text: string) => Math.min(6000, Math.max(1200, text.length * 90));
 
-const isTrainee = (b: DemoBeat) => b.speaker === 'trainee';
-
-function nextTraineeLine(script: DemoScript, cursor: number): string | null {
-  for (let i = cursor; i < script.beats.length; i += 1) {
-    const beat = script.beats[i];
-    if (beat && isTrainee(beat)) return (beat as { text: string }).text;
-  }
-  return null;
-}
-
 function baseState(script: DemoScript): PersonaSimulationState {
+  const t = script.personaTraits;
   return {
     scenario_phase: 'opening',
     emotion: 'neutral',
-    trust: 45,
-    interest: 50,
-    resistance: 55,
-    patience: 60,
+    trust: t.trust,
+    interest: t.interest,
+    resistance: t.resistance,
+    patience: t.patience,
     intent: 'greeting',
     current_goal: 'understand_what_i_get',
     hidden_need_revealed: false,
     compliance_risk: 'safe',
     time_pressure: 3,
-    ...(script.personaGender === 'male' ? { budget: 4000 } : { budget: 3000 }),
+    budget: script.personaGender === 'male' ? 4000 : 3000,
   };
 }
 
@@ -66,34 +65,38 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   const [turns, setTurns] = useState<TranscriptTurn[]>([]);
   const [insights, setInsights] = useState<CoachInsight[]>([]);
   const [findings, setFindings] = useState<ComplianceFinding[]>([]);
-  const [cursor, setCursor] = useState(0);
-  const [status, setStatus] = useState<SessionState>('ready');
+  const [status, setStatus] = useState<SessionState>('connecting');
   const [speaking, setSpeaking] = useState(false);
+  const [activeAgent, setActiveAgent] = useState<AgentName | null>(null);
+  const [agentAtMs, setAgentAtMs] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ttsSessionRef = useRef<string | null>(null);
-  const busyRef = useRef(false);
   const speakTokenRef = useRef(0);
   const seqRef = useRef(1);
   const startRef = useRef(Date.now());
+  const startedRef = useRef(false); // the auto-run has begun (once per mount)
 
   const nextTs = useCallback(() => seqRef.current++ * 1000, []);
+  const after = useCallback((ms: number, fn: () => void) => {
+    timers.current.push(setTimeout(fn, ms));
+  }, []);
   const clearTimers = useCallback(() => {
     timers.current.forEach(clearTimeout);
     timers.current = [];
   }, []);
 
-  // Running clock for the header — purely cosmetic, matches the real timer.
+  // Cosmetic running clock for the header.
   useEffect(() => {
-    const id = setInterval(() => setElapsedMs(Date.now() - startRef.current), 1000);
+    const id = setInterval(() => {
+      if (startedRef.current) setElapsedMs(Date.now() - startRef.current);
+    }, 1000);
     return () => clearInterval(id);
   }, []);
 
-  // One real session, used ONLY to synthesise the persona voice. The scripted
-  // conversation never touches it; if it cannot be created, TTS is skipped and
-  // the avatar still lip-flaps on a timer so a recording never stalls.
+  // One real session, used ONLY to synthesise the persona voice.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -143,128 +146,157 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
     })();
   }, []);
 
-  const renderBeat = useCallback(
-    (beat: DemoBeat) => {
-      if (beat.speaker === 'trainee') {
-        setTurns((p) => [
-          ...p,
-          { id: `t${nextTs()}`, session_id: SESSION, speaker: 'trainee', text: beat.text, timestamp_ms: nextTs() },
-        ]);
-      } else if (beat.speaker === 'persona') {
-        const ts = nextTs();
-        setTurns((p) => [
-          ...p,
-          {
-            id: `p${ts}`,
-            session_id: SESSION,
-            speaker: 'persona',
-            text: beat.text,
-            timestamp_ms: ts,
-            ...(beat.citations ? { citations: beat.citations } : {}),
-          },
-        ]);
-        speakLine(beat.text);
-      } else if (beat.speaker === 'coach') {
-        setInsights((p) => [
-          ...p,
-          {
-            id: `c${nextTs()}`,
-            session_id: SESSION,
-            timestamp_ms: nextTs(),
-            kind: 'hint',
-            title: beat.title,
-            body: beat.text,
-            allowed_in_assessment: false,
-            requested: false,
-          },
-        ]);
-      } else {
-        setFindings((p) => [...p, { ...beat.finding, timestamp_ms: nextTs() }]);
-      }
+  const addTrainee = useCallback(
+    (text: string) => {
+      const ts = nextTs();
+      setTurns((p) => [...p, { id: `t${ts}`, session_id: SESSION, speaker: 'trainee', text, timestamp_ms: ts }]);
+    },
+    [nextTs],
+  );
+  const addPersona = useCallback(
+    (beat: Extract<DemoBeat, { speaker: 'persona' }>) => {
+      const ts = nextTs();
+      setTurns((p) => [
+        ...p,
+        {
+          id: `p${ts}`,
+          session_id: SESSION,
+          speaker: 'persona',
+          text: beat.text,
+          timestamp_ms: ts,
+          ...(beat.citations ? { citations: beat.citations } : {}),
+        },
+      ]);
+      speakLine(beat.text);
     },
     [nextTs, speakLine],
   );
 
-  const reset = useCallback(() => {
-    clearTimers();
-    audioRef.current?.pause();
-    speakTokenRef.current += 1;
-    busyRef.current = false;
-    seqRef.current = 1;
+  // The auto-player: walk every beat with human-readable pacing. No input.
+  const play = useCallback(
+    (i: number) => {
+      if (i >= script.beats.length) {
+        setActiveAgent(null);
+        setStatus('completed');
+        return;
+      }
+      const beat = script.beats[i];
+      if (!beat) return;
+
+      if (beat.speaker === 'trainee') {
+        // "Your turn" for a moment so a viewer reads the prior line, then the
+        // trainee's scripted line appears on its own.
+        setStatus('listening');
+        setActiveAgent(null);
+        after(READ_MS, () => {
+          addTrainee(beat.text);
+          setStatus('processing');
+          after(600, () => play(i + 1));
+        });
+        return;
+      }
+
+      if (beat.speaker === 'persona') {
+        setStatus('persona_speaking');
+        setActiveAgent('customer');
+        setAgentAtMs(Date.now());
+        after(TYPING_MS, () => {
+          addPersona(beat);
+          setActiveAgent(null);
+          after(READ_MS, () => play(i + 1));
+        });
+        return;
+      }
+
+      if (beat.speaker === 'coach') {
+        setActiveAgent('coach');
+        setAgentAtMs(Date.now());
+        after(TYPING_MS, () => {
+          setInsights((p) => [
+            ...p,
+            {
+              id: `c${nextTs()}`,
+              session_id: SESSION,
+              timestamp_ms: nextTs(),
+              kind: 'hint',
+              title: beat.title,
+              body: beat.text,
+              allowed_in_assessment: false,
+              requested: false,
+            },
+          ]);
+          setActiveAgent(null);
+          after(AFTER_EVENT_MS, () => play(i + 1));
+        });
+        return;
+      }
+
+      // compliance
+      setActiveAgent('compliance');
+      setAgentAtMs(Date.now());
+      after(TYPING_MS, () => {
+        setFindings((p) => [...p, { ...beat.finding, timestamp_ms: nextTs() }]);
+        setActiveAgent(null);
+        after(AFTER_EVENT_MS, () => play(i + 1));
+      });
+    },
+    [script, after, addTrainee, addPersona, nextTs],
+  );
+
+  // Kick the whole run off ONCE, and only after the virtual human is on screen,
+  // so no TTS plays before the avatar appears. A timeout is the fallback for a
+  // portrait-only / WebGL-off avatar that never reports visible.
+  const begin = useCallback(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
     startRef.current = Date.now();
     setElapsedMs(0);
-    setCursor(0);
     setStatus('ready');
-    setSpeaking(false);
-    setInsights([]);
-    setFindings([]);
     const opening = script.opening;
     if (opening.speaker === 'persona') {
-      const ts = nextTs();
-      setTurns([
-        { id: `p${ts}`, session_id: SESSION, speaker: 'persona', text: opening.text, timestamp_ms: ts },
-      ]);
-      speakLine(opening.text);
+      after(OPENING_MS, () => {
+        const ts = nextTs();
+        setTurns([
+          { id: `p${ts}`, session_id: SESSION, speaker: 'persona', text: opening.text, timestamp_ms: ts },
+        ]);
+        speakLine(opening.text);
+        after(READ_MS, () => play(0));
+      });
     } else {
-      setTurns([]);
+      after(OPENING_MS, () => play(0));
     }
-  }, [clearTimers, script, nextTs, speakLine]);
+  }, [script, after, nextTs, speakLine, play]);
 
   useEffect(() => {
-    reset();
+    const fallback = setTimeout(begin, PERSONA_VISIBLE_TIMEOUT_MS);
+    timers.current.push(fallback);
     return () => {
       clearTimers();
       audioRef.current?.pause();
       speakTokenRef.current += 1;
     };
-  }, [reset, clearTimers]);
+  }, [begin, clearTimers]);
 
-  const playAgentBeats = useCallback(
-    (from: number) => {
-      let i = from;
-      const step = () => {
-        const beat = script.beats[i];
-        if (i >= script.beats.length || !beat || isTrainee(beat)) {
-          setCursor(i);
-          setStatus(i >= script.beats.length ? 'completed' : 'ready');
-          busyRef.current = false;
-          return;
-        }
-        setStatus('persona_speaking');
-        const b = beat;
-        timers.current.push(
-          setTimeout(() => {
-            renderBeat(b);
-            i += 1;
-            timers.current.push(setTimeout(step, BETWEEN_MS));
-          }, TYPING_MS),
-        );
-      };
-      step();
-    },
-    [script, renderBeat],
-  );
-
-  const handleSend = useCallback(() => {
-    if (busyRef.current) return;
-    const line = nextTraineeLine(script, cursor);
-    if (line == null) return;
-    busyRef.current = true;
-    setStatus('processing');
-    let i = cursor;
-    while (i < script.beats.length) {
-      const b = script.beats[i];
-      if (b && isTrainee(b)) break;
-      i += 1;
-    }
-    const traineeBeat = script.beats[i];
-    if (!traineeBeat) return;
-    renderBeat(traineeBeat);
-    playAgentBeats(i + 1);
-  }, [cursor, script, playAgentBeats, renderBeat]);
+  const restart = useCallback(() => {
+    clearTimers();
+    audioRef.current?.pause();
+    speakTokenRef.current += 1;
+    seqRef.current = 1;
+    startedRef.current = false;
+    setTurns([]);
+    setInsights([]);
+    setFindings([]);
+    setSpeaking(false);
+    setActiveAgent(null);
+    setStatus('connecting');
+    // The avatar is already on screen on a replay, so onPersonaVisible will not
+    // fire again — start again on a short delay directly.
+    after(800, begin);
+  }, [clearTimers, begin, after]);
 
   const personaState = useMemo(() => baseState(script), [script]);
   const noop = useCallback(() => {}, []);
+  const traineeTurns = turns.filter((t) => t.speaker === 'trainee').length;
 
   return (
     <>
@@ -278,15 +310,16 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
           mode="training"
           status={status}
           elapsedMs={elapsedMs}
-          remainingMs={null}
+          remainingMs={Math.max(0, script.timeLimitSeconds * 1000 - elapsedMs)}
           overtime={false}
-          turnCount={turns.filter((t) => t.speaker === 'trainee').length}
+          turnCount={traineeTurns}
+          maxTurns={script.maxTurns}
           runtime={{ backend: 'server', degraded: false }}
           online
           reconnectAttempt={0}
           onPauseResume={noop}
-          onRestart={reset}
-          onEnd={reset}
+          onRestart={restart}
+          onEnd={restart}
         />
 
         <TrainingGrid
@@ -307,20 +340,21 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
               startedAtMs={startRef.current}
               personaName={script.personaName}
               openingContext={script.opening.speaker === 'persona' ? script.opening.text : undefined}
-              activeAgent={null}
-              agentActivityAtMs={0}
-              turnCount={turns.filter((t) => t.speaker === 'trainee').length}
+              activeAgent={activeAgent}
+              agentActivityAtMs={agentAtMs}
+              turnCount={traineeTurns}
+              maxTurns={script.maxTurns}
               voiceEnabled={false}
               micLive={false}
               muted
               vadActive={false}
               captionsEnabled={false}
-              onSend={handleSend}
+              onSend={noop}
               onPushToTalk={noop}
               onToggleMic={noop}
               onPauseResume={noop}
-              onRestart={reset}
-              onEnd={reset}
+              onRestart={restart}
+              onEnd={restart}
               onToggleCaptions={noop}
               onOpenTranscript={noop}
               onReportIssue={noop}
@@ -333,6 +367,8 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
               layout="stage-fill"
               mode="training"
               scenarioName={script.scenarioTitle}
+              industry={script.industry}
+              trainingType={script.trainingType}
               difficulty={script.difficulty}
               learningObjectives={script.learningObjectives}
               restrictedTopics={script.restrictedTopics}
@@ -340,13 +376,15 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
               personaGender={script.personaGender}
               personaAge={script.personaAge}
               personaSubtitle={script.personaOccupation}
+              onPersonaVisible={begin}
               speaking={speaking}
-              listening={false}
+              listening={status === 'listening'}
               thinking={status === 'processing'}
-              requiredTalkingPoints={[]}
-              keyObjections={[]}
-              successCondition=""
-              remainingMs={null}
+              requiredTalkingPoints={script.requiredTalkingPoints}
+              keyObjections={script.keyObjections}
+              successCondition={script.successCondition}
+              timeLimitSeconds={script.timeLimitSeconds}
+              remainingMs={Math.max(0, script.timeLimitSeconds * 1000 - elapsedMs)}
               overtime={false}
               scenarioPhase="opening"
               turns={turns}
