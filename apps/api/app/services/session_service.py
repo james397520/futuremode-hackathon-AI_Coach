@@ -756,7 +756,9 @@ class SessionService(BaseService):
             mode=str(field(row, "mode", "training")),
             status=str(field(row, "status", "idle")),
             started_at=str(field(row, "started_at") or iso_now()),
-            ended_at=field(row, "ended_at"),
+            # A raw datetime here made every successful end() 500 on the way out —
+            # the row was already updated, the client just never heard about it.
+            ended_at=(str(e) if (e := field(row, "ended_at")) is not None else None),
             runtime=str(field(row, "runtime", "server")),
             voice_enabled=bool(field(row, "voice_enabled", False)),
             score_live_enabled=bool(field(row, "score_live_enabled", False)),
@@ -1015,7 +1017,34 @@ async def _request_hint(self: SessionService, session_id: str, payload: Any = No
 
 
 SessionService.create_session = _create_session          # type: ignore[attr-defined]
-SessionService.end_session = SessionService.end          # type: ignore[attr-defined]
+async def _end_session(self: SessionService, session_id: str, payload: Any = None) -> Any:
+    """POST /sessions/{id}/end.
+
+    `end()` takes `reason` keyword-only, and the router hands over the whole
+    `SessionEndRequest` positionally — so binding `end` straight through made
+    every click on 「結束練習」 a TypeError. Unpack the request here, and shape
+    the reply as the `SessionEndResponse` the route declares.
+
+    `evaluation` is honestly `None`: nothing enqueues the scoring job yet (see
+    HANDOFF), so the client is told it is pending rather than handed a number
+    nobody computed.
+    """
+    from app.domain.request_response import SessionEndResponse
+    from app.domain.session import TrainingSession
+
+    reason = None
+    wants_eval = True
+    if payload is not None:
+        reason = getattr(payload, "reason", None)
+        wants_eval = bool(getattr(payload, "request_evaluation", True))
+    view = await self.end(session_id, reason=reason or "user_ended")
+    session_model = TrainingSession.model_validate(
+        {k: v for k, v in view.model_dump().items() if k in TrainingSession.model_fields}
+    )
+    return SessionEndResponse(session=session_model, evaluation=None, evaluation_pending=wants_eval)
+
+
+SessionService.end_session = _end_session                 # type: ignore[attr-defined]
 SessionService.get_session = _get_session                 # type: ignore[attr-defined]
 async def _list_sessions(
     self: SessionService,
@@ -1058,7 +1087,48 @@ async def _list_sessions(
 
 SessionService.list_sessions = _list_sessions             # type: ignore[attr-defined]
 SessionService.pause_session = SessionService.pause      # type: ignore[attr-defined]
-SessionService.post_message = SessionService.handle_message  # type: ignore[attr-defined]
+async def _post_message(self: SessionService, session_id: str, payload: Any) -> Any:
+    """POST /sessions/{id}/message — the non-WebSocket path.
+
+    `handle_message` wants the text and an optional `ClientIntentHint`; the
+    router passes a `SessionMessageRequest`. Binding them directly produced
+    `AttributeError: 'SessionMessageRequest' object has no attribute 'strip'`
+    on every call. The WebSocket path never hit this, which is why the live
+    demo worked while the documented REST endpoint did not.
+    """
+    from app.agents.intent import ClientIntentHint
+    from app.domain.request_response import SessionMessageResponse
+
+    text = str(getattr(payload, "text", payload) or "")
+    hint = None
+    label = getattr(payload, "client_intent_hint", None)
+    if label:
+        hint = ClientIntentHint(
+            intent=str(label),
+            confidence=float(getattr(payload, "client_intent_confidence", None) or 0.0),
+        )
+    result = await self.handle_message(session_id, text, client_intent_hint=hint)
+    persona_turn = result.persona_turn or result.trainee_turn
+    coach = result.coach_insights[0] if result.coach_insights else None
+    # `seq` is the stream position the WebSocket client would be at after this
+    # turn; the row's counter is the same number the emitter just advanced.
+    row = await self._require(session_id)
+    seq = int(field(row, "last_event_seq", 0) or 0)
+    return SessionMessageResponse.model_validate(
+        {
+            "trainee_turn": result.trainee_turn,
+            "persona_turn": persona_turn,
+            "persona_state": result.state,
+            "citations": result.citations,
+            "coach_insight": coach,
+            "scores": [],
+            "compliance_findings": result.compliance_findings,
+            "seq": seq,
+        }
+    )
+
+
+SessionService.post_message = _post_message               # type: ignore[attr-defined]
 SessionService.resume_session = SessionService.resume    # type: ignore[attr-defined]
 SessionService.list_events = _list_events                # type: ignore[attr-defined]
 SessionService.get_evaluation = _get_evaluation          # type: ignore[attr-defined]
