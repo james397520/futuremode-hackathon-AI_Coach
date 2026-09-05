@@ -486,3 +486,9 @@ multilingual_v2 的 ~1 秒幾乎全在首位元組——客戶每句都要「想
 
 ### 16.9 兩個獨立開關（麥克風旁）
 「說：本地」＝客戶語音用系統語音；「聽：本地」＝辨識用 Mac 本機（本機不可用時停用並說明原因）。各自存 `localStorage`（`aicoach.voice.tts-local` / `aicoach.voice.stt-local`）。拆成兩個是因為取捨不同：雲端 TTS 音質好，本地 STT 快且音訊不外傳，兩者可以各選。
+
+### 16.10 TTS 播放時 STT 關閉
+客戶語音播放中，麥克風聽到的是喇叭，錄下來會把客戶自己的話轉成學員的訊息。`useVoiceSession` 以 `ttsPlayingRef` 閘門：TTS 可聽見期間 VAD 能量**只算插話**（立刻 `cancelTts`），不錄音；TTS 停止後的下一個 VAD tick 才開始擷取，只損失插話最前面幾十毫秒。客戶開口前也會先 `finalizeUtterance()`，確保學員那句與客戶的語音永不共用同一段錄音。合成麥克風驗證：TTS 中的語音 → 0 次轉寫且 TTS 中止；之後的語音 → 1 次。
+
+### 16.11 線上聲音候選
+key 缺 `voices_read`，列不出 voice 清單；改用 ElevenLabs 內建（premade）voice 的公開 id 各合成同一句中文交付試聽（男 9、女 9，另加同事給的 4 支對照）。選定後把 id 填進 `apps/api/app/ws/voice_catalog.py` 的對應格即可，程式不用改。

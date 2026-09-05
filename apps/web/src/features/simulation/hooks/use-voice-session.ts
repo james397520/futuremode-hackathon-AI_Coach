@@ -229,6 +229,10 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
   const [vadActive, setVadActive] = useState(false);
   const [pushToTalkHeld, setPushToTalkHeldState] = useState(false);
   const [ttsPlaying, setTtsPlaying] = useState(false);
+  // Read by the VAD path: while the customer is audibly speaking, the mic is
+  // hearing the speakers, and whatever it hears must not become a transcript.
+  const ttsPlayingRef = useRef(false);
+  ttsPlayingRef.current = ttsPlaying;
   const [systemVoices, setSystemVoices] = useState<SpeechSynthesisVoice[]>([]);
   // Probed once and cached: the engine is a property of the machine, not the turn.
   const [recognition] = useState<RecognitionCapability>(() => recognitionCapability());
@@ -295,6 +299,9 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     async (text: string, audioUrl?: string | null): Promise<'cloud' | 'system' | 'none'> => {
       const engine = speechEngineRef.current;
       if (mutedRef.current) return 'none';
+      // The floor changes hands: anything the trainee was saying is closed and
+      // sent before the customer starts, so the two never share a recording.
+      finalizeUtterance();
 
       if (audioUrl && engine !== 'system') {
         try {
@@ -503,6 +510,20 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       setVadActive((prev) => (prev === effective ? prev : effective));
 
       if (effective) {
+        // STT is off while TTS is audible. The microphone is hearing the
+        // speakers; recording that would transcribe the customer's own line
+        // back as the trainee's. Voice energy here still counts as barge-in —
+        // it stops the TTS at once — and capture begins on the next VAD tick,
+        // when `ttsPlayingRef` has already gone false, so only the first few
+        // tens of milliseconds of the interruption are lost.
+        if (ttsPlayingRef.current) {
+          if (personaSpeakingRef.current || ttsPlayingRef.current) {
+            cancelTts();
+            actions.registerBargeIn();
+            callbacks.current.onBargeIn?.();
+          }
+          return;
+        }
         // Voice resumed inside the pause window: same utterance, keep recording.
         if (endpointTimerRef.current !== null) {
           window.clearTimeout(endpointTimerRef.current);
@@ -512,9 +533,8 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
           speakingSinceRef.current = Date.now();
           startRecording();
           callbacks.current.onSpeechStart?.();
-          // Barge-in: the trainee took the floor while the persona was talking.
+          // Barge-in on text-only persona turns (no audio playing).
           if (personaSpeakingRef.current) {
-            cancelTts();
             actions.registerBargeIn();
             callbacks.current.onBargeIn?.();
           }
