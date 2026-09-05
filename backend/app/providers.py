@@ -37,7 +37,7 @@ DIMENSIONS = [
 
 @dataclass
 class AIRequest:
-    task: Literal["answer", "roleplay", "evaluate"]
+    task: Literal["answer", "roleplay", "evaluate", "emotion"]
     instructions: str
     payload: dict[str, Any]
 
@@ -48,6 +48,7 @@ class AIResponse:
     citation_ids: list[str] = field(default_factory=list)
     insufficient_evidence: bool = False
     report: dict[str, Any] | None = None
+    emotion: dict[str, Any] | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -182,6 +183,12 @@ class MockAIProvider:
         request: AIRequest,
     ) -> AIResponse:
         payload = request.payload
+
+        if request.task == "emotion":
+            return AIResponse(text="模擬情緒分析", emotion={
+                "label": "不明確", "intensity": "unknown", "evidence_quote": "",
+                "reason": "模擬模式未執行情緒分析。", "suggestion": "接入模型後提供文字語氣回饋。",
+            })
 
         if request.task == "answer":
             hits = payload.get("sources", [])[:3]

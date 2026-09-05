@@ -1,5 +1,18 @@
 # SkillCoach AI 後端
 
+## 學員情緒分析
+
+每輪背景分析學員文字語氣，輸出情緒標籤、強度、原句依據與溝通建議。輸入 `/score` 查看最近已完成的分析及回合，`/finish` 的 JSON 會保存完整情緒歷程。
+分析不使用 RAG、不修改客戶人設、不直接改動能力分數，也不判定心理健康。短句或證據不足回「不明確」。每輪增加一次模型呼叫，本機推論可能需要更久。
+API 欄位見 [前端串接](FRONTEND.md)。
+
+## 對話紀錄儲存
+
+CLI 輸入 `/finish`（或 `exit`／`quit`／`q`）且已有對話時，會自動存到 `backend/reports/session_<id>.json`，並顯示絕對路徑。
+檔案包含完整學員／客戶對話、角色、模型、逐輪評估、風險標記與最終報告。先保存對話，再產生總評並更新同一檔案；總評失敗也會保留對話與錯誤狀態。
+一般 Ctrl+C／EOF 離開不觸發新的存檔；如果在 `/finish` 總評期間中斷，先前保存的對話檔仍在。
+`reports/` 已排除 Git 追蹤。本次為 CLI 存檔功能，HTTP session 仍在記憶體，不會自動載入 JSON 恢復練習。
+
 ## 文件入口
 
 - [前端串接](FRONTEND.md)：持續對練、風險標記、背景評分與最終報告。
@@ -18,7 +31,7 @@ Session 與報告暫存記憶體，重啟後消失，請使用單一 worker。SQ
 Python + FastAPI 的本機 RAG 後端。目前有兩個執行入口：
 
 - **FastAPI (`app/main.py`)**：預設使用 `MockAIProvider`，不呼叫模型。問答使用文件摘錄，對練使用腳本，評分為 `null`，AI 回覆帶有 `is_mock: true`。
-- **終端機對練 (`demo.py`)**：透過 `app/local_model.py` 的 adapter 呼叫本機 `http://localhost:11434/api/chat`，模型設定為 `qwen2.5:1.5b`，需先備妥並啟動對應模型服務。FastAPI 以 `COACH_AI=local` 啟動也可使用此 adapter。
+- **終端機對練 (`demo.py`)**：透過 `app/local_model.py` 的 adapter 呼叫本機 `http://localhost:11434/api/chat`，模型設定為 `qwen3:8b`，需先備妥並啟動對應模型服務。FastAPI 以 `COACH_AI=local` 啟動也可使用此 adapter。
 
 兩個入口都使用 `CoachService`，預設共用 `data/knowledge.sqlite3`。文件解析、切段、檢索與來源回傳實際運作；向量目前仍由本機詞彙特徵產生。
 
@@ -175,3 +188,20 @@ python -m unittest discover -s tests -v
 - 客戶使用最近 12 則歷史，Evaluator 使用累積 session 對話；長對話尚無 token 預算／摘要管理，小模型可能超出上下文或回傳不合法 JSON。失敗不產生假評分。
 - 沒有語音、3D avatar、國泰／CertiK 整合或法律判定功能。
 - 授權尚待團隊確認，本次未自行選定 License。
+
+## 保守型與積極型虛構客戶
+
+在 `backend/` 執行：
+
+```bash
+python demo.py --persona cautious --model qwen3:8b
+python demo.py --persona aggressive --model qwen3:8b
+```
+
+| 人設 | 可投資金額 | 可接受損失 | 期限 | 經驗 |
+| --- | --- | --- | --- | --- |
+| 保守型 cautious | 30 萬元 | 5%（1.5 萬元） | 3 年 | 定存，未買過基金 |
+| 積極型 aggressive | 100 萬元 | 20%（20 萬元） | 5 年以上 | 5 年股票與基金 |
+
+資料均為虛構培訓設定，定義在 `app/personas.py`。真實模型每輪都會收到完整人設，自由組織回答，並按對話改變情緒與追問；不會直接套用固定答案。個人需求問題不走 RAG，產品事實再檢索。Mock 模式才使用固定人設回答，方便前端驗證。
+模型與角色在 CLI 啟動時顯示。人設每輪重送可降低遺忘，但不保證模型永不偏離；本次測試驗證訊息與路由，未對本機模型做完整品質評測。
