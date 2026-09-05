@@ -503,3 +503,8 @@ key 缺 `voices_read`，列不出 voice 清單；改用 ElevenLabs 內建（prem
 - 線上：**Yui**（女，`kGjJqO6wdwRN9iJsoeIC`）、**Ian**（男，`tSv4yoTPFFmCMaJpNf0A`），模型 `eleven_flash_v2_5`。`voice_catalog.py` 各年齡格暫時同一支；老年沿用中年。
 - macOS 原生（`say -v '?'` 的 zh_TW）：**美佳**是唯一進階引擎，其餘 Eddy/Flo/Grandma/Grandpa/Reed/Rocko/Sandy/Shelley 是同一顆精簡引擎（同句輸出 byte 數完全相同、md5 不同）。要提升本地品質：系統設定 → 輔助使用 → 朗讀內容 → 系統語音 → 管理語音，下載「美佳（進階／高級）」等；下載後 `say` 與瀏覽器 `speechSynthesis` 都會多出這些聲音，前端 `pickVoice` 以名稱包含比對會自動吃到。
 - 注意：`say -v <不存在的名稱>` 會**靜默退回預設聲音且 exit 0**，驗證聲音是否正確要比 md5，不能看退出碼。
+
+### 16.14 為什麼本地聲音比手機差（已查明）
+用 `AVSpeechSynthesisVoice.speechVoices()` 直接問系統：這台 Mac **180 支語音全是 `default`（精簡）品質，enhanced 0、premium 0**。美佳是 `com.apple.voice.compact.zh-TW.Meijia`；Eddy/Flo/Grandma/Grandpa/Reed/Rocko/Sandy/Shelley 是 `com.apple.eloquence.*`——舊 Eloquence 引擎。iPhone 出廠就帶進階版美佳，所以聽感差一個等級。
+- 下載：系統設定 → 輔助使用 → 朗讀內容 → 系統語音 → 管理語音 → 中文（台灣）→ 下載「美佳（進階）」／「美佳（高級）」（Apple 只提供部分聲音的進階版；沒有中文男聲的進階版時，只能用美佳或雲端）。無 CLI 可下載。
+- 下載後 `say`、`speechSynthesis`、`AVSpeechSynthesizer` 都會多出該聲音；前端 `pickVoice` 已改成**依名稱中的 進階／高級／Enhanced／Premium 排序優先**，Eloquence 聲音排最後，不用再改設定。

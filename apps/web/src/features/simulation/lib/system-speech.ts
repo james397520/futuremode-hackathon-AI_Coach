@@ -160,6 +160,21 @@ export function ageBand(age: number | null | undefined): 'young' | 'middle' | 's
   return age < YOUNG_MAX_AGE ? 'young' : 'middle';
 }
 
+/**
+ * macOS ships three tiers of the same voice and only the lowest is installed
+ * by default. `SpeechSynthesisVoice` has no quality field; the tier shows up in
+ * the name — "美佳 (進階)", "Meijia (Enhanced)", "(高級)" / "(Premium)". The
+ * eight "Eddy / Flo / Reed …" voices are the old Eloquence engine and are the
+ * reason the fallback sounded nothing like a phone; they rank last.
+ */
+function qualityRank(v: SpeechSynthesisVoice): number {
+  const n = v.name;
+  if (/高級|Premium/i.test(n)) return 3;
+  if (/進階|增強|Enhanced/i.test(n)) return 2;
+  if (/^(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley)\b/.test(n)) return 0;
+  return 1;
+}
+
 export function pickVoice(
   voices: SpeechSynthesisVoice[],
   gender: SpeechGender | null | undefined,
@@ -168,12 +183,19 @@ export function pickVoice(
   if (voices.length === 0) return null;
   const band = ageBand(age);
   const key = `${gender === 'female' ? 'female' : gender === 'male' ? 'male' : 'female'}:${band}`;
+  const byQuality = (a: SpeechSynthesisVoice, b: SpeechSynthesisVoice) =>
+    qualityRank(b) - qualityRank(a);
+
+  // Best installed tier of any preferred name for this bucket. With an enhanced
+  // 美佳 installed this returns it over the compact one automatically.
   for (const name of PREFERRED[key] ?? []) {
-    const hit = voices.find((v) => v.name.includes(name));
-    if (hit) return hit;
+    const hits = voices.filter((v) => v.name.includes(name)).sort(byQuality);
+    if (hits[0]) return hits[0];
   }
-  // Prefer an on-device voice over a downloaded one before giving up.
-  return voices.find((v) => v.localService) ?? voices[0] ?? null;
+  // Nothing preferred: any enhanced/premium voice beats any compact one, and an
+  // Eloquence voice only when it is genuinely all that exists.
+  const ranked = [...voices].sort(byQuality);
+  return ranked.find((v) => v.localService && qualityRank(v) >= 2) ?? ranked[0] ?? null;
 }
 
 export interface SpeakOptions {
