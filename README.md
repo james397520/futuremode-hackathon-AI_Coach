@@ -43,6 +43,37 @@ SkillCoach 希望運用多模態導引，打造一個具有溫度的 Agent 引�
 
 主要資料流：Web App 與語音擷取進入 API Gateway 與對話編排器 → 對話編排器呼叫 STT/TTS 處理語音、呼叫 RAG Pipeline 檢索企業知識 → RAG Pipeline 串接 Embedding 模型與企業文件來源 → 評估引擎呼叫 LLM 進行逐句評分推理。完整架構圖見[專案網站的「系統架構」區塊](https://james397520.github.io/futuremode-hackathon-AI_Coach/#arch)。
 
+## 核心技術功能（後端實作重點）
+
+以下為 `apps/api`、`services/avatar-runtime`、`services/inference` 程式碼與內部文件目前可查證的實作，供評審參考實際完成度：
+
+**對話與情境引擎**（`apps/api/app/agents`）
+
+- Multi-agent 編排：`ConversationOrchestrator` 每輪依序執行合規預檢 → 情境導演 → 知識庫檢索 → 客戶模擬（串流回覆）→ 合規後檢 → 教練回饋 → 評分，非關鍵環節失敗時會降級而非中斷整場對話。
+- 動態難度調整：由決定性規則引擎（不呼叫 LLM）依學員連續表現調整異議複雜度；訓練模式可降難度，正式評測模式禁止自動降難度，避免評分被灌水。
+- 客戶人設模擬：以信任、興趣、抗拒、耐心等狀態變數驅動語氣與立場，並有程式化守門機制防止角色扮演洩漏隱藏設定。
+- 逐句可追溯評分：評分前會逐字核對模型引用的證據是否真的出現在逐字稿中，核對不上的證據會被捨棄、證據不足時強制打中性分數，避免 AI 幻覺出不存在的依據。
+
+**企業知識 RAG**（`apps/api/app/rag`）
+
+- 完整 parse → chunk → embed → index → retrieve → rerank 流程，切塊策略依文件型態自動選用（標題、段落、固定 token、語意、表格、FAQ 等七種）。
+- 向量資料庫採 Qdrant，並以租戶隔離參數強制過濾，避免跨企業知識庫互相查到彼此的資料。
+- 檢索採 RRF（倒數排名融合）混合向量與關鍵字搜尋，而非單純比對向量相似度。
+
+**虛擬人即時渲染**（`services/avatar-runtime`）
+
+- 表情與頭部姿態由 LivePortrait 驅動、嘴型由 MuseTalk 驅動；兩者依裝置效能自動降級（MuseTalk → Wav2Lip → 純音量驅動嘴型），讓不同硬體都能即時運作而不卡格；目前僅 Mac Max/Ultra 或 RTX 等級硬體實測可達 MuseTalk 即時效能。
+- 表情轉換加入遲滯（hysteresis）機制，避免情緒在臨界值附近來回抖動。
+- 畫面透過 WebSocket 逐幀傳輸（JPEG / WebP / PNG），尚未採用 WebRTC。
+
+**推論服務**（`services/inference`）
+
+- 獨立運行開源 embedding 與 cross-encoder rerank 模型（ONNX Runtime），與對話 LLM 解耦，方便未來替換或私有化部署；對外 API 端點仍在開發中。
+
+**目前已串通與尚未串通**
+
+- 對話大腦目前實際串接、有測試覆蓋的是 **MiniMax**（Anthropic 相容 Messages API）；語音合成（ElevenLabs）程式碼已存在但預設關閉，尚未實際跑通；介紹網站提及的 EastRouter、GMI 目前在程式碼中查無對應實作。
+
 ## 使用技術
 
 | 類型 | 技術／服務 | 用途 |
@@ -79,7 +110,9 @@ python -m http.server 8765 --directory docs
 
 **與本介紹網站相關的已知落差**
 
-- 介紹網站（`docs/`）上列出的技術／供應商（EastRouter、ElevenLabs、GMI、React、Three.js 等）取自簡報構想，與 `PLATFORM_README.md` 描述的實際技術棧（Next.js、FastAPI、MiniMax、PostgreSQL、Redis、Qdrant）不完全一致，尚待團隊統一對外說法。
+- 介紹網站（`docs/`）上列出的前端技術（React、Vite、Three.js）與 `PLATFORM_README.md` 的實際技術棧（Next.js）不同，尚待團隊統一對外說法。
+- 介紹網站提及的 AI 供應商 EastRouter、GMI，在 `apps/api`、`services/avatar-runtime`、`services/inference` 程式碼與 `.env.example` 中查無對應實作；實際串接並有測試覆蓋的對話模型是 MiniMax，ElevenLabs 語音合成程式碼已存在但預設關閉、尚未實際跑通（詳見上方「核心技術功能」）。
+- `docs/roadmap.md` 內容已明顯過時（例如聲稱 `main.py` 不存在、router 只完成 1 個），與目前程式碼實況（`app/main.py` 與全部 18 個 router 皆已存在）不符，請以 `docs/HANDOFF.md` 的最新進度為準，`roadmap.md` 待團隊更新。
 
 ## 第三方服務、資料與素材
 
