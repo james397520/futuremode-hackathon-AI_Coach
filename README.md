@@ -64,11 +64,11 @@ SkillCoach 希望運用多模態導引，打造一個具有溫度的 Agent 引�
 
 - 表情與頭部姿態由 LivePortrait 驅動、嘴型由 MuseTalk 驅動；兩者依裝置效能自動降級（MuseTalk → Wav2Lip → 純音量驅動嘴型），讓不同硬體都能即時運作而不卡格；目前僅 Mac Max/Ultra 或 RTX 等級硬體實測可達 MuseTalk 即時效能。
 - 表情轉換加入遲滯（hysteresis）機制，避免情緒在臨界值附近來回抖動。
-- 畫面透過 WebSocket 逐幀傳輸（JPEG / WebP / PNG），尚未採用 WebRTC。
+- 畫面透過 WebSocket 逐幀傳輸（JPEG / WebP / PNG）。
 
 **推論服務**（`services/inference`）
 
-- 獨立運行開源 embedding 與 cross-encoder rerank 模型（ONNX Runtime），與對話 LLM 解耦，方便未來替換或私有化部署；對外 API 端點仍在開發中。
+- 獨立運行開源 embedding 與 cross-encoder rerank 模型（ONNX Runtime），與對話 LLM 解耦，方便未來替換或私有化部署
 
 ## 實際運作流程
 
@@ -148,7 +148,7 @@ AI 客戶：如果市場大跌，你們有什麼具體的措施來保護我的�
 
 兩個系統同時在讀學員的狀態，但它們**可信度不同**，所以融合方式是刻意不對稱的。
 
-### 文字路：可稽核
+### 文字：可稽核
 
 `AffectAgent`（`apps/api/app/agents/affect_agent.py`）讀學員這一輪實際說出口的話，
 並且**必須引用逐字原話**。伺服器端有四條驗證，全部由程式檢查而非交給模型自律：
@@ -163,7 +163,7 @@ AI 客戶：如果市場大跌，你們有什麼具體的措施來保護我的�
 
 ### 臉部路：僅供參考
 
-瀏覽器端跑 MediaPipe FaceLandmarker（WASM），52 個 blendshape 在使用者機器上算完，
+瀏覽器端跑 FaceLandmarker（WASM），52 個 blendshape 在使用者機器上算完，
 **攝影機影格完全不離開本機**。分類規則直接移植自本專案的
 [`emotion_webcam/expressions.py`](emotion_webcam/expressions.py)（只移植第一層的 8 種通用情緒），
 是逐字翻譯而非重新詮釋，所以原本的 `selftest.py` 仍然是這組數字的規格書。
@@ -175,9 +175,6 @@ AI 客戶：如果市場大跌，你們有什麼具體的措施來保護我的�
 - 模型在第一次開啟攝影機時才懶載入，沒開鏡頭的人不必付這 3.6MB。
 - 低於 `FACE_MIN_CONFIDENCE = 0.45` 就視為「臉沒說出什麼有用的東西」。
   分類器永遠會回傳它分數最高的那條規則，這個地板是「臉說他很平穩」與「臉什麼都沒說」的分界。
-
-這一路在程式碼裡被明確標記為 **untrusted**：它來自不受信任的瀏覽器端、
-權重是依 FACS 常識手調而**未經標記資料校準**、而且沒有任何人能事後查核的證據。
 
 ### 六個標籤與映射
 
@@ -270,9 +267,6 @@ delta 輕微高斯模糊（皺紋是線條，單點雜訊是副產物）、亮�
 - **視角與姿勢** — 臉部特寫／上半身／全身切換；沒有動作播放時套用實測確認過的自然垂放角度，
   避免角色維持綁定時的 A-pose。
 
-> 目前 `sample_a2e.json` 是模擬 LAM-A2E 輸出格式的示範資料，尚未接上真正的語音推論；
-> 下一步（V0.5）是接 LAM-A2E ONNX（onnxruntime-web + WebGPU），輸入 16 kHz PCM、
-> 輸出 `[1, 30, 52]`，直接餵進現有的同一條路徑。
 
 ## 使用技術
 
