@@ -48,17 +48,25 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   const [rendered, setRendered] = useState<Rendered[]>([]);
   const [cursor, setCursor] = useState(0);
   const [typing, setTyping] = useState(false);
+  // True for the WHOLE auto-play span (send → last beat), not just the typing
+  // dots. `typing` blinks off in the 550ms gap between beats, which would flash
+  // the input back on and show the just-sent teleprompter line mid-playback;
+  // gating the input, teleprompter and "finished" on `playing` avoids that.
+  const [playing, setPlaying] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [draft, setDraft] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ttsSessionRef = useRef<string | null>(null);
-  // Synchronous re-entry guard. `typing` is React state and updates a tick
-  // late, so three fast clicks on 送出 all pass an `if (typing)` check and each
-  // renders the same trainee line — a visible duplication on camera. This ref
-  // flips in the same tick as the click, so only the first one gets through.
+  // Synchronous re-entry guard — `playing` state updates a tick late, so a fast
+  // double-click would slip through before it flips. This ref flips in the same
+  // tick as the click, so only the first click of a burst gets through.
   const busyRef = useRef(false);
+  // Bumped on every speakLine + reset; a stale in-flight TTS synthesis compares
+  // against it and drops its audio, so replaying mid-synthesis never lets an old
+  // line's voice play over the new one.
+  const speakTokenRef = useRef(0);
 
   const clearTimers = useCallback(() => {
     timers.current.forEach(clearTimeout);
@@ -91,7 +99,13 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
 
   /** Speak one persona line and hold `speaking` for the avatar's mouth. */
   const speakLine = useCallback((text: string) => {
-    const stopTimer = setTimeout(() => setSpeaking(false), speakMsFor(text));
+    const token = (speakTokenRef.current += 1);
+    // Fallback mouth timer, used only when real audio never plays; when audio
+    // does start we clear it and let `onended` decide, so a long line's mouth
+    // does not stop early.
+    const stopTimer = setTimeout(() => {
+      if (speakTokenRef.current === token) setSpeaking(false);
+    }, speakMsFor(text));
     timers.current.push(stopTimer);
     setSpeaking(true);
     const sid = ttsSessionRef.current;
@@ -99,13 +113,14 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
     void (async () => {
       try {
         const blob = await endpoints.synthesizeSpeech(sid, text, TTS_TUNING, TTS_ENGINE);
+        if (speakTokenRef.current !== token) return; // superseded (replay / next line)
         const url = URL.createObjectURL(blob);
         audioRef.current?.pause();
         const el = new Audio(url);
         audioRef.current = el;
+        clearTimeout(stopTimer); // real audio drives the mouth now
         el.onended = () => {
-          clearTimeout(stopTimer);
-          setSpeaking(false);
+          if (speakTokenRef.current === token) setSpeaking(false);
           URL.revokeObjectURL(url);
         };
         await el.play();
@@ -118,7 +133,9 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   const reset = useCallback(() => {
     clearTimers();
     audioRef.current?.pause();
+    speakTokenRef.current += 1;
     busyRef.current = false;
+    setPlaying(false);
     setTyping(false);
     setSpeaking(false);
     setCursor(0);
@@ -130,7 +147,11 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   // Open the conversation with the persona's fixed line, once per script.
   useEffect(() => {
     reset();
-    return clearTimers;
+    return () => {
+      clearTimers();
+      audioRef.current?.pause();
+      speakTokenRef.current += 1;
+    };
   }, [reset, clearTimers]);
 
   useEffect(() => {
@@ -146,6 +167,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
         if (i >= script.beats.length || !beat || isTrainee(beat)) {
           setCursor(i);
           setTyping(false);
+          setPlaying(false);
           busyRef.current = false; // ready for the next 送出
           return;
         }
@@ -171,6 +193,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
     const line = nextTraineeLine(script, cursor);
     if (line == null) return;
     busyRef.current = true;
+    setPlaying(true);
     // Find the index of that trainee beat, show the canonical text (not the
     // draft) so a typo on camera never shows, then auto-play the agent beats.
     let i = cursor;
@@ -187,7 +210,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   }, [cursor, script, playAgentBeats]);
 
   const upcoming = useMemo(() => nextTraineeLine(script, cursor), [script, cursor]);
-  const finished = upcoming == null && !typing;
+  const finished = upcoming == null && !playing;
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-1px)] max-w-6xl flex-col gap-3 p-4">
@@ -278,10 +301,10 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
                   }}
                   rows={1}
                   placeholder={upcoming ?? ''}
-                  disabled={typing}
+                  disabled={playing}
                   className="min-h-[42px] flex-1 resize-none rounded-card-sm border border-border-soft bg-transparent px-3 py-2.5 text-body-sm outline-none placeholder:text-text-tertiary focus:border-accent-indigo disabled:opacity-50"
                 />
-                <Button type="submit" size="sm" disabled={typing}>
+                <Button type="submit" size="sm" disabled={playing}>
                   <Send size={14} strokeWidth={1.8} aria-hidden />
                   送出
                 </Button>
