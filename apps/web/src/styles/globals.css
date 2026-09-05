@@ -282,3 +282,64 @@
     border: 0;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Boot screen (`components/auth/require-session.tsx`).
+ *
+ * A spinner says "something is happening"; an indeterminate rail says the same
+ * thing while looking like part of the product. Both are here rather than in
+ * the component because keyframes cannot live in a Tailwind class list, and
+ * both stop under `prefers-reduced-motion` — a loading screen is exactly where
+ * a vestibular trigger is least excusable, since you cannot navigate away.
+ * ------------------------------------------------------------------------- */
+@keyframes boot-rail {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+@keyframes boot-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.06);
+  }
+}
+
+.boot-rail::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inline-size: 32%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--accent-indigo) 85%, transparent),
+    transparent
+  );
+  animation: boot-rail 1.5s var(--ease-out-soft, cubic-bezier(0.22, 1, 0.36, 1)) infinite;
+}
+
+.boot-glow {
+  animation: boot-glow 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot-rail::after {
+    animation: none;
+    inline-size: 100%;
+    opacity: 0.5;
+  }
+
+  .boot-glow {
+    animation: none;
+  }
+}

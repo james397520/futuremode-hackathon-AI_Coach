@@ -140,6 +140,21 @@ export interface SimulationData {
   coachInsights: CoachInsight[];
   /** Number of coaching payloads suppressed because this is an assessment (§8.4). */
   suppressedCoachCount: number;
+  /**
+   * Whether the coach volunteers. Off by default.
+   *
+   * With it on, the coach commented on every turn, which made the one thing
+   * the affect pipeline exists for — noticing you look stuck and *offering*
+   * help — meaningless: the help was already on screen before you frowned.
+   * Off, the coach still runs and still holds everything for the report; it
+   * simply does not push notes into the session until asked. `pendingHints`
+   * is what "asked" means: `requestHint()` raises it, and the next insight to
+   * arrive spends it.
+   */
+  coachAutoPush: boolean;
+  pendingHints: number;
+  /** Insights held back because the coach is not volunteering. For the count. */
+  heldCoachCount: number;
   complianceFindings: ComplianceFinding[];
   liveScores: Partial<Record<SkillKey, LiveScore>>;
   scoreLiveEnabled: boolean;
@@ -203,6 +218,9 @@ export function createInitialData(sessionId: ID, mode: SessionMode = 'training')
     timeline: [],
 
     coachInsights: [],
+    coachAutoPush: false,
+    pendingHints: 0,
+    heldCoachCount: 0,
     suppressedCoachCount: 0,
     complianceFindings: [],
     liveScores: {},
@@ -524,6 +542,13 @@ export function reduceEvent(state: SimulationData, event: StreamingEvent): Simul
         return { ...base, suppressedCoachCount: state.suppressedCoachCount + 1 };
       }
       if (base.coachInsights.some((i) => i.id === insight.id)) return base;
+      // Not volunteering, and nobody asked: hold it. The coach agent still ran
+      // and the insight still reaches the report — this only decides whether it
+      // interrupts the session.
+      if (!state.coachAutoPush && state.pendingHints <= 0) {
+        return { ...base, heldCoachCount: state.heldCoachCount + 1 };
+      }
+      const spent = state.coachAutoPush ? state.pendingHints : state.pendingHints - 1;
       const timeline =
         insight.kind === 'missed_signal'
           ? pushCapped(base.timeline, marker(event, 'missed_signal', insight.title, { detail: insight.body }), MAX_TIMELINE)
@@ -531,6 +556,7 @@ export function reduceEvent(state: SimulationData, event: StreamingEvent): Simul
       return {
         ...base,
         coachInsights: pushCapped(base.coachInsights, insight, MAX_INSIGHTS),
+        pendingHints: Math.max(0, spent),
         timeline,
       };
     }
@@ -692,6 +718,10 @@ export interface SessionActions {
   dismissError: () => void;
   setEvaluation: (evaluation: Evaluation | null) => void;
   resetForRestart: () => void;
+  /** Arm one incoming insight to be shown — `requestHint()` calls this. */
+  armHint: () => void;
+  /** Let the coach volunteer again (the 「AI 教練」 switch). */
+  setCoachAutoPush: (on: boolean) => void;
 }
 
 export type SessionStore = SimulationData & { actions: SessionActions };
@@ -807,6 +837,10 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     dismissError: () => set({ error: null }),
 
     setEvaluation: (evaluation) => set({ evaluation }),
+
+    armHint: () => set((state) => ({ pendingHints: state.pendingHints + 1 })),
+
+    setCoachAutoPush: (on) => set({ coachAutoPush: on }),
 
     resetForRestart: () =>
       set((state) => ({

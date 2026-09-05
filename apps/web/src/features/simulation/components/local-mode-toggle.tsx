@@ -187,3 +187,35 @@ export function TtsLocalVoiceNote() {
     </span>
   );
 }
+
+/**
+ * Whether the coach volunteers, next to the two engine switches because it is
+ * the same kind of decision: a standing preference about how the session
+ * behaves, not a per-turn action.
+ *
+ * Default off. With the coach commenting on every turn, the affect pipeline's
+ * whole point — noticing that you look stuck and *offering* help — had nothing
+ * left to offer: the note was already on screen before you frowned. Off, the
+ * coach still runs and everything still reaches the report; it just waits to be
+ * asked.
+ */
+export function CoachAutoToggle({ className }: { className?: string }) {
+  const on = useSessionStore((s) => s.coachAutoPush);
+  const held = useSessionStore((s) => s.heldCoachCount);
+  const actions = useSessionActions();
+
+  return (
+    <Pill
+      on={on}
+      label="教練：主動"
+      ariaLabel={on ? '改成只有詢問時才給教練建議' : '讓教練主動給建議'}
+      title={
+        on
+          ? '教練會在每一輪主動給建議。點擊改成只在你詢問時才出現。'
+          : `教練只在你按下「詢問教練」時才出現${held > 0 ? `（已為報告保留 ${held} 則）` : ''}。點擊改成每輪主動提示。`
+      }
+      onClick={() => actions.setCoachAutoPush(!on)}
+      className={className}
+    />
+  );
+}

@@ -298,6 +298,10 @@ export function useSessionSocket(options: UseSessionSocketOptions): SessionSocke
         // Hard gate: in an assessment the command is never emitted, even if a
         // caller somehow reaches this function (§8.4 anti-cheating).
         if (mode === 'assessment') return;
+        // Arm the store first: with the coach not volunteering, the reply is
+        // only shown because someone asked for it, and the asking has to be
+        // recorded before the answer can arrive.
+        actions.armHint();
         send({ type: 'coach.request_hint' });
       },
       pushToTalk: (pressed: boolean) => {

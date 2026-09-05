@@ -207,16 +207,16 @@ export function SessionHeader({
         style={{ borderColor: tint('neutral', 16) }}
       >
         <HeaderIconButton
-          label={paused ? 'Resume session' : 'Pause session'}
+          label={paused ? '繼續練習' : '暫停練習'}
           onClick={onPauseResume}
           disabled={finished || status === 'idle' || status === 'connecting'}
         >
           {paused ? <PlayIcon size={16} /> : <PauseIcon size={16} />}
         </HeaderIconButton>
-        <HeaderIconButton label="Restart session" onClick={onRestart}>
+        <HeaderIconButton label="重新開始（會開一場新的練習）" onClick={onRestart}>
           <RestartIcon size={16} />
         </HeaderIconButton>
-        <HeaderIconButton label="End session" onClick={onEnd} disabled={finished} tone="danger">
+        <HeaderIconButton label="結束練習" onClick={onEnd} disabled={finished} tone="danger">
           <StopIcon size={16} />
         </HeaderIconButton>
       </div>

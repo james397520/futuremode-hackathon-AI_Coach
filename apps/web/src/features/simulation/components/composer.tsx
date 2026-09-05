@@ -19,7 +19,12 @@ import type { SessionState } from '@ai-coach/shared';
 import { INPUT_BLOCKED_STATES } from '../lib/session-transitions';
 import { insetSurface, tint, toneText } from '../lib/tone';
 import { LiveDot } from './atoms';
-import { SttLocalToggle, TtsLocalToggle, TtsLocalVoiceNote } from './local-mode-toggle';
+import {
+  CoachAutoToggle,
+  SttLocalToggle,
+  TtsLocalToggle,
+  TtsLocalVoiceNote,
+} from './local-mode-toggle';
 import { SttStatus } from './stt-engine-pill';
 import { CameraIcon, CameraOffIcon, LightbulbIcon, MicIcon, MicOffIcon, SendIcon } from './icons';
 import { cn, Textarea } from './kit';
@@ -165,13 +170,20 @@ export function Composer({
             instead of shrinking the textarea to zero width — at 409 px the six
             controls needed 424 px and the field collapsed, leaving the
             placeholder clipped to a single character per line. */}
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        {/* Wraps internally as well as against the textarea: with the coach
+            switch added, the group itself outgrew a 409px panel and pushed
+            「送出」 63px past the edge. It is `min-w-0`, not `shrink-0`: a group
+            that cannot shrink has nothing to wrap against, so the wrap never
+            happened. The buttons keep their own `shrink-0`, so folding a row
+            never squashes one. */}
+        <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
         {voiceEnabled ? (
           <>
             <TtsLocalToggle />
             <SttLocalToggle />
           </>
         ) : null}
+        {onRequestHint ? <CoachAutoToggle /> : null}
 
         {voiceEnabled ? (
           <button
