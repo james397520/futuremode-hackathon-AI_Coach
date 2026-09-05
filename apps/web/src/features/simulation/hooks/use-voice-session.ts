@@ -247,6 +247,9 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
   const localeRef = useRef(locale);
   localeRef.current = locale;
   const playTtsRef = useRef<(url: string) => Promise<void>>(async () => undefined);
+  // `finalizeUtterance` is declared after `speakTurn` (it needs the recorder
+  // helpers); a ref avoids both a TDZ error in the deps array and a stale closure.
+  const finalizeRef = useRef<() => void>(() => undefined);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
 
   const graphRef = useRef<Graph | null>(null);
@@ -301,7 +304,7 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       if (mutedRef.current) return 'none';
       // The floor changes hands: anything the trainee was saying is closed and
       // sent before the customer starts, so the two never share a recording.
-      finalizeUtterance();
+      finalizeRef.current();
 
       if (audioUrl && engine !== 'system') {
         try {
@@ -498,6 +501,7 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     stopRecording(duration);
     callbacks.current.onSpeechEnd?.(duration);
   }, [stopRecording]);
+  finalizeRef.current = finalizeUtterance;
 
   // ---- VAD / barge-in ------------------------------------------------------
 
