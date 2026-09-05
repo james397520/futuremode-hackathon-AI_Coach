@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Bell, ChevronDown, Plus, Search } from 'lucide-react';
 import { Button, IconButton, Pill } from '@/components/ui';
 import { useAuth, useCan } from '@/lib/auth-context';
@@ -20,6 +20,14 @@ export function WorkspaceTopBar() {
   const router = useRouter();
   const { user, workspace, workspaces, selectWorkspace, activeRole } = useAuth();
   const canStart = useCan('simulation.start');
+  const pathname = usePathname();
+  // Offering "start a simulation" while one is already running is the wrong
+  // prompt at the wrong moment — and on the live screen it sits next to the
+  // session's own End/Pause controls, where a mis-click costs the trainee their
+  // run. Hidden on the live and voice routes; the setup and review screens keep
+  // it, since starting another from there is a reasonable next step.
+  const inRunningSession = /\/simulations\/[^/]+\/(live|voice)$/.test(pathname ?? '');
+  const showStart = canStart && !inRunningSession;
   const toggleCommandPalette = useShellStore((state) => state.toggleCommandPalette);
   const toggleNotifications = useShellStore((state) => state.toggleNotifications);
   const [switcherOpen, setSwitcherOpen] = useState(false);
@@ -127,7 +135,7 @@ export function WorkspaceTopBar() {
           ) : null}
         </IconButton>
 
-        {canStart ? (
+        {showStart ? (
           <Button asChild variant="primary" size="sm">
             <Link href="/simulations">
               <Plus size={16} strokeWidth={2} aria-hidden />

@@ -7,11 +7,16 @@
 
 :root {
   /* ---- Canvas ---- */
-  --bg-canvas: #f4f7fd;
-  --bg-canvas-soft: #f8faff;
+  /* Deepened from #f4f7fd / #f8faff: the near-white canvas left the glass
+   * shell with almost nothing to sit against, so the frosted layers read as
+   * flat panels rather than glass. */
+  --bg-canvas: #e6ecf7;
+  --bg-canvas-soft: #eef2fb;
 
   /* ---- Glass surfaces (§3) ---- */
-  --glass-shell: rgba(244, 249, 255, 0.44);
+  /* More transparent (was .44): with a deeper canvas behind it the outermost
+   * shell should let the aurora through rather than washing it out. */
+  --glass-shell: rgba(244, 249, 255, 0.26);
   --glass-card: rgba(255, 255, 255, 0.68);
   --glass-card-strong: rgba(255, 255, 255, 0.84);
 

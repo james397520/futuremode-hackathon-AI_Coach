@@ -32,7 +32,9 @@ export const buttonVariants = cva(
       variant: {
         primary: [
           'text-white',
-          '[background-image:linear-gradient(120deg,var(--accent-indigo),var(--accent-blue))]',
+          // Flat, not a gradient: the product owner asked for it, and a solid
+          // fill also reads more clearly as one tappable target at small sizes.
+          'bg-accent-indigo',
           '[box-shadow:0_10px_24px_color-mix(in_srgb,var(--accent-indigo)_24%,transparent)]',
           'hover:-translate-y-px',
           'hover:[box-shadow:0_14px_30px_color-mix(in_srgb,var(--accent-indigo)_30%,transparent)]',

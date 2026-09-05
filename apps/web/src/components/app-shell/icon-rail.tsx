@@ -6,7 +6,6 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ChevronsLeft, HelpCircle, LogOut, PanelLeftOpen, Sparkles } from 'lucide-react';
 import { Avatar, Tooltip } from '@/components/ui';
 import { RuntimeBadge } from '@/components/runtime';
-import { ThemeToggle } from '@/components/theme';
 import { useAuth } from '@/lib/auth-context';
 import { ROLE_LABEL } from '@/lib/rbac';
 import { cn, initials } from '@/lib/utils';
@@ -144,7 +143,9 @@ export function IconRail() {
           <RuntimeBadge variant="compact" />
         )}
 
-        {expanded ? <ThemeToggle className="px-1" /> : <ThemeToggle variant="compact" />}
+        {/* The appearance switcher lives in Settings > Appearance, not here. In a
+            64px rail it had nowhere to go: the three-option control could not
+            shrink and clipped its last option. */}
 
         {expanded ? (
           <Link href="/settings" className="rail-item justify-start">
