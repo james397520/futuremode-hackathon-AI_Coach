@@ -30,6 +30,7 @@ import structlog
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.ws.events import EventEmitter, now_ms
+from app.ws.voice_catalog import resolve_voice_id
 
 log = structlog.get_logger(__name__)
 
@@ -504,14 +505,17 @@ def build_voice_session(
     session_id: str,
     emitter: EventEmitter,
     persona_voice: dict[str, Any] | None = None,
+    persona: dict[str, Any] | None = None,
     on_turn: TurnHandler | None = None,
     audio_sink: AudioSink | None = None,
 ) -> VoiceSession:
     """Pick providers from the persona's voice config + settings (§22.4, §44)."""
     voice = dict(persona_voice or {})
     config = VoiceConfig(
-        provider=str(voice.get("provider") or "openai"),
-        voice_id=voice.get("voice_id"),
+        # ElevenLabs is the configured provider (TTS_PROVIDER); a persona that
+        # names its own wins, otherwise the gender/age table decides.
+        provider=str(voice.get("provider") or "elevenlabs"),
+        voice_id=voice.get("voice_id") or resolve_voice_id(persona),
         language=str(voice.get("language") or "zh-TW"),
         speed=float(voice.get("speed") or 1.0),
         stability=voice.get("stability"),
