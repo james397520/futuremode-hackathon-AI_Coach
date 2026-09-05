@@ -209,6 +209,41 @@ ${TONE_CSS}
   background: color-mix(in srgb, var(--sim-ink) 40%, transparent);
 }
 
+/* Emotion badge (AffectFace). The mint segment orbits the ring — that motion is
+   the reference's whole identity, so it runs continuously rather than only on
+   change. The eyes blink on a slow, irregular-feeling cycle and pop when the
+   emotion changes. Both are cheap transforms on the compositor. */
+@keyframes af-orbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes af-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95%           { transform: scaleY(0.12); }
+}
+
+@keyframes af-pop {
+  from { opacity: 0; transform: scale(0.82); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.af-orbit {
+  transform-origin: 50px 50px;
+  animation: af-orbit linear infinite;
+}
+
+.af-eyes {
+  transform-origin: 50px 46px;
+  animation:
+    af-pop 260ms var(--ease-out-soft) both,
+    af-blink 5200ms var(--ease-out-soft) 260ms infinite;
+}
+
+.sim-affect-face {
+  filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--sim-ink) 55%, transparent));
+}
+
 /* Focus ring built from tokens (accessibility, §50). */
 .sim-focusable:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent-blue) 70%, transparent);
@@ -217,7 +252,8 @@ ${TONE_CSS}
 
 @media (prefers-reduced-motion: reduce) {
   .sim-card-enter, .sim-float-in, .sim-marker-pop,
-  .sim-speaking-glow, .sim-listening-dot, .sim-caret, .sim-meter-live {
+  .sim-speaking-glow, .sim-listening-dot, .sim-caret, .sim-meter-live,
+  .af-orbit, .af-eyes {
     animation: none !important;
   }
   .sim-lift:hover { transform: none; }
