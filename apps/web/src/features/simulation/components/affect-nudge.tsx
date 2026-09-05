@@ -29,7 +29,7 @@ import { cn } from './kit';
 const NEGATIVE_LABELS = ['angry', 'sad', 'fearful', 'disgusted', 'contempt'] as const satisfies readonly AffectLabel[];
 const NEGATIVE: ReadonlySet<AffectLabel> = new Set<AffectLabel>(NEGATIVE_LABELS);
 // Kept in step with the API's `FACE_REACT_MIN_CONFIDENCE` and
-// `FACE_MIN_CONFIDENCE` (both 0.42). If this floor were higher the trainee
+// `FACE_MIN_CONFIDENCE` (both 0.25). If this floor were higher the trainee
 // would be offered help for an expression the customer never reacted to; if it
 // were lower, the reverse.
 const MIN_CONFIDENCE = 0.25;

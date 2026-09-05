@@ -59,7 +59,7 @@ export interface AffectAnalyzer {
  *
  * The fourth of four floors on the same signal, and the earliest: a reading
  * dropped here never reaches the nudge, the socket, or the customer. All four
- * are 0.42 — this one, `affect-nudge`'s, and the API's `FACE_REACT_MIN_CONFIDENCE`
+ * are 0.25 — this one, `affect-nudge`'s, and the API's `FACE_REACT_MIN_CONFIDENCE`
  * and `FACE_MIN_CONFIDENCE`. They have to agree, or the highest one silently
  * decides and the other three are decoration.
  *
