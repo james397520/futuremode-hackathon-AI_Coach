@@ -221,6 +221,11 @@
   .final .dim{background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:16px}
   .final .dim b{display:block;font-size:26px;font-weight:800;letter-spacing:-.02em}
   .final .dim span{display:block;font-size:12px;color:var(--fg-3);margin-top:4px}
+  /* sub-sections inside 核心技術 */
+  .subsec{margin-top:80px;padding-top:56px;border-top:1px solid var(--line)}
+  .subsec > h3{font-size:clamp(22px,2.6vw,30px);font-weight:800;letter-spacing:-.02em;line-height:1.2}
+  .subsec > h3 + .lead{margin-top:16px}
+  .subsec h4{font-size:19px;font-weight:700;margin-top:56px}
   /* affect fusion */
   .fuse{width:100%;border-collapse:collapse;margin-top:32px;font-size:14px}
   .fuse th,.fuse td{text-align:left;padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:top}
@@ -255,8 +260,6 @@
       <li><a href="#arch">架構</a></li>
       <li><a href="#engineering">核心技術</a></li>
       <li><a href="#flow">運作實例</a></li>
-      <li><a href="#affect">情緒感知</a></li>
-      <li><a href="#avatar">虛擬人</a></li>
       <li><a href="#tech">技術</a></li>
       <li><a href="#demo">展示</a></li>
       <li><a href="#team">團隊</a></li>
@@ -555,6 +558,97 @@
         </ul>
       </div>
     </div>
+    <div class="subsec">
+      <div class="eyebrow">Affect Sensing</div>
+      <h3>情緒感知：雙路並行</h3>
+    <p class="lead">兩個系統同時在讀學員的狀態，但它們可信度不同，所以融合方式是刻意不對稱的。</p>
+
+    <div class="grid two-path" style="margin-top:48px">
+      <div class="card">
+        <span class="en">Text · auditable</span>
+        <h3>文字：可稽核</h3>
+        <p>讀學員這一輪實際說出口的話，並且必須引用逐字原話。伺服器端有四條驗證，全部由程式檢查而非交給模型自律：</p>
+        <ol>
+          <li>引用必須逐字出現在這一輪學員的發言裡</li>
+          <li>要給明確標籤，就得同時有引用與真實強度</li>
+          <li>「不明確」不得挾帶強度</li>
+          <li>違反任一條，一律拒絕而非修補</li>
+        </ol>
+        <p>被拒絕的結果是降級為「不明確」，不是丟出例外——情緒是加值訊號，不該讓一輪對話失敗。</p>
+      </div>
+      <div class="card">
+        <span class="en">Face · advisory</span>
+        <h3>臉部：僅供參考</h3>
+        <p>瀏覽器端跑 FaceLandmarker（WASM），52 個 blendshape 在使用者機器上算完，攝影機影格完全不離開本機。</p>
+        <ol>
+          <li>分類規則移植自本專案的 <code>emotion_webcam</code>，是逐字翻譯而非重新詮釋</li>
+          <li>WASM 與模型 vendored 到自家網域——CSP 只列自家來源，從 CDN 抓會被靜默擋掉</li>
+          <li>模型在第一次開啟攝影機時才懶載入</li>
+          <li>低於 0.45 信心就視為「臉沒說出什麼有用的東西」</li>
+        </ol>
+      </div>
+    </div>
+
+    <h4>融合：純算術，不再問模型</h4>
+    <table class="fuse">
+      <thead><tr><th>情況</th><th>結果</th></tr></thead>
+      <tbody>
+        <tr class="key"><td>兩邊都沒有證據</td><td>回「不明確」，<b>不預設「平穩」</b>——平穩也是一種主張，沒有證據的主張比沉默更糟</td></tr>
+        <tr><td>只有文字說話</td><td>採用文字，信心 = 強度權重 × 0.85</td></tr>
+        <tr><td>只有臉說話</td><td>採用臉，但強度固定為 low、信心上限 0.6——沒有引用撐腰的讀數不該看起來跟有證據的一樣確定</td></tr>
+        <tr><td>兩邊一致</td><td>提高信心</td></tr>
+        <tr class="key"><td>兩邊真的衝突</td><td><b>文字勝出，並記錄衝突</b>，不做平均</td></tr>
+      </tbody>
+    </table>
+    <div class="quote">平均出來的標籤「會是唯一一個沒有人能在檢討會上為它辯護的東西」；而「叫模型去調解兩個標籤，它只會發明第三個」。所以融合寫成純算術，不再呼叫第二次模型，輸出同時帶著融合結果與兩邊的原始輸入，事後檢討看得到推導過程而不只是一個結論。</div>
+
+    <h4>應用：即時教練提示</h4>
+    <p class="lead">當負向情緒的信心 ≥ 0.55 且持續 1.5 秒，畫面就在對話區旁邊浮出提示卡主動提供協助——不是等到對練結束才在報告裡告訴學員「你剛才看起來很挫折」。</p>
+    </div>
+
+    <div class="subsec">
+      <div class="eyebrow">Avatar</div>
+      <h3>虛擬人角色與表情驅動</h3>
+    <p class="lead">「模型輸出動畫參數、Web 負責 3D 渲染」這條路線的實作：52 維 ARKit blendshape 係數 → morph target → 3D 角色。純前端，離線可跑。</p>
+
+    <div class="shots">
+      <div class="shot">
+        <h3>角色素材</h3>
+        <img src="img/avatar/cast.png" alt="八個練習對象，涵蓋 20 到 65 歲、男女各半" loading="lazy">
+        <p>角色來自 Microsoft Rocketbox（MIT 授權，可商用）。4 個底模搭配年齡變體組成 8 個練習對象，涵蓋 20／30／40／50／65 歲、男女各半。每個角色帶 175 個 blendshape，其中 <code>AK_*</code> 開頭的 52 個就是完整的 ARKit 52，動畫資料可以原封驅動。</p>
+      </div>
+      <div class="shot">
+        <h3>老化管線</h3>
+        <img src="img/avatar/aging.png" alt="同一個底模在 30、50、65 歲的臉部貼圖比較" loading="lazy">
+        <p>年齡差異不是執行期調色，而是事先烤好的臉部與髮片貼圖：皺紋由老化 GAN 產生，白髮由亮度遮罩推出。關鍵是只取 delta（aged − original）疊回原貼圖，而不是整張換掉——delta 才是老化特徵，原本的五官與光影因此全部保留。</p>
+      </div>
+      <div class="shot">
+        <h3>表情驅動</h3>
+        <img src="img/avatar/expressions.png" alt="同一個角色的六種表情：中性、開心、驚訝、生氣、難過、懷疑" loading="lazy">
+        <p>同一個角色、同一份 morph target，只改 52 維係數的結果。驅動分三層疊加：口型層做幀間線性插值並保留平滑包絡避免逐音節抽搐；情緒層在說話時仍保留 35% 權重，讓情緒的嘴角形狀在講話過程中依然可辨識；Idle 層負責 procedural 眨眼、眼球 saccade 與頭部微動。</p>
+      </div>
+    </div>
+
+    <h4>骨架與動作</h4>
+    <p class="lead">角色是綁好骨架的完整人體，不是只有一顆會動的頭。</p>
+    <div class="grid three" style="margin-top:32px">
+      <div class="card">
+        <span class="en">Retarget</span>
+        <h3>Mixamo 動作即時重定向</h3>
+        <p>點擊後即時 retarget 到角色骨架播放，切換動作以 0.3 秒 crossfade 銜接。骨骼名稱對應表同時涵蓋 Mixamo 與 3ds Max Biped 命名，25 根關鍵骨骼全數命中。</p>
+      </div>
+      <div class="card">
+        <span class="en">Virtual T-pose</span>
+        <h3>A-pose 與 T-pose 的 rest 差異</h3>
+        <p>角色綁定姿勢是 A-pose，Mixamo 動作卻是相對 T-pose 記錄的，直接套會讓手臂多轉一次。逐骨骼求出把目標 rest 轉到來源 rest 的最小旋轉後，關節誤差降到 0.000002°。</p>
+      </div>
+      <div class="card">
+        <span class="en">Two-bone IK</span>
+        <h3>雙骨 IK 修正</h3>
+        <p>兩套骨架的肩膀階層與臂長不同，雙手靠近的動作（例如握手）會對不齊，改以逐幀取樣加 IK 修正。</p>
+      </div>
+    </div>
+    </div>
   </div>
 </section>
 
@@ -627,102 +721,6 @@
       <div class="dim"><b>70</b><span>風險揭露</span></div>
     </div>
     <p class="lead" style="margin-top:24px">最終報告每個維度都附理由與改善建議，例如需求探索 40 分的理由是「未主動詢問投資目標、持有期間、風險承受能力或緊急資金需求」——分數指得出是哪一句沒做到，不是一個沒有來源的數字。</p>
-  </div>
-</section>
-
-<section id="affect">
-  <div class="wrap">
-    <div class="eyebrow">Affect Sensing</div>
-    <h2>情緒感知：雙路並行</h2>
-    <p class="lead">兩個系統同時在讀學員的狀態，但它們可信度不同，所以融合方式是刻意不對稱的。</p>
-
-    <div class="grid two-path" style="margin-top:48px">
-      <div class="card">
-        <span class="en">Text · auditable</span>
-        <h3>文字：可稽核</h3>
-        <p>讀學員這一輪實際說出口的話，並且必須引用逐字原話。伺服器端有四條驗證，全部由程式檢查而非交給模型自律：</p>
-        <ol>
-          <li>引用必須逐字出現在這一輪學員的發言裡</li>
-          <li>要給明確標籤，就得同時有引用與真實強度</li>
-          <li>「不明確」不得挾帶強度</li>
-          <li>違反任一條，一律拒絕而非修補</li>
-        </ol>
-        <p>被拒絕的結果是降級為「不明確」，不是丟出例外——情緒是加值訊號，不該讓一輪對話失敗。</p>
-      </div>
-      <div class="card">
-        <span class="en">Face · advisory</span>
-        <h3>臉部：僅供參考</h3>
-        <p>瀏覽器端跑 FaceLandmarker（WASM），52 個 blendshape 在使用者機器上算完，攝影機影格完全不離開本機。</p>
-        <ol>
-          <li>分類規則移植自本專案的 <code>emotion_webcam</code>，是逐字翻譯而非重新詮釋</li>
-          <li>WASM 與模型 vendored 到自家網域——CSP 只列自家來源，從 CDN 抓會被靜默擋掉</li>
-          <li>模型在第一次開啟攝影機時才懶載入</li>
-          <li>低於 0.45 信心就視為「臉沒說出什麼有用的東西」</li>
-        </ol>
-      </div>
-    </div>
-
-    <h3 style="margin-top:56px">融合：純算術，不再問模型</h3>
-    <table class="fuse">
-      <thead><tr><th>情況</th><th>結果</th></tr></thead>
-      <tbody>
-        <tr class="key"><td>兩邊都沒有證據</td><td>回「不明確」，<b>不預設「平穩」</b>——平穩也是一種主張，沒有證據的主張比沉默更糟</td></tr>
-        <tr><td>只有文字說話</td><td>採用文字，信心 = 強度權重 × 0.85</td></tr>
-        <tr><td>只有臉說話</td><td>採用臉，但強度固定為 low、信心上限 0.6——沒有引用撐腰的讀數不該看起來跟有證據的一樣確定</td></tr>
-        <tr><td>兩邊一致</td><td>提高信心</td></tr>
-        <tr class="key"><td>兩邊真的衝突</td><td><b>文字勝出，並記錄衝突</b>，不做平均</td></tr>
-      </tbody>
-    </table>
-    <div class="quote">平均出來的標籤「會是唯一一個沒有人能在檢討會上為它辯護的東西」；而「叫模型去調解兩個標籤，它只會發明第三個」。所以融合寫成純算術，不再呼叫第二次模型，輸出同時帶著融合結果與兩邊的原始輸入，事後檢討看得到推導過程而不只是一個結論。</div>
-
-    <h3 style="margin-top:56px">應用：即時教練提示</h3>
-    <p class="lead">當負向情緒的信心 ≥ 0.55 且持續 1.5 秒，畫面就在對話區旁邊浮出提示卡主動提供協助——不是等到對練結束才在報告裡告訴學員「你剛才看起來很挫折」。</p>
-  </div>
-</section>
-
-<section id="avatar">
-  <div class="wrap">
-    <div class="eyebrow">Avatar</div>
-    <h2>虛擬人角色與表情驅動</h2>
-    <p class="lead">「模型輸出動畫參數、Web 負責 3D 渲染」這條路線的實作：52 維 ARKit blendshape 係數 → morph target → 3D 角色。純前端，離線可跑。</p>
-
-    <div class="shots">
-      <div class="shot">
-        <h3>角色素材</h3>
-        <img src="img/avatar/cast.png" alt="八個練習對象，涵蓋 20 到 65 歲、男女各半" loading="lazy">
-        <p>角色來自 Microsoft Rocketbox（MIT 授權，可商用）。4 個底模搭配年齡變體組成 8 個練習對象，涵蓋 20／30／40／50／65 歲、男女各半。每個角色帶 175 個 blendshape，其中 <code>AK_*</code> 開頭的 52 個就是完整的 ARKit 52，動畫資料可以原封驅動。</p>
-      </div>
-      <div class="shot">
-        <h3>老化管線</h3>
-        <img src="img/avatar/aging.png" alt="同一個底模在 30、50、65 歲的臉部貼圖比較" loading="lazy">
-        <p>年齡差異不是執行期調色，而是事先烤好的臉部與髮片貼圖：皺紋由老化 GAN 產生，白髮由亮度遮罩推出。關鍵是只取 delta（aged − original）疊回原貼圖，而不是整張換掉——delta 才是老化特徵，原本的五官與光影因此全部保留。</p>
-      </div>
-      <div class="shot">
-        <h3>表情驅動</h3>
-        <img src="img/avatar/expressions.png" alt="同一個角色的六種表情：中性、開心、驚訝、生氣、難過、懷疑" loading="lazy">
-        <p>同一個角色、同一份 morph target，只改 52 維係數的結果。驅動分三層疊加：口型層做幀間線性插值並保留平滑包絡避免逐音節抽搐；情緒層在說話時仍保留 35% 權重，讓情緒的嘴角形狀在講話過程中依然可辨識；Idle 層負責 procedural 眨眼、眼球 saccade 與頭部微動。</p>
-      </div>
-    </div>
-
-    <h3 style="margin-top:56px">骨架與動作</h3>
-    <p class="lead">角色是綁好骨架的完整人體，不是只有一顆會動的頭。</p>
-    <div class="grid three" style="margin-top:32px">
-      <div class="card">
-        <span class="en">Retarget</span>
-        <h3>Mixamo 動作即時重定向</h3>
-        <p>點擊後即時 retarget 到角色骨架播放，切換動作以 0.3 秒 crossfade 銜接。骨骼名稱對應表同時涵蓋 Mixamo 與 3ds Max Biped 命名，25 根關鍵骨骼全數命中。</p>
-      </div>
-      <div class="card">
-        <span class="en">Virtual T-pose</span>
-        <h3>A-pose 與 T-pose 的 rest 差異</h3>
-        <p>角色綁定姿勢是 A-pose，Mixamo 動作卻是相對 T-pose 記錄的，直接套會讓手臂多轉一次。逐骨骼求出把目標 rest 轉到來源 rest 的最小旋轉後，關節誤差降到 0.000002°。</p>
-      </div>
-      <div class="card">
-        <span class="en">Two-bone IK</span>
-        <h3>雙骨 IK 修正</h3>
-        <p>兩套骨架的肩膀階層與臂長不同，雙手靠近的動作（例如握手）會對不齊，改以逐幀取樣加 IK 修正。</p>
-      </div>
-    </div>
   </div>
 </section>
 
