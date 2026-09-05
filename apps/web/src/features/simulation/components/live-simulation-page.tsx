@@ -81,6 +81,9 @@ import { SimulationStyles } from './simulation-styles';
 import { buildTranscriptItems, type SystemNotice } from './transcript-feed';
 import { TrainingGrid } from './training-grid';
 
+/** How long the opening line waits for the 3D body before playing anyway. */
+const PERSONA_VISIBLE_TIMEOUT_MS = 6000;
+
 export interface LiveSimulationPageProps {
   sessionId: string;
 }
@@ -212,6 +215,46 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
   });
   voiceRef.current = voice;
 
+  // One line, one utterance, and not before the persona is on screen — see the
+  // same block in `voice-simulation-page.tsx`. A persona turn arrives as
+  // `agent.response.final` *and* `speech.final`, so without the turn-id guard
+  // the opening line was spoken twice (three times with the local engine's
+  // fallback chain), and it started before the 25 MB body had loaded.
+  const spokenTurnsRef = useRef<Set<string>>(new Set());
+  const personaVisibleRef = useRef(false);
+  const pendingSpeechRef = useRef<{ text: string; url: string | null } | null>(null);
+
+  const flushPendingSpeech = useCallback(() => {
+    const pending = pendingSpeechRef.current;
+    pendingSpeechRef.current = null;
+    if (pending) void voiceRef.current?.speakTurn(pending.text, pending.url);
+  }, []);
+
+  const onPersonaVisible = useCallback(() => {
+    if (personaVisibleRef.current) return;
+    personaVisibleRef.current = true;
+    flushPendingSpeech();
+  }, [flushPendingSpeech]);
+
+  const speakOnce = useCallback(
+    (key: string, text: string, url: string | null) => {
+      if (spokenTurnsRef.current.has(key)) return;
+      spokenTurnsRef.current.add(key);
+      if (!personaVisibleRef.current) {
+        pendingSpeechRef.current = { text, url };
+        window.setTimeout(() => {
+          if (!personaVisibleRef.current) {
+            personaVisibleRef.current = true;
+            flushPendingSpeech();
+          }
+        }, PERSONA_VISIBLE_TIMEOUT_MS);
+        return;
+      }
+      void voiceRef.current?.speakTurn(text, url);
+    },
+    [flushPendingSpeech],
+  );
+
   const socket = useSessionSocket({
     sessionId,
     mode,
@@ -224,7 +267,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
       if (event.type === 'agent.response.final' || event.type === 'speech.final') {
         const turn = event.turn;
         if (turn?.speaker === 'persona' && turn.text && bootstrap?.voiceEnabled) {
-          void voiceRef.current?.speakTurn(turn.text, turn.audio_url ?? null);
+          speakOnce(turn.id || turn.text, turn.text, turn.audio_url ?? null);
         }
       }
     },
@@ -617,6 +660,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
               personaName={bootstrap.persona.name}
               personaGender={bootstrap.persona.gender}
               personaAge={bootstrap.persona.age}
+              onPersonaVisible={onPersonaVisible}
               personaSubtitle={bootstrap.persona.subtitle ?? bootstrap.persona.occupation}
               personaAvatarUrl={bootstrap.persona.avatarUrl}
               speaking={personaSpeaking}

@@ -251,7 +251,15 @@ class CustomerAgent(Agent[CustomerTurnRequest, CustomerReply]):
     #: Face readings below this are ignored: the browser classifier always
     #: returns its top rule, so a floor is what separates "looks annoyed" from
     #: "looks like nothing in particular".
-    FACE_REACT_MIN_CONFIDENCE = 0.55
+    #:
+    #: 0.42 rather than 0.55. The browser rule engine scores every frame against
+    #: all eight rules and returns its top one, so a real, held frown lands around
+    #: 0.45-0.6 — a 0.55 floor made the customer notice it perhaps half the time,
+    #: which in a live demo is indistinguishable from broken. 0.42 is still well
+    #: clear of a resting face: 平穩 and 不明確 are excluded by label regardless of
+    #: score, so what this floor actually governs is how *sure* a negative
+    #: expression has to be, not whether a neutral one can slip through.
+    FACE_REACT_MIN_CONFIDENCE = 0.42
 
     @classmethod
     def _face_directive(cls, face: dict[str, Any]) -> str:

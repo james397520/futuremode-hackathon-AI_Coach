@@ -73,6 +73,9 @@ import { AffectNudge } from './affect-nudge';
 import { SelfView } from './self-view';
 import { Waveform } from './waveform';
 
+/** How long the opening line waits for the 3D body before playing anyway. */
+const PERSONA_VISIBLE_TIMEOUT_MS = 6000;
+
 export interface VoiceSimulationPageProps {
   sessionId: string;
 }
@@ -189,6 +192,52 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
   });
   voiceRef.current = voice;
 
+  // One line, one utterance.
+  //
+  // A persona turn arrives as `agent.response.final` *and*, in voice mode, as
+  // `speech.final` — both carry the same turn, so the opening line was spoken
+  // twice, and with the local engine a third time when the fallback chain also
+  // produced a clip. Keying on the turn id is what makes it once.
+  //
+  // The first line also waits for the persona to be on screen. `speak` runs the
+  // moment the socket says ready, which is before the 25 MB body has loaded, so
+  // the customer was talking to an empty frame. The wait is capped: if the
+  // avatar never reports (portrait-only, WebGL off), the line still plays.
+  const spokenTurnsRef = useRef<Set<string>>(new Set());
+  const personaVisibleRef = useRef(false);
+  const pendingSpeechRef = useRef<{ text: string; url: string | null } | null>(null);
+
+  const flushPendingSpeech = useCallback(() => {
+    const pending = pendingSpeechRef.current;
+    pendingSpeechRef.current = null;
+    if (pending) void voiceRef.current?.speakTurn(pending.text, pending.url);
+  }, []);
+
+  const onPersonaVisible = useCallback(() => {
+    if (personaVisibleRef.current) return;
+    personaVisibleRef.current = true;
+    flushPendingSpeech();
+  }, [flushPendingSpeech]);
+
+  const speakOnce = useCallback(
+    (key: string, text: string, url: string | null) => {
+      if (spokenTurnsRef.current.has(key)) return;
+      spokenTurnsRef.current.add(key);
+      if (!personaVisibleRef.current) {
+        pendingSpeechRef.current = { text, url };
+        window.setTimeout(() => {
+          if (!personaVisibleRef.current) {
+            personaVisibleRef.current = true;
+            flushPendingSpeech();
+          }
+        }, PERSONA_VISIBLE_TIMEOUT_MS);
+        return;
+      }
+      void voiceRef.current?.speakTurn(text, url);
+    },
+    [flushPendingSpeech],
+  );
+
   const socket = useSessionSocket({
     sessionId,
     mode,
@@ -203,7 +252,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
           // synthesised audio, so with no key, no network, or the transport
           // still unbuilt the customer was simply mute. `speakTurn` prefers the
           // server clip and falls back to the on-device voice.
-          void voiceRef.current?.speakTurn(turn.text, turn.audio_url ?? null);
+          speakOnce(turn.id || turn.text, turn.text, turn.audio_url ?? null);
         }
       }
     },
@@ -536,6 +585,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                   personaName={bootstrap.persona.name}
                   personaGender={bootstrap.persona.gender}
                   personaAge={bootstrap.persona.age}
+                  onPersonaVisible={onPersonaVisible}
                   subtitle={bootstrap.persona.subtitle ?? bootstrap.persona.occupation}
                   avatarUrl={bootstrap.persona.avatarUrl}
                   personaState={personaState}

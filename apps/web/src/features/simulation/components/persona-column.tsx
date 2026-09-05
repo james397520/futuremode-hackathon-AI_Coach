@@ -51,6 +51,7 @@ export interface PersonaColumnProps {
   personaName: string;
   personaGender?: AvatarBodyGender;
   personaAge?: number | null;
+  onPersonaVisible?: () => void;
   personaSubtitle?: string;
   personaAvatarUrl?: string;
 
@@ -107,6 +108,7 @@ export function PersonaColumn(props: PersonaColumnProps) {
     personaName,
     personaGender,
     personaAge,
+    onPersonaVisible,
     personaSubtitle,
     personaAvatarUrl,
     speaking,
@@ -141,6 +143,7 @@ export function PersonaColumn(props: PersonaColumnProps) {
       personaName={personaName}
       personaGender={personaGender}
       personaAge={personaAge}
+      onPersonaVisible={onPersonaVisible}
       subtitle={personaSubtitle}
       avatarUrl={personaAvatarUrl}
       speaking={speaking}

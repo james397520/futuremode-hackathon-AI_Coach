@@ -27,7 +27,11 @@ import { LightbulbIcon } from './icons';
 import { cn } from './kit';
 
 const NEGATIVE = new Set(['angry', 'sad', 'fearful', 'disgusted', 'contempt']);
-const MIN_CONFIDENCE = 0.55;
+// Kept in step with the API's `FACE_REACT_MIN_CONFIDENCE` and
+// `FACE_MIN_CONFIDENCE` (both 0.42). If this floor were higher the trainee
+// would be offered help for an expression the customer never reacted to; if it
+// were lower, the reverse.
+const MIN_CONFIDENCE = 0.42;
 const SUSTAIN_MS = 1500;
 const COOLDOWN_MS = 30_000;
 const AUTO_HIDE_MS = 15_000;

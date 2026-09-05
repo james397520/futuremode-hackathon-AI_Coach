@@ -25,6 +25,7 @@ export interface PersonaStageProps {
   /** Picks the 3D body (male / female suit). Resolved by the page from the persona. */
   personaGender?: AvatarBodyGender;
   personaAge?: number | null;
+  onPersonaVisible?: () => void;
   /** e.g. `陳先生 · Mortgage Insurance` second line. */
   subtitle?: string;
   avatarUrl?: string;
@@ -58,6 +59,7 @@ export function PersonaStage({
   personaName,
   personaGender,
   personaAge,
+  onPersonaVisible,
   subtitle,
   avatarUrl,
   eyebrow = '客戶模擬',
@@ -100,6 +102,7 @@ export function PersonaStage({
             personaName={personaName}
             {...(personaGender === undefined ? {} : { personaGender })}
             {...(personaAge === undefined ? {} : { personaAge })}
+            {...(onPersonaVisible === undefined ? {} : { onPersonaVisible })}
             {...(avatarUrl === undefined ? {} : { portraitUrl: avatarUrl })}
             {...(sessionId === undefined ? {} : { sessionId })}
             personaState={personaState}

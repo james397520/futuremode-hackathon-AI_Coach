@@ -50,7 +50,12 @@ FACE_TO_LABEL: dict[str, AffectLabel] = {
 #: Below this the face reading is treated as absent. The classifier always
 #: returns *something* (its top rule, whatever it scored), so a floor here is
 #: what separates "the face said calm" from "the face said nothing useful".
-FACE_MIN_CONFIDENCE = 0.45
+#:
+#: Kept in step with `CustomerAgent.FACE_REACT_MIN_CONFIDENCE` and the inline
+#: nudge's own floor. They must agree: a frown strong enough to offer the
+#: trainee help, but not strong enough to reach the customer, produces a hint
+#: card about an expression nobody in the conversation reacted to.
+FACE_MIN_CONFIDENCE = 0.42
 
 _INTENSITY_WEIGHT: dict[str, float] = {
     "high": 0.9,
