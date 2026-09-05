@@ -5,13 +5,13 @@
 
 .aurora-canvas {
   background:
-    radial-gradient(circle at 18% 22%, rgba(116, 185, 255, 0.3), transparent 34%),
-    radial-gradient(circle at 40% 12%, rgba(125, 231, 197, 0.22), transparent 30%),
-    radial-gradient(circle at 76% 14%, rgba(190, 198, 255, 0.25), transparent 34%),
-    radial-gradient(circle at 50% 80%, rgba(209, 219, 255, 0.22), transparent 44%),
+    radial-gradient(circle at 18% 22%, rgba(116, 185, 255, 0.42), transparent 34%),
+    radial-gradient(circle at 40% 12%, rgba(125, 231, 197, 0.32), transparent 30%),
+    radial-gradient(circle at 76% 14%, rgba(190, 198, 255, 0.36), transparent 34%),
+    radial-gradient(circle at 50% 80%, rgba(209, 219, 255, 0.32), transparent 44%),
     /* Base ramp deepened with --bg-canvas; the near-white original sat on top
      * of the canvas colour and cancelled it out. */
-    linear-gradient(135deg, #e8eefa 0%, #eef2fb 42%, #e9ecfa 100%);
+    linear-gradient(135deg, #dbe4f5 0%, #e4ebf8 42%, #dce0f6 100%);
   background-attachment: fixed;
 }
 

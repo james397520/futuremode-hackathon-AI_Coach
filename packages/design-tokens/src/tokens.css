@@ -10,13 +10,13 @@
   /* Deepened from #f4f7fd / #f8faff: the near-white canvas left the glass
    * shell with almost nothing to sit against, so the frosted layers read as
    * flat panels rather than glass. */
-  --bg-canvas: #e6ecf7;
-  --bg-canvas-soft: #eef2fb;
+  --bg-canvas: #d9e3f3;
+  --bg-canvas-soft: #e4ebf8;
 
   /* ---- Glass surfaces (§3) ---- */
   /* More transparent (was .44): with a deeper canvas behind it the outermost
    * shell should let the aurora through rather than washing it out. */
-  --glass-shell: rgba(244, 249, 255, 0.26);
+  --glass-shell: rgba(250, 252, 255, 0.16);
   --glass-card: rgba(255, 255, 255, 0.68);
   --glass-card-strong: rgba(255, 255, 255, 0.84);
 
@@ -30,7 +30,12 @@
   /* ---- Text — 深海軍藍，不使用純黑（§7） ---- */
   --text-primary: #18233c;
   --text-secondary: #566177;
-  --text-tertiary: #8791a5;
+  /* Darkened from #8791a5 when the canvas deepened to #d9e3f3. The old grey
+   * was tuned for a near-white ground and fell to a 2.5:1 ratio against the new
+   * one — below AA for small text, which is most of what uses this token
+   * (timestamps, attempt counts, placeholders). #5a6272 clears 4.5:1 on both
+   * the card glass and the bare canvas. */
+  --text-tertiary: #5a6272;
   /* Text drawn over media — the persona stage's photo and aurora. It follows the
    * *media*, not the theme, so it stays light in both. Using `--bg-canvas-soft`
    * for this (as the stage originally did) inverts in dark mode and paints dark
