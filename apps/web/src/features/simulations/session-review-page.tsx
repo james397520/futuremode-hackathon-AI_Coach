@@ -67,12 +67,12 @@ export function SessionReviewPage({ sessionId }: { sessionId: string }) {
     return (
       <div className="space-y-4 pb-4">
         <PageHeader
-          breadcrumbs={[{ label: 'Simulations', href: '/simulations' }, { label: 'Review' }]}
-          title="Session not found"
-          description="Reports are retained per your workspace retention policy; this one may have expired."
+          breadcrumbs={[{ label: '模擬練習', href: '/simulations' }, { label: '成果回顧' }]}
+          title="找不到這場練習"
+          description="報告依工作區的保留政策保存，這一筆可能已經過期。"
         />
         <Button variant="secondary" size="sm" asChild>
-          <Link href="/simulations">Back to the library</Link>
+          <Link href="/simulations">回到練習清單</Link>
         </Button>
       </div>
     );
@@ -87,17 +87,17 @@ export function SessionReviewPage({ sessionId }: { sessionId: string }) {
     <div className="space-y-5 pb-4">
       <PageHeader
         breadcrumbs={[
-          { label: 'Simulations', href: '/simulations' },
+          { label: '模擬練習', href: '/simulations' },
           { label: scenario?.name ?? session.scenario_id },
-          { label: 'Review' },
+          { label: '成果回顧' },
         ]}
-        title="Session review"
-        description={`${learner?.display_name ?? session.user_id} · ${persona?.name ?? session.persona_id} · ${session.turn_count} turns`}
+        title="練習成果回顧"
+        description={`${learner?.display_name ?? session.user_id} · ${persona?.name ?? session.persona_id} · ${session.turn_count} 回合`}
         meta={
           <>
             <ModePill mode={session.mode} />
-            <Pill tone="neutral" size="sm">Scenario v{session.scenario_version}</Pill>
-            <Pill tone="neutral" size="sm">Persona v{session.persona_version}</Pill>
+            <Pill tone="neutral" size="sm">情境 v{session.scenario_version}</Pill>
+            <Pill tone="neutral" size="sm">人物 v{session.persona_version}</Pill>
             <Pill tone="neutral" size="sm">{RUNTIME_LABEL[session.runtime] ?? titleize(session.runtime)}</Pill>
             <RiskPill risk={evaluation.compliance_status} />
             <Pill tone="neutral" size="sm">{formatDate(session.started_at)}</Pill>
@@ -107,12 +107,12 @@ export function SessionReviewPage({ sessionId }: { sessionId: string }) {
           <>
             <Button variant="ghost" size="sm">
               <Download size={15} strokeWidth={1.8} aria-hidden />
-              Export report
+              匯出報告
             </Button>
             {canOverride ? (
               <Button variant="secondary" size="sm">
                 <PenLine size={15} strokeWidth={1.8} aria-hidden />
-                Override score
+                覆核分數
               </Button>
             ) : null}
           </>
@@ -123,43 +123,43 @@ export function SessionReviewPage({ sessionId }: { sessionId: string }) {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <GlassCard className="relative overflow-hidden p-6">
           <div className="dot-matrix pointer-events-none absolute inset-y-0 right-0 w-1/3 opacity-60" aria-hidden />
-          <p className="meta-label">Performance</p>
+          <p className="meta-label">整體表現</p>
           <p className="mt-2 flex items-baseline gap-2">
             <span className="text-display tabular-nums">{evaluation.overall_score}</span>
             <span className="text-body text-text-tertiary">/ 100</span>
             <Pill tone={evaluation.passed ? 'success' : 'danger'} size="sm">
-              {evaluation.passed ? 'Passed' : 'Not passed'}
+              {evaluation.passed ? '通過' : '未通過'}
             </Pill>
           </p>
           <p className="mt-1 text-body-sm text-text-secondary">
-            Rubric {RUBRIC_LIFE_CORE.name} v{RUBRIC_LIFE_CORE.version} · pass threshold{' '}
-            {RUBRIC_LIFE_CORE.pass_threshold} · goal {evaluation.goal_achieved ? 'achieved' : 'not achieved'}
+            評分規準 {RUBRIC_LIFE_CORE.name} v{RUBRIC_LIFE_CORE.version} · 及格門檻{' '}
+            {RUBRIC_LIFE_CORE.pass_threshold} 分 · 目標{evaluation.goal_achieved ? '達成' : '未達成'}
           </p>
 
           <dl className="mt-5 grid gap-4 sm:grid-cols-2">
             <div>
-              <dt className="meta-label text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]">Key strength</dt>
+              <dt className="meta-label text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]">主要優勢</dt>
               <dd className="mt-1 text-body-sm text-text-secondary">{evaluation.key_strength}</dd>
             </div>
             <div>
-              <dt className="meta-label text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]">Main improvement</dt>
+              <dt className="meta-label text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]">首要改進</dt>
               <dd className="mt-1 text-body-sm text-text-secondary">{evaluation.main_improvement}</dd>
             </div>
           </dl>
         </GlassCard>
 
         <GlassCard className="p-5">
-          <p className="meta-label">Highlights</p>
+          <p className="meta-label">亮點</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            <Pill tone="gradient" size="sm">Professional</Pill>
-            <Pill tone="success" size="sm">Self-corrected</Pill>
-            <Pill tone="info" size="sm">Improved +6.4</Pill>
+            <Pill tone="gradient" size="sm">專業</Pill>
+            <Pill tone="success" size="sm">自我修正</Pill>
+            <Pill tone="info" size="sm">進步 +6.4</Pill>
             {findings.length > 0 ? (
-              <Pill tone="warning" size="sm">{findings.length} finding{findings.length === 1 ? '' : 's'}</Pill>
+              <Pill tone="warning" size="sm">{findings.length} 則合規發現</Pill>
             ) : null}
           </div>
 
-          <h3 className="mt-5 text-body-sm font-semibold">Coach summary</h3>
+          <h3 className="mt-5 text-body-sm font-semibold">教練總結</h3>
           <ul className="mt-2 space-y-2.5">
             {MOCK_COACH_INSIGHTS.filter((insight) => insight.kind === 'post_session').map((insight) => (
               <li key={insight.id} className="rounded-card-sm border border-border-soft px-3.5 py-3">
@@ -175,19 +175,19 @@ export function SessionReviewPage({ sessionId }: { sessionId: string }) {
         value={tab}
         onValueChange={(value: string) => setTab(value as ReviewTab)}
         items={[
-          { value: 'report', label: 'Scores & evidence' },
-          { value: 'transcript', label: 'Transcript', count: MOCK_TRANSCRIPT.length },
-          { value: 'timeline', label: 'State timeline' },
-          { value: 'compliance', label: 'Compliance', count: findings.length },
+          { value: 'report', label: '分數與佐證' },
+          { value: 'transcript', label: '逐字稿', count: MOCK_TRANSCRIPT.length },
+          { value: 'timeline', label: '狀態時間軸' },
+          { value: 'compliance', label: '合規', count: findings.length },
         ]}
       />
 
       {tab === 'report' ? (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
           <GlassCard className="p-5">
-            <h2 className="text-card-title">Ten evaluation dimensions</h2>
+            <h2 className="text-card-title">十個評分維度</h2>
             <p className="mt-1 text-body-sm text-text-secondary">
-              Expand any row to see the transcript excerpt behind the score.
+              展開任一列，查看這個分數背後的逐字稿片段。
             </p>
             <div className="mt-4 space-y-2">
               {evaluation.skills.map((skill) => (
@@ -203,14 +203,14 @@ export function SessionReviewPage({ sessionId }: { sessionId: string }) {
 
           <div className="space-y-4">
             <GlassCard className="p-5">
-              <h2 className="text-card-title">Skill profile</h2>
+              <h2 className="text-card-title">技能輪廓</h2>
               <SkillRadar
                 axes={[...SKILL_KEYS]}
                 series={[
-                  { id: 'session', label: 'This session', color: 'var(--accent-indigo)', values: radarValues },
+                  { id: 'session', label: '本場練習', color: 'var(--accent-indigo)', values: radarValues },
                   {
                     id: 'team',
-                    label: 'Team average',
+                    label: '團隊平均',
                     color: 'var(--accent-cyan)',
                     values: [85, 76, 84, 82, 80, 78, 83, 71, 77, 86],
                   },
@@ -219,12 +219,12 @@ export function SessionReviewPage({ sessionId }: { sessionId: string }) {
             </GlassCard>
 
             <GlassCard className="p-5">
-              <h2 className="text-card-title">Score trend</h2>
-              <p className="text-tiny text-text-tertiary">Overall score across the learner’s last six months</p>
+              <h2 className="text-card-title">分數趨勢</h2>
+              <p className="text-tiny text-text-tertiary">學員近六個月的整體分數</p>
               <TrendLine
                 className="mt-3"
                 points={SCORE_TREND.map((point) => ({ label: point.label, value: point.score }))}
-                ariaLabel="Overall score trend across the last six months"
+                ariaLabel="近六個月整體分數趨勢"
                 min={55}
                 max={95}
               />
@@ -234,21 +234,21 @@ export function SessionReviewPage({ sessionId }: { sessionId: string }) {
               <GlassCard className="p-5">
                 <div className="flex items-center gap-2">
                   <MessageSquarePlus size={16} strokeWidth={1.8} aria-hidden className="text-accent-indigo" />
-                  <h2 className="text-card-title">Coaching note</h2>
+                  <h2 className="text-card-title">教練備註</h2>
                 </div>
                 <p className="mt-1 text-body-sm text-text-secondary">
-                  Visible to the learner and to their manager. Recorded in the audit log.
+                  學員與其主管都看得到，並會記入稽核紀錄。
                 </p>
                 <Textarea
                   className="mt-3"
                   rows={4}
                   value={note}
-                  placeholder="What should they do differently next time?"
-                  aria-label="Coaching note"
+                  placeholder="下次該怎麼做得不一樣？"
+                  aria-label="教練備註"
                   onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setNote(event.target.value)}
                 />
                 <Button variant="primary" size="sm" className="mt-3" disabled={note.trim().length === 0}>
-                  Save note
+                  儲存備註
                 </Button>
               </GlassCard>
             ) : null}
@@ -259,18 +259,18 @@ export function SessionReviewPage({ sessionId }: { sessionId: string }) {
       {tab === 'transcript' ? (
         <TranscriptDocument
           turns={MOCK_TRANSCRIPT}
-          personaName={persona?.name ?? 'Customer'}
-          traineeName={learner?.display_name ?? 'Trainee'}
+          personaName={persona?.name ?? '客戶'}
+          traineeName={learner?.display_name ?? '學員'}
           highlightTurnIds={highlight}
         />
       ) : null}
 
       {tab === 'timeline' ? (
         <GlassCard className="p-5">
-          <h2 className="text-card-title">Persona state timeline</h2>
+          <h2 className="text-card-title">人物狀態時間軸</h2>
           <p className="mt-1 max-w-2xl text-body-sm text-text-secondary">
-            Produced by the scenario agent state machine and the language context — not by facial or
-            personality inference. Markers show key responses, missed signals and compliance warnings.
+            由情境代理人的狀態機與語言脈絡產生，不是臉部或人格推斷。
+            標記顯示關鍵回應、錯過的訊號與合規警示。
           </p>
           <StateTimeline className="mt-5" points={DEMO_STATE_TIMELINE} onJumpToTurn={jumpToTurn} />
         </GlassCard>
@@ -280,12 +280,12 @@ export function SessionReviewPage({ sessionId }: { sessionId: string }) {
         <GlassCard className="p-5">
           <div className="flex items-center gap-2">
             <ShieldAlert size={16} strokeWidth={1.8} aria-hidden className="text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]" />
-            <h2 className="text-card-title">Compliance findings</h2>
+            <h2 className="text-card-title">合規發現</h2>
           </div>
 
           {findings.length === 0 ? (
             <p className="mt-3 text-body-sm text-text-secondary">
-              No finding was raised in this session.
+              這場練習沒有任何合規發現。
             </p>
           ) : (
             <ul className="mt-4 space-y-3">
@@ -307,7 +307,7 @@ export function SessionReviewPage({ sessionId }: { sessionId: string }) {
                   <p className="mt-2 text-body-sm text-text-secondary">{finding.explanation}</p>
                   {finding.suggested_correction ? (
                     <p className="mt-2 text-body-sm">
-                      <span className="meta-label mr-2 text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]">Suggested correction</span>
+                      <span className="meta-label mr-2 text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]">建議修正</span>
                       <span className="text-text-secondary">{finding.suggested_correction}</span>
                     </p>
                   ) : null}
@@ -317,7 +317,7 @@ export function SessionReviewPage({ sessionId }: { sessionId: string }) {
                       onClick={() => jumpToTurn(finding.transcript_turn_id!)}
                       className="mt-2 rounded-button text-body-sm text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))] hover:underline"
                     >
-                      Jump to the turn
+                      跳到該回合
                     </button>
                   ) : null}
                 </li>
