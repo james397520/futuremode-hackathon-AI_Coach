@@ -112,6 +112,13 @@ export interface UseVoiceSessionOptions {
   /** Fired after this much continuous silence while the floor is the trainee's. */
   onSilenceTimeout?: () => void;
   silenceTimeoutMs?: number;
+  /**
+   * One finished utterance (push-to-talk released, or VAD saw the trainee stop).
+   * The blob is what the microphone heard; the page decides what to do with it
+   * — in practice, send it to the API for transcription. Never leaves the hook
+   * in any other direction.
+   */
+  onUtterance?: (blob: Blob, mime: string, durationMs: number) => void;
   /** Persona identity, so the OS fallback picks a matching system voice. */
   personaGender?: SpeechGender | null;
   personaAge?: number | null;
@@ -160,6 +167,9 @@ export interface VoiceSessionApi {
 
 interface Graph {
   stream: MediaStream;
+  recorder: MediaRecorder | null;
+  recorderChunks: Blob[];
+  recorderMime: string;
   context: AudioContext;
   source: MediaStreamAudioSourceNode;
   analyser: AnalyserNode;
@@ -167,6 +177,15 @@ interface Graph {
   sink: GainNode;
   blobUrl: string | null;
   pollTimer: number | null;
+}
+
+/** Opus-in-WebM everywhere it exists; Safari only records MP4/AAC. */
+function pickRecorderMime(): string {
+  if (typeof MediaRecorder === 'undefined') return '';
+  for (const mime of ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']) {
+    if (MediaRecorder.isTypeSupported(mime)) return mime;
+  }
+  return '';
 }
 
 function resolveAudioContext(): typeof AudioContext | null {
@@ -376,6 +395,8 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       return;
     }
     try {
+      if (graph.recorder && graph.recorder.state !== 'inactive') graph.recorder.stop();
+      graph.recorder = null;
       if (graph.pollTimer) window.clearInterval(graph.pollTimer);
       graph.worklet?.port.close();
       graph.worklet?.disconnect();
@@ -395,6 +416,51 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     actions.setVoice({ vadActive: false });
   }, [actions]);
 
+  // ---- Utterance capture -----------------------------------------------------
+  // Recording follows the *floor*, not the audio graph: it starts when the
+  // trainee takes the floor (key down, or VAD onset) and stops when they give it
+  // up. Between those two points the mic is already open for VAD, so this adds
+  // no permission prompt and no second capture.
+  const startRecording = useCallback(() => {
+    const graph = graphRef.current;
+    if (!graph || graph.recorder || typeof MediaRecorder === 'undefined') return;
+    try {
+      const recorder = graph.recorderMime
+        ? new MediaRecorder(graph.stream, { mimeType: graph.recorderMime })
+        : new MediaRecorder(graph.stream);
+      graph.recorderChunks = [];
+      recorder.ondataavailable = (event: BlobEvent) => {
+        if (event.data && event.data.size > 0) graph.recorderChunks.push(event.data);
+      };
+      recorder.start(250);
+      graph.recorder = recorder;
+    } catch {
+      graph.recorder = null;
+    }
+  }, []);
+
+  const stopRecording = useCallback((durationMs: number) => {
+    const graph = graphRef.current;
+    const recorder = graph?.recorder;
+    if (!graph || !recorder) return;
+    graph.recorder = null;
+    recorder.onstop = () => {
+      const mime = recorder.mimeType || graph.recorderMime || 'audio/webm';
+      const blob = new Blob(graph.recorderChunks, { type: mime });
+      graph.recorderChunks = [];
+      // Under ~300ms is a key tap, not a sentence; sending it wastes a round trip
+      // and produces an empty transcript the UI then has to explain.
+      if (blob.size > 0 && durationMs >= 300) {
+        callbacks.current.onUtterance?.(blob, mime, durationMs);
+      }
+    };
+    try {
+      recorder.stop();
+    } catch {
+      // Already inactive; nothing to flush.
+    }
+  }, []);
+
   // ---- VAD / barge-in ------------------------------------------------------
 
   const handleVad = useCallback(
@@ -407,6 +473,7 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
 
       if (effective && speakingSinceRef.current === null) {
         speakingSinceRef.current = Date.now();
+        startRecording();
         callbacks.current.onSpeechStart?.();
         // Barge-in: the trainee took the floor while the persona was talking.
         if (personaSpeakingRef.current) {
@@ -417,10 +484,11 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       } else if (!effective && speakingSinceRef.current !== null) {
         const duration = Date.now() - speakingSinceRef.current;
         speakingSinceRef.current = null;
+        stopRecording(duration);
         callbacks.current.onSpeechEnd?.(duration);
       }
     },
-    [actions, cancelTts],
+    [actions, cancelTts, startRecording, stopRecording],
   );
 
   // ---- Start ---------------------------------------------------------------
@@ -545,6 +613,9 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
 
       graphRef.current = {
         stream,
+        recorder: null,
+        recorderChunks: [],
+        recorderMime: pickRecorderMime(),
         context,
         source,
         analyser: analyserNode,
@@ -687,9 +758,15 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       heldRef.current = pressed;
       setPushToTalkHeldState(pressed);
       actions.setVoice({ pushToTalkHeld: pressed });
-      if (!pressed) handleVad(false);
+      if (pressed) {
+        // Start on key-down so the first syllable is not lost waiting for VAD.
+        if (speakingSinceRef.current === null) speakingSinceRef.current = Date.now();
+        startRecording();
+      } else {
+        handleVad(false);
+      }
     },
-    [actions, handleVad],
+    [actions, handleVad, startRecording],
   );
 
   const selectInputDevice = useCallback(

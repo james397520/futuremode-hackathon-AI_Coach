@@ -406,3 +406,21 @@ exit code=139   # SIGSEGV  (兩次)
 
 安裝 `bash scripts/dev/install-api-service.sh`（`--status` / `--uninstall`）。三個曾經踩過的坑：wrapper 沒有 `trap` 會留下孤兒 uvicorn 佔住 8000；沒有退避時壞設定會空轉；macOS 內建 bash 3.2 在 `set -u` 下**空陣列算 unbound**，所以 `reload_flag` 必須是字串不能是陣列。
 
+## 16. 語音（ElevenLabs）
+
+### 16.1 現況
+| 方向 | 路徑 | 狀態 |
+|---|---|---|
+| TTS | `speakTurn()`：伺服器有 `turn.audio_url` 就播雲端音檔，否則瀏覽器 `speechSynthesis`（macOS 系統中文語音，離線） | **會出聲**（目前實際走系統語音，因為雲端音檔傳輸尚未接） |
+| STT | 麥克風 → `MediaRecorder`(Opus/WebM) → `POST /api/v1/sessions/{id}/transcribe` → ElevenLabs Scribe → 繁體轉換 → 前端以 `message.send` 送出 | **已通**，實測 1.7s |
+| Voice 選角 | `apps/api/app/ws/voice_catalog.py`：依 persona `gender` + `age` 查表，persona 自訂 `voice_id` 優先 | 完成 |
+
+### 16.2 設計決定
+- **STT 走 HTTP 不走 WebSocket 二進位幀**：一句話一個請求，簡單、可重試、不需要改 gateway 的文字協定；文字回到前端後再以一般 `message.send` 送出，所以可在送出前修正誤聽。`VoiceSession`（WS 串流版）保留但未接。
+- **麥克風音訊永遠不直接送 vendor**：key 只在 API 行程內；瀏覽器內建 `SpeechRecognition` 在 Chromium 會送 Google，設定畫面有揭露。
+- **Scribe 回簡體**：zh-TW 一律用 OpenCC `s2twp` 轉繁體＋台灣用語，`zh-CN` 保留原樣。
+- gateway 收到 `voice.push_to_talk` 而沒有伺服器端 voice session 時只記 log，不再回 `voice_unavailable` 錯誤（那會在每次放開按鍵時跳紅色橫幅）。
+
+### 16.3 尚未完成
+- ElevenLabs TTS 音檔傳輸（`audio_sink` → 瀏覽器）尚未接；目前雲端 TTS 只在 `/tmp` 實測過，產品內實際出聲的是系統語音。
+- API key 權限受限（缺 `voices_read`/`user_read`），所以 voice 清單寫死在 catalog。**key 曾以純文字出現在聊天室，demo 後請 revoke。**

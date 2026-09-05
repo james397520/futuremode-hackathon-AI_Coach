@@ -44,8 +44,8 @@ from typing import Any
 import structlog
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.agents.base import CollectingTelemetrySink, gather_degrading
 from app.agents.affect_agent import AffectAgent, AffectRequest
+from app.agents.base import CollectingTelemetrySink, gather_degrading
 from app.agents.coach_agent import CoachAgent, CoachRequest, to_domain_insight
 from app.agents.compliance_agent import (
     ComplianceAgent,
@@ -77,6 +77,7 @@ from app.agents.scenario_director import (
     DirectorState,
     ScenarioDirector,
 )
+from app.domain.affect import FaceAffect, TextAffect, TraineeAffect, fuse_affect
 from app.ws.events import EventEmitter, now_ms
 
 log = structlog.get_logger(__name__)
@@ -256,6 +257,12 @@ class ConversationOrchestrator:
             locale=payload.locale,
             mode=payload.mode,
             turn_index=payload.turn_index,
+            # Known at turn start (the browser sends it before the message), so
+            # the persona can react to it in *this* reply — unlike the text
+            # reading, which needs the reply to exist first.
+            trainee_face=(
+                payload.face_affect.model_dump() if payload.face_affect is not None else {}
+            ),
         )
         reply = await self._customer_leg(customer_request, persona_turn_id, degraded)
 
@@ -426,7 +433,6 @@ class ConversationOrchestrator:
                 restricted_topics=list(payload.scenario.get("restricted_topics") or []),
                 evidence=evidence,
                 recent_turns=payload.recent_turns,
-                trainee_affect=affect.model_dump() if affect is not None else {},
             )
         )
         return verdict, evidence
@@ -442,7 +448,7 @@ class ConversationOrchestrator:
         return [
             f
             for f in result.findings
-            if ComplianceAgent._evidence_is_real(f, request)  # noqa: SLF001 - same package
+            if ComplianceAgent._evidence_is_real(f, request)
         ]
 
     async def _persona_audit_leg(
@@ -477,6 +483,7 @@ class ConversationOrchestrator:
                     payload.scenario.get("required_talking_points") or []
                 ),
                 recent_turns=payload.recent_turns,
+                trainee_affect=affect.model_dump() if affect is not None else {},
             )
         )
 

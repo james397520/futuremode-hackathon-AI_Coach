@@ -339,6 +339,20 @@ export const endpoints = {
   getKnowledgeBase: (id: ID) => api.get<KnowledgeBase>(`/api/v1/knowledge-bases/${id}`),
   listDocuments: (kbId: ID, query?: Query) =>
     api.get<Paginated<KnowledgeDocument>>(`/api/v1/knowledge-bases/${kbId}/documents`, { query }),
+  /**
+   * One spoken utterance → text. The microphone never talks to a vendor from
+   * the browser: audio goes to our API, which holds the key (§71). The client
+   * decides whether to send the returned text as a turn.
+   */
+  transcribeUtterance: (sessionId: ID, blob: Blob, mime: string) => {
+    const form = new FormData();
+    const ext = mime.includes('mp4') ? 'mp4' : mime.includes('mpeg') ? 'mp3' : 'webm';
+    form.append('file', blob, `utterance.${ext}`);
+    return api.post<{ text: string; provider: string; language: string }>(
+      `/api/v1/sessions/${sessionId}/transcribe`,
+      { form },
+    );
+  },
   /** Multipart upload; the server issues signed storage URLs (§73). */
   uploadDocuments: (kbId: ID, form: FormData) =>
     api.post<KnowledgeDocument[]>(`/api/v1/knowledge-bases/${kbId}/documents`, { form }),

@@ -624,6 +624,18 @@ class ScoreDelta(DomainModel):
     confidence: Confidence
 
 
+class SessionTranscribeResponse(DomainModel):
+    """``POST /api/sessions/{id}/transcribe`` — one utterance, one string.
+
+    Deliberately not a turn: the client decides whether to send the text, so a
+    mis-heard utterance can be corrected before it reaches the persona.
+    """
+
+    text: str
+    provider: str
+    language: str
+
+
 class SessionMessageResponse(DomainModel):
     """The persona's answer plus everything the UI must reconcile."""
 

@@ -24,9 +24,10 @@ Version pinning (§54): the client cannot choose ``scenario_version`` /
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, WebSocket, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, WebSocket, status
 
 from app.core.deps import (
     AuditDep,
@@ -52,6 +53,7 @@ from app.domain.request_response import (
     SessionMessageRequest,
     SessionMessageResponse,
     SessionResponse,
+    SessionTranscribeResponse,
     SessionTranscriptResponse,
 )
 from app.domain.session import CoachInsight, TrainingSession
@@ -150,6 +152,60 @@ async def post_message(
     audited instead, and the transcript itself is the record of the conversation.
     """
     return await service.post_message(session_id, payload)
+
+
+#: Roughly 60s of Opus at the browser's default bitrate. Anything larger is not
+#: an utterance, it is a file upload on the wrong endpoint.
+_MAX_UTTERANCE_BYTES = 4 * 1024 * 1024
+
+
+@router.post(
+    "/{session_id}/transcribe",
+    response_model=SessionTranscribeResponse,
+    summary="Transcribe one spoken utterance (server-side STT, §22 / §71)",
+    dependencies=[Depends(rate_limit("sessions.transcribe", per_minute=60, burst=10, cost=2))],
+)
+async def transcribe_utterance(
+    session_id: str,
+    service: SessionDep,
+    ctx: CanParticipate,
+    file: UploadFile = File(...),
+) -> SessionTranscribeResponse:
+    """The microphone never streams to a vendor from the browser. Audio comes here,
+    the API holds the vendor key, and the text goes back for the client to send
+    as an ordinary turn — so a mis-heard sentence can be fixed before the
+    persona ever sees it.
+    """
+    from app.services.exceptions import ValidationFailedError
+    from app.ws.voice import build_stt
+
+    # Ownership + tenant scoping exactly as a message would be checked.
+    session = await service.get(session_id)
+    locale = str(getattr(session, "locale", None) or "zh-TW")
+
+    data = await file.read(_MAX_UTTERANCE_BYTES + 1)
+    await file.close()
+    if not data:
+        return SessionTranscribeResponse(text="", provider="none", language=locale)
+    if len(data) > _MAX_UTTERANCE_BYTES:
+        raise ValidationFailedError("utterance too large")
+
+    stt = build_stt()
+    mime = file.content_type or "audio/webm"
+
+    async def one() -> AsyncIterator[bytes]:
+        yield data
+
+    text = ""
+    try:
+        async for chunk in stt.stream(one(), language=locale, mime_type=mime):
+            if chunk.is_final and chunk.text:
+                text = chunk.text
+    except Exception:
+        # The client gets an empty string and says "didn't catch that"; the
+        # vendor error is already logged by the adapter.
+        text = ""
+    return SessionTranscribeResponse(text=text, provider=stt.provider, language=locale)
 
 
 @router.post(

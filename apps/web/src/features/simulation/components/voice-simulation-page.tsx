@@ -143,6 +143,20 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
       // The floor is released; the server decides what happens next.
       socketRef.current?.pushToTalk(false);
     },
+    onUtterance: (blob, mime) => {
+      // Server-side STT (§71): the vendor key never reaches the browser. The
+      // text comes back and is sent as an ordinary turn so the transcript,
+      // the optimistic echo and every downstream agent see exactly what a
+      // typed message would have produced.
+      void endpoints
+        .transcribeUtterance(sessionId, blob, mime)
+        .then((result) => {
+          const text = result.text.trim();
+          if (text) socketRef.current?.sendMessage(text);
+          else pushNotice(`stt-empty-${Date.now()}`, '沒有聽清楚，請再說一次或改用輸入。');
+        })
+        .catch(() => pushNotice(`stt-fail-${Date.now()}`, '語音轉文字暫時無法使用，請改用輸入。'));
+    },
     onSilenceTimeout: () => {
       pushNotice('silence', '還在聆聽——準備好時直接開口即可。');
     },

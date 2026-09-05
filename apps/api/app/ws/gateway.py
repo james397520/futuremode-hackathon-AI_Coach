@@ -114,7 +114,7 @@ async def session_ws_endpoint(
         with contextlib.suppress(Exception):
             await websocket.close(code=exc.code, reason=exc.reason[:120])
         return
-    except Exception as exc:  # noqa: BLE001 - never leak internals over the socket
+    except Exception as exc:
         log.warning("ws.setup_failed", session=session_id, error=repr(exc))
         with contextlib.suppress(Exception):
             await websocket.close(code=CLOSE_POLICY_VIOLATION, reason="session unavailable")
@@ -147,7 +147,7 @@ async def session_ws_endpoint(
         elif status == "ready":
             ev = await emitter.session_started("ready", iso_now())
             log.info("ws.session_started_emitted", session=session_id, seq=ev.get("seq"))
-    except Exception as exc:  # noqa: BLE001 - readiness is best-effort, but log it
+    except Exception as exc:
         log.info("ws.mark_ready_skipped", session=session_id, error=repr(exc))
     connection = _Connection(
         websocket=websocket,
@@ -269,13 +269,13 @@ class _Connection:
                 await self._send(event)
         except asyncio.CancelledError:
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("ws.write_loop_failed", session=self.session_id, error=repr(exc))
 
     async def _send(self, event: Mapping[str, Any]) -> None:
         try:
             await self.ws.send_text(json.dumps(event, ensure_ascii=False, default=str))
-        except Exception as exc:  # noqa: BLE001 - client vanished mid-send
+        except Exception as exc:
             log.info("ws.send_failed", session=self.session_id, error=repr(exc))
             self.closing.set()
 
@@ -308,7 +308,7 @@ class _Connection:
                 raw = await self.ws.receive_text()
             except asyncio.CancelledError:
                 raise
-            except Exception as exc:  # noqa: BLE001 - includes WebSocketDisconnect
+            except Exception as exc:
                 log.info("ws.client_disconnected", session=self.session_id, error=repr(exc))
                 return
             self.last_client_ms = now_ms()
@@ -324,7 +324,7 @@ class _Connection:
                 await self._dispatch(command)
             except asyncio.CancelledError:
                 raise
-            except Exception as exc:  # noqa: BLE001 - one bad command must not end the session
+            except Exception as exc:
                 log.warning(
                     "ws.command_failed",
                     session=self.session_id,
@@ -413,7 +413,7 @@ class _Connection:
             )
         except asyncio.CancelledError:
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("ws.turn_failed", session=self.session_id, error=repr(exc), exc_info=exc)
             await self._client_error(_error_code(exc), _safe_message(exc), recoverable=True)
 
@@ -438,9 +438,11 @@ class _Connection:
     async def _push_to_talk(self, pressed: bool) -> None:
         voice = getattr(self.service, "voice", None)
         if voice is None:
-            await self._client_error(
-                "voice_unavailable", "voice is not enabled for this session"
-            )
+            # Speech-to-text runs over HTTP (`POST /sessions/{id}/transcribe`);
+            # this command is then only the floor-change signal, and answering it
+            # with an error put a red "voice is not enabled" banner on every
+            # single key release.
+            log.debug("ws.push_to_talk.no_voice_session", session=self.session_id, pressed=pressed)
             return
         await (voice.start_listening if pressed else voice.stop_listening)(self.session_id)
 
@@ -482,7 +484,7 @@ async def _default_authenticate(websocket: Any, token: str) -> Any:
             from app.core.config import get_settings
 
             cookie_name = get_settings().session_cookie_name
-        except Exception:  # noqa: BLE001 - settings unavailable in isolated tests
+        except Exception:
             cookie_name = "aicoach_session"
         candidate = str(cookies.get(cookie_name) or cookies.get("access_token") or "")
     if not candidate:
@@ -508,7 +510,7 @@ async def _default_authenticate(websocket: Any, token: str) -> Any:
     try:
         result = resolver(candidate)
         ctx = await result if asyncio.iscoroutine(result) else result
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise SocketAuthError("invalid credentials") from exc
     if ctx is None:
         raise SocketAuthError("invalid credentials")

@@ -25,6 +25,7 @@ AppEnv = Literal["local", "test", "staging", "production"]
 WebGpuMode = Literal["auto", "on", "off"]
 LlmProvider = Literal["openai", "azure_openai", "aup", "minimax", "none"]
 TtsProvider = Literal["elevenlabs", "openai", "none"]
+SttProvider = Literal["elevenlabs", "openai", "none"]
 VectorBackend = Literal["qdrant", "memory", "chroma", "faiss"]
 
 #: Placeholder shipped in ``.env.example``; must never reach a deployed environment.
@@ -86,6 +87,8 @@ class Settings(BaseSettings):
     )
     llm_provider: LlmProvider = Field(default="openai", validation_alias="LLM_PROVIDER")
     tts_provider: TtsProvider = Field(default="elevenlabs", validation_alias="TTS_PROVIDER")
+    # Scribe needs no OpenAI dependency, so ElevenLabs covers both directions by default.
+    stt_provider: SttProvider = Field(default="elevenlabs", validation_alias="STT_PROVIDER")
     llm_model: str = Field(default="gpt-4o", validation_alias="LLM_MODEL")
     minimax_base_url: str = Field(
         default="https://api.minimax.io/anthropic/v1", validation_alias="MINIMAX_BASE_URL"
@@ -179,7 +182,7 @@ class Settings(BaseSettings):
 
     @property
     def elevenlabs_enabled(self) -> bool:
-        return self.tts_provider == "elevenlabs"
+        return self.tts_provider == "elevenlabs" or self.stt_provider == "elevenlabs"
 
     @property
     def minimax_enabled(self) -> bool:

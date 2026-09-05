@@ -91,7 +91,11 @@ class SttPort(Protocol):
     provider: str
 
     def stream(
-        self, audio: AsyncIterator[bytes], *, language: str = "zh-TW"
+        self,
+        audio: AsyncIterator[bytes],
+        *,
+        language: str = "zh-TW",
+        mime_type: str = "audio/webm",
     ) -> AsyncIterator[TranscriptChunk]: ...
 
 
@@ -137,7 +141,11 @@ class OpenAiStt:
         return self._client
 
     async def stream(
-        self, audio: AsyncIterator[bytes], *, language: str = "zh-TW"
+        self,
+        audio: AsyncIterator[bytes],
+        *,
+        language: str = "zh-TW",
+        mime_type: str = "audio/webm",
     ) -> AsyncIterator[TranscriptChunk]:
         """Buffer the utterance, then transcribe it in one call.
 
@@ -151,7 +159,7 @@ class OpenAiStt:
         if not buffer:
             return
         files = {
-            "file": ("audio.webm", bytes(buffer), "audio/webm"),
+            "file": ("audio.webm", bytes(buffer), mime_type),
             "model": (None, self.model),
             "language": (None, language.split("-")[0]),
         }
@@ -160,10 +168,89 @@ class OpenAiStt:
             if response.status_code >= 400:
                 raise RuntimeError(f"stt {response.status_code}: {response.text[:160]}")
             payload = response.json()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("voice.stt_failed", provider=self.provider, error=repr(exc))
             raise
         yield TranscriptChunk(text=str(payload.get("text") or ""), is_final=True)
+
+
+#: Scribe wants ISO 639-3. Anything unmapped is omitted so the model auto-detects
+#: rather than being told a wrong language.
+_SCRIBE_LANGUAGE: dict[str, str] = {"zh": "zho", "en": "eng", "ja": "jpn", "ko": "kor"}
+
+
+def _to_traditional(text: str, language: str) -> str:
+    """Scribe transcribes zh-TW speech into Simplified characters. In a Taiwanese
+    product that is wrong on the transcript, in the evaluator's evidence quotes
+    and in every citation. s2twp also maps mainland phrasing (软件 -> 軟體)."""
+    if not text or not language.lower().startswith("zh") or language.lower().endswith("cn"):
+        return text
+    try:
+        from opencc import OpenCC
+
+        return OpenCC("s2twp").convert(text)
+    except Exception as exc:
+        log.info("voice.stt_convert_skipped", error=repr(exc))
+        return text
+
+
+class ElevenLabsStt:
+    """ElevenLabs Scribe transcription (§22). Credentials stay server-side.
+
+    Buffer-then-transcribe, like `OpenAiStt`: the REST endpoint is not
+    incremental, so one utterance yields one final chunk. Verified against the
+    live API with zh-TW audio produced by our own TTS.
+    """
+
+    provider = "elevenlabs"
+
+    def __init__(self, *, model_id: str = "scribe_v1", client: Any | None = None) -> None:
+        self.model_id = model_id
+        self._client = client
+
+    def _http(self) -> Any:
+        if self._client is None:
+            import httpx
+
+            from app.core.config import get_settings
+
+            settings = get_settings()
+            key = getattr(settings, "elevenlabs_api_key", "")
+            getter = getattr(key, "get_secret_value", None)
+            self._client = httpx.AsyncClient(
+                base_url=getattr(settings, "elevenlabs_base_url", "https://api.elevenlabs.io/v1"),
+                headers={"xi-api-key": str(getter()) if callable(getter) else str(key)},
+                timeout=60.0,
+            )
+        return self._client
+
+    async def stream(
+        self, audio: AsyncIterator[bytes], *, language: str = "zh-TW", mime_type: str = "audio/webm"
+    ) -> AsyncIterator[TranscriptChunk]:
+        buffer = bytearray()
+        async for frame in audio:
+            buffer.extend(frame)
+        if not buffer:
+            return
+        data: dict[str, str] = {"model_id": self.model_id}
+        code = _SCRIBE_LANGUAGE.get(language.split("-")[0].lower())
+        if code:
+            data["language_code"] = code
+        ext = "mp4" if "mp4" in mime_type else "mp3" if "mpeg" in mime_type else "webm"
+        try:
+            response = await self._http().post(
+                "/speech-to-text",
+                files={"file": (f"utterance.{ext}", bytes(buffer), mime_type)},
+                data=data,
+            )
+            if response.status_code >= 400:
+                raise RuntimeError(f"stt {response.status_code}: {response.text[:160]}")
+            payload = response.json()
+        except Exception as exc:
+            log.warning("voice.stt_failed", provider=self.provider, error=repr(exc))
+            raise
+        text = _to_traditional(str(payload.get("text") or "").strip(), language)
+        yield TranscriptChunk(text=text, is_final=True)
 
 
 class OpenAiTts:
@@ -271,7 +358,7 @@ class NullStt:
     provider = "none"
 
     async def stream(
-        self, audio: AsyncIterator[bytes], *, language: str = "zh-TW"
+        self, audio: AsyncIterator[bytes], *, language: str = "zh-TW", mime_type: str = "audio/webm"
     ) -> AsyncIterator[TranscriptChunk]:
         async for _frame in audio:
             pass
@@ -365,7 +452,7 @@ class VoiceSession:
                     await self.emitter.speech_partial("trainee", chunk.text)
         except asyncio.CancelledError:
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             await self.emitter.session_error(
                 "stt_failed", "we could not hear that clearly — please try again"
             )
@@ -393,7 +480,7 @@ class VoiceSession:
                 ):
                     yield chunk
                 return
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 if attempt == 2:
                     raise
                 log.info("voice.stt_retry", session=self.session_id, error=repr(exc))
@@ -425,7 +512,7 @@ class VoiceSession:
             await self.on_turn(text)
         except asyncio.CancelledError:
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("voice.turn_failed", session=self.session_id, error=repr(exc))
         finally:
             if self.state is VoiceState.THINKING:
@@ -459,7 +546,7 @@ class VoiceSession:
         except asyncio.CancelledError:
             log.info("voice.tts_cancelled", session=self.session_id)
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("voice.tts_failed", session=self.session_id, error=repr(exc))
             await self.emitter.session_error(
                 "tts_failed", "voice playback failed; captions remain available"
@@ -500,6 +587,27 @@ async def _replay_frames(frames: Sequence[bytes]) -> AsyncIterator[bytes]:
         yield frame
 
 
+
+def build_stt() -> SttPort:
+    """The configured speech-to-text adapter, or `NullStt` when no key is set.
+
+    Separate from `build_voice_session` because HTTP transcription needs no
+    emitter, no TTS and no session state — just the adapter.
+    """
+    try:
+        from app.core.config import get_settings
+
+        settings = get_settings()
+        stt_provider = str(getattr(settings, "stt_provider", "elevenlabs"))
+        if stt_provider == "elevenlabs" and getattr(settings, "elevenlabs_api_key", None):
+            return ElevenLabsStt()
+        if stt_provider == "openai" and getattr(settings, "openai_api_key", None):
+            return OpenAiStt()
+    except Exception as exc:
+        log.warning("voice.stt_setup_failed", error=repr(exc))
+    return NullStt()
+
+
 def build_voice_session(
     *,
     session_id: str,
@@ -527,13 +635,12 @@ def build_voice_session(
         from app.core.config import get_settings  # assumed
 
         settings = get_settings()
-        if getattr(settings, "openai_api_key", None):
-            stt = OpenAiStt()
+        stt = build_stt()
         if config.provider == "elevenlabs" and getattr(settings, "elevenlabs_api_key", None):
             tts = ElevenLabsTts()
         elif config.provider == "openai" and getattr(settings, "openai_api_key", None):
             tts = OpenAiTts()
-    except Exception as exc:  # noqa: BLE001 - voice is optional, never fatal
+    except Exception as exc:
         log.warning("voice.provider_setup_failed", error=repr(exc))
     return VoiceSession(
         session_id=session_id,
@@ -551,6 +658,7 @@ __all__ = [
     "STT_LATENCY_BUDGET_MS",
     "TTS_FIRST_BYTE_BUDGET_MS",
     "AudioChunk",
+    "ElevenLabsStt",
     "ElevenLabsTts",
     "NullStt",
     "NullTts",
@@ -562,5 +670,6 @@ __all__ = [
     "VoiceConfig",
     "VoiceSession",
     "VoiceState",
+    "build_stt",
     "build_voice_session",
 ]
