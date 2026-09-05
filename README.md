@@ -1,54 +1,105 @@
-# futuremode-hackathon-AI_Coach
-AI-powered training platform with adaptive role-play, real-time voice & 3D avatar interaction, enterprise knowledge RAG, and evidence-based performance evaluation.
+# SkillCoach
+
+基於多模態 Agent 之企業與教育全情境模擬培訓平台
+
+FUTUREMODE 2026 台灣未來祭 · BUILDMODE 黑客松參賽作品 · **Track 5**
+
+- 專案網站：<https://james397520.github.io/futuremode-hackathon-AI_Coach/>
+- 儲存庫：<https://github.com/james397520/futuremode-hackathon-AI_Coach>
 
 ## 問題與目標
 
-請用簡短段落說明要解決的問題、目標使用者與預期影響。
+企業與教育現場的培訓，卡在四個結構性問題：
+
+- **企業培訓困難**：角色扮演與實戰演練高度依賴資深人員陪練，成本高、排程難、難以規模化。
+- **企業知識傳遞**：產品知識、SOP 與經驗散落在文件與資深員工腦中，隨人員流動而流失。
+- **填鴨式學習成效不彰**：固定腳本與單向講授，學員背得起來卻用不出來，面對真實情境仍然生疏。
+- **傳統 Agent 皆為一問一答**：既有 AI 助理只能被動應答，無法主導情境、引導學習，也不會評估表現。
+
+SkillCoach 希望運用多模態導引，打造一個具有溫度的 Agent 引擎，釋放企業知識庫的價值並提供個性化教學引導，藉此降低人才培育斷層、讓知識民主化與企業化，並把專家經驗結構化保存與傳承，而不是隨人員流動而流失。
 
 ## 核心功能
 
-- 功能一
-- 功能二
-- 功能三
+- **情境擬真與動態引導智能體（Dynamic Scenario Agent）**：不是一問一答的聊天機器人，而是能主導情境、隨學員表現動態調整劇本與難度、主動引導的智能體。
+- **自適應角色扮演**：AI 扮演客戶、病患或面試官，依學員回應即時調整態度、難度與情境分支，避免「背答案」式訓練。
+- **即時語音與 3D 虛擬人**：串流語音辨識與合成，搭配口型同步的 3D Avatar，讓對練有真人般的語氣、停頓與表情壓力。
+- **企業知識 RAG**：匯入產品手冊、SOP、FAQ 等文件，AI 對手的問題與標準答案皆引用企業知識庫，確保內容正確且可更新。
+- **實證績效評估**：依可設定的評分準則（rubric）逐句分析對話，每個分數都附上原話證據與改進建議，主管與學員看到同一份事實。
+- **自然的使用者體驗**：模糊意圖能自動推論並反問補齊資訊；提問超出知識庫範圍時會溫和收斂並推薦貼近企業標準的方向；能透過鏡頭／文字感受使用者情緒並據以調整引導。
+
+使用流程：選擇情境 → 語音對練 → 知識檢索 → 逐句評估 → 追蹤成長。
 
 ## 系統架構
 
-請附上架構圖，並說明前端、後端、模型、資料庫與外部服務如何協作。
+系統分四層，前端負責語音擷取與 3D 渲染，後端統籌對話狀態、RAG 檢索與評估流程，模型層可替換，資料層保存企業知識庫與訓練紀錄：
+
+| 層 | 內容 |
+| --- | --- |
+| Frontend | Web App、3D Avatar、語音擷取、評估儀表板 |
+| Backend | API Gateway、對話編排器、RAG Pipeline、評估引擎 |
+| AI Models | LLM、STT / TTS、Embedding、Avatar 驅動 |
+| Data | 關聯式資料庫、物件儲存、企業文件來源 |
+
+主要資料流：Web App 與語音擷取進入 API Gateway 與對話編排器 → 對話編排器呼叫 STT/TTS 處理語音、呼叫 RAG Pipeline 檢索企業知識 → RAG Pipeline 串接 Embedding 模型與企業文件來源 → 評估引擎呼叫 LLM 進行逐句評分推理。完整架構圖見[專案網站的「系統架構」區塊](https://james397520.github.io/futuremode-hackathon-AI_Coach/#arch)。
 
 ## 使用技術
 
 | 類型 | 技術／服務 | 用途 |
 | --- | --- | --- |
-| AI 模型 |  |  |
-| 前端 |  |  |
-| 後端 |  |  |
-| Sponsor 技術 |  |  |
+| AI 模型 | EastRouter、ElevenLabs、GMI | 對話大腦與評測引擎、擬真語音與情緒交互、智能情緒化感知、知識向量化 |
+| 前端 | React、Vite、Three.js、WebRTC | 對練介面、3D 虛擬人渲染與口型同步、低延遲語音串流 |
+| 後端 | Python、FastAPI、WebSocket | 對話編排、RAG 檢索、評估引擎、API 與即時通道 |
+| 資料 | PostgreSQL | 使用者、對練紀錄與評分、文件與錄音物件儲存 |
+| Sponsor 技術 | GMI、ElevenLabs、EastRouter、CertiK、國泰金控 Cathay Financial Holdings | 情緒感知、語音交互、對話與評測引擎、合規審計、企業知識庫導入（RAG） |
 
 ## 安裝與執行
 
+> 目前本儲存庫只包含黑客松的專案介紹網站（`docs/`），尚未包含 SkillCoach 應用程式本身的原始碼——詳見下方「限制與未來工作」。
+
+本機預覽介紹網站：
+
 ```bash
-# 請提供能重現作品的完整步驟
+python -m http.server 8765 --directory docs
+# 開啟 http://localhost:8765/
 ```
+
+推送到 `main` 分支的 `docs/` 變更，會由 [`.github/workflows/pages.yml`](.github/workflows/pages.yml) 自動部署到上方的專案網站。
 
 ## 作品展示
 
-- 作品展示網址（選填）：
-- 評選影片：
+- 線上網站：<https://james397520.github.io/futuremode-hackathon-AI_Coach/>
+- 評選影片：待補
 
 ## 限制與未來工作
 
-請說明目前已知限制、未完成項目與後續發展方向。
+**目前已知限制**
+
+- 本儲存庫目前僅有專案介紹網站（`docs/`），SkillCoach 應用程式本身（前後端、模型串接）尚未上傳到此 repo，因此系統架構與技術選型目前是設計規劃，尚未有可執行的實作可供驗證。
+
+> 產品面（多語系支援、3D 虛擬人表情豐富度、評估 rubric 自動化程度、語音延遲與離線能力等）的具體限制與後續發展方向，需要團隊依實際開發進度補充，此處尚未列出未經確認的項目。
 
 ## 第三方服務、資料與素材
 
-請逐項列出來源、連結與授權方式；不要提交金鑰、Token 或個人資料。
+| 名稱 | 用途 | 連結 |
+| --- | --- | --- |
+| EastRouter | 對話大腦與評測引擎 | <https://eastrouter.com> |
+| ElevenLabs | 擬真語音與情緒交互 | <https://elevenlabs.io> |
+| GMI | 智能情緒化感知 | <https://www.gmicloud.ai> |
+| CertiK | 合規審計 | <https://www.certik.com> |
+| 國泰金控 Cathay Financial Holdings | 企業知識庫導入（RAG） | <https://www.cathayholdings.com> |
+
+各服務之授權條款以其官方網站公告為準；本儲存庫未包含任何 API Key、Token 或個人資料。
 
 ## 團隊成員
 
-| 姓名 | 分工 |
-| --- | --- |
-|  |  |
+| 姓名 | 分工 | 重點經歷 |
+| --- | --- | --- |
+| Bryan | Leader | 逢甲大學先進智慧研究社社長（第三屆）；上銀機械手臂大賽 2024 冠軍；上銀黑客松 2024 / 2025 |
+| Jease | LLM | GTA Robotics 共同創辦人暨技術副總；European Innovation Academy 2024；FAST PROCESSING DATA TECH INC. 與 Dirui Energy 資訊顧問 |
+| Gino | Vision | 卉勛軟體共同創辦人；入選台大創創加速器與 U-start；桃園創新創業競賽第三名；受邀於 Appworks／人工智慧學校演講 |
+| Jessie | UI/UX | 紐約 ADC 年度獎銅獎；德國紅點設計獎 Best of Best；Yodex 新世代設計產學合作獎銅獎 |
+| James | Repo Owner | 待補充 |
 
 ## License
 
-請在儲存庫根目錄加入明確的 `LICENSE` 檔案，並在此標示授權名稱。
+尚未加入 `LICENSE` 檔案，待團隊決定授權方式後補上。
