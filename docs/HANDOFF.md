@@ -555,6 +555,48 @@ launchd label `com.aicoach.local-tts`，KeepAlive，log `/tmp/ai-coach-local-tts
 - 模型在 ~100 音素以上會趕拍、吞字（模型卡自己承認），服務按句號切句、超過 120 音素再按逗號切，並套用模型卡的長度→速度曲線；每段之間補 0.18 s 靜音。沒有標點的長句會變成一口氣。
 - 沒有串流：一句要等合成完才開始播。
 
+### 16.16 台灣口音本地 TTS：Breeze2-VITS（現為 `services/local-tts` 的預設引擎）
+
+Kokoro 的口音是大陸的，而且烤在權重裡改不動。BreezyVoice（台灣口音、Apache-2.0）當初因體積被否決——實查 Hugging Face：最小權重集 `llm.pt` 1.24 GB + `speech_tokenizer_v1.onnx` 523 MB + `flow.pt` 420 MB + `hift.pt` 82 MB + `campplus.onnx` 28 MB = **2.3 GB**，整包 repo 3.17 GB（207 檔），加 torch venv 約 1 GB；架構是 CosyVoice-300M 那系的自迴歸 LLM + flow matching，CPU RTF > 1。磁碟現在夠了（剩 7.5 GB），但 RTF 仍然出局。
+
+改用 **[`MediaTek-Research/Breeze2-VITS-onnx`](https://huggingface.co/MediaTek-Research/Breeze2-VITS-onnx)**：官方說明是「把 BreezyVoice 蒸餾成輕量 VITS」，繁體中文、目標是 Android。整包 **118 MB**（`breeze2-vits.onnx` 121 MB + `lexicon.txt` 2.5 MB + `tokens.txt`），比 Kokoro 的 382 MB 還小，而且 VITS 非自迴歸。
+
+**沒有用 sherpa-onnx。** 這個 graph 自帶完整 metadata（`model_type=vits`、`sample_rate=22050`、`add_blank=1`、`n_speakers=1`、`punctuation`），直接跑本來就裝了的 `onnxruntime` 即可；引進 sherpa 只會多帶一份 onnxruntime，而且它自己的 G2P 會繞過本服務的 `normalize()` 與斷句。
+
+**實測（暖機後，同一台 8 GB M3）**
+
+| | Breeze2-VITS | Kokoro |
+|---|---|---|
+| 「這個我不太清楚啦…好不好？」 | 4.44 s 音長 | 5.55 s |
+| 「我比較想先知道…多少錢。」 | 4.67 s | 5.88 s |
+| 「好，那我們先看保障的部分。」 | 2.07 s | 3.40 s |
+| RTF | 0.31–0.42 | 0.22–0.28 |
+| 本機辨識回測（`tools/mac-stt`） | 3/3 可懂 | 3/3 可懂 |
+
+語速比 Kokoro 快約 25%，聽感更像講話而不是念稿；RTF 略高但仍遠低於 1。
+
+**它是台灣的「聲音」，配的卻是大陸的「讀音」。** 這是實查 `lexicon.txt` 得到的結論，不是聽感：詞表 68,000 條裡 47,098 條是詞，而**詞條是簡體**（`一丁点儿`、`一个`、`一丝不挂`），讀音照大陸標準——研究 ㄐㄧㄡˉ、星期 ㄑㄧˉ、質 ㄓˋ、髮 ㄈㄚˋ、危 ㄨㄟˉ、企 ㄑㄧˇ、液 ㄧㄝˋ、崖 ㄧㄚˊ。而且因為詞條是簡體，繁體的多字詞大多查不到（垃圾、法國、企業、品質、說服 都沒有詞條），退回逐字讀音，連破音字判斷都放棄了——`長期` 因此被讀成 ㄓㄤˇ ㄑㄧˉ（生長的長）。
+
+**修法是資料不是程式**：`app/engines/taiwan_readings.py` 是 61 條台灣讀音（教育部《國語一字多音審訂表》），在 `read_lexicon()` 裡 `dict.update()` 疊上去，longest-match 自然就先撞到修正過的詞。開關 `LOCAL_TTS_TAIWAN_LEXICON`（預設開）。注音是用「拼音→注音」腳本產生的，該腳本先拿這份 lexicon 自己的 18 個字（圍/有/崖/月/雲/中/說/學/對/六/永/文/王/用/一/五/女/外）驗過，18/18 相符，所以符號拆法是這個檔自己的寫法。
+
+**刻意沒收的：`和` 讀 ㄏㄢˋ。** 它是最有辨識度的台灣讀音，但只適用於連接詞；單字覆寫會連 和平、溫和、和諧、和尚 一起改掉。唸錯「和平」比唸得文一點糟。
+
+**效果用獨立的台灣辨識器驗證**（`tools/mac-stt`，Apple 的 zh-TW 模型，跟 TTS 無關）：
+
+| 合成的句子 | 用原詞典 | 用台灣讀音表 |
+|---|---|---|
+| 垃圾郵件裡那個法國方案… | **浪費**郵件你那個**髮箍**方案… | **垃圾**郵件裡那個**法國**方案… |
+| …這份企業保單的期限和給付… | …期限和**抵付**… | …期限和**給付**… |
+
+原詞典的讀音，台灣的辨識器根本聽不懂——這比任何聽感描述都硬。
+
+**一個必須知道的限制：這個 checkpoint 只有一個 speaker，而且是女聲**（實測中位基頻 248 Hz，對照 Kokoro 女聲 zf_001 的 264 Hz；男聲一般 85–155 Hz）。所以「說：本地」現在不分男女都是同一個女聲，67 歲的王國棟也是。`/speak` 不會默默吃掉 `gender`/`voice`，而是在 `X-Voice-Ignored` 標頭講清楚。要有男女之分，目前只能：(a) demo 用雲端 ElevenLabs 的 Yui/Ian，(b) 男性 persona 退回 Kokoro `zm_010`（男聲，但口音是大陸的）。這是產品取捨，還沒決定。
+
+**授權未明。** HF 上這個 repo 沒有 license 欄位，README 也沒寫。BreezyVoice 本身是 Apache-2.0，蒸餾產物大機率跟隨，但不能假設——商用前必須向 MediaTek Research 確認。
+
+**安裝／啟動**：`pnpm tts:install` 會一併抓 Breeze 的三個檔；`LOCAL_TTS_ENGINE=kokoro` 可以切回去，Breeze 權重不在時服務照樣用 Kokoro 起來並在 `/healthz` 說明。
+
+
 ## 18. 30 秒 Demo（情境三）所需的三個機制
 1. **客戶先開口**：`SessionService.speak_opening_line()` 在首次連線 `mark_ready` 後，把 `opening_context` 裡最後一段「…」引句當作客戶第 0 輪送出並持久化；session 已有任何回合就不做（重連不會重複）。四個情境的 opening_context 都寫成「他坐下來第一句話是：「…」」的格式，所以全部受惠。副作用：回合計數會把這一輪算進去（UI 顯示 Turn 1 / 30）。
 2. **低耐心 persona 回覆精簡**：`CustomerTurnRequest` 依 `traits.patience < 35` 加 `reply_length` 指令（兩句、40 字內）。這是角色特性，順便讓對話框不需捲動。
@@ -567,3 +609,9 @@ launchd label `com.aicoach.local-tts`，KeepAlive，log `/tmp/ai-coach-local-tts
 - 動畫：保留檔案內的身體 idle tracks，**臉部軌跡一律丟掉**（臉是我們驅動的）。
 - 朝向：RPM 面向 +Z，不需要 `rotateVRM0`。`modelUrlFor('male')` 指向 glb；女性仍是 VRM。
 - 限制：沒有 VRM 的 lookAt／spring bone；手臂姿勢校正（`ARM_POSE`）只作用於 VRM。
+
+### 19.1 改回 VRM：`Business_Male_02_50.vrm`（VRM 1.0）
+使用者隨後提供 VRM 1.0 男性模型「王先生・50代」（Microsoft Rocketbox，52 humanBones，17 個表情 preset：aa/ih/ou/ee/oh/blink/blinkLeft/blinkRight/happy/angry/sad/surprised/relaxed/lookUp/Down/Left/Right），已覆蓋 `public/models/avatar_male_suit.vrm`，`modelUrlFor('male')` 改回 VRM。RPM 的 `.glb` 與一般 glTF 分支保留備用。
+- three-vrm 3.x 同時支援 0.x 與 1.0；`rotateVRM0()` 對 1.0 是 no-op（1.0 本身面向 +Z）。
+- `ARM_POSE` 是照舊 VRoid 模型量的；Rocketbox 的 rest pose 若不同，用 `window.__aiCoachVrm.setArms({...})` 重量後改常數。
+- **授權待確認**：Rocketbox 授權條款在模型 meta 的 `licenseUrl`（github.com/microsoft/Microsoft-Rocketbox）；商用與再散布條件請看該檔。

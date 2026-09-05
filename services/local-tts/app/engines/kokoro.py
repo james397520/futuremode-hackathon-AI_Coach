@@ -7,22 +7,25 @@ sentence into Kokoro's phoneme alphabet, the vocab from the model's own
 produces the waveform. Sentences are joined with a short silence.
 
 Everything the model needs lives in three files under ``models/`` (see
-``scripts/fetch_model.sh``); nothing is downloaded at runtime.
+``scripts/fetch_model.sh``); nothing is downloaded at runtime. Kept as the
+fallback engine after Breeze2-VITS became the default (§16.16): 100 voices and
+a mainland-standard accent, against Breeze's single Taiwanese speaker.
 """
 
 from __future__ import annotations
 
 import json
-import re
-import threading
 import time
-from collections.abc import Callable
+import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
+from app.engines.base import EngineBase, SynthesisStats, normalize, split_long, split_sentences
+
+MODEL_NAME = "hexgrad/Kokoro-82M-v1.1-zh"
 SAMPLE_RATE = 24_000
 #: Hard limit of the graph (position embeddings); we stay well under it.
 MAX_TOKENS = 510
@@ -30,54 +33,6 @@ MAX_TOKENS = 510
 #: syllables (documented in the model card's make_zh.py), so long sentences are
 #: cut at the nearest comma before this many phoneme tokens.
 CHUNK_TOKENS = 120
-#: Silence appended after each sentence: 0.18 s.
-GAP_SAMPLES = int(0.18 * SAMPLE_RATE)
-
-_SENTENCE_END = re.compile(r"(?<=[。！？!?；;…\n])")
-_CLAUSE_END = re.compile(r"(?<=[，,、：:])")
-_THOUSANDS = re.compile(r"(?<=\d),(?=\d{3}\b)")
-_CURRENCY = re.compile(r"(?:NT\$|NTD|TWD)\s*")
-
-
-def normalize(text: str) -> str:
-    """The few things misaki's number reader gets wrong on insurance copy.
-
-    "1,200" is read as 一，二百 unless the separator goes; "NT$" is an unknown
-    symbol (dropped silently). Everything else — plain numbers, %, dates — is
-    left to cn2an inside misaki.
-    """
-    text = _THOUSANDS.sub("", text)
-    text = _CURRENCY.sub("新台幣", text)
-    return text.replace("＄", "").replace("$", "")
-
-
-def split_sentences(text: str) -> list[str]:
-    """Sentence-final punctuation, then whitespace/newlines, drop empties."""
-    parts = [p.strip() for p in _SENTENCE_END.split(text)]
-    return [p for p in parts if p]
-
-
-def split_long(sentence: str, too_long: Callable[[str], bool]) -> list[str]:
-    """Cut a sentence at clause punctuation until every piece passes `too_long`.
-
-    Greedy left-to-right merge of clauses; a single clause that is still too
-    long is emitted as-is and left to the 510-token hard cap.
-    """
-    if not too_long(sentence):
-        return [sentence]
-    clauses = [c for c in _CLAUSE_END.split(sentence) if c]
-    out: list[str] = []
-    current = ""
-    for clause in clauses:
-        candidate = current + clause
-        if current and too_long(candidate):
-            out.append(current)
-            current = clause
-        else:
-            current = candidate
-    if current:
-        out.append(current)
-    return out
 
 
 def length_speed(n_tokens: int) -> float:
@@ -91,6 +46,21 @@ def length_speed(n_tokens: int) -> float:
     if n_tokens < 183:
         return 1.0 - (n_tokens - 83) / 500
     return 0.8
+
+
+def list_voices(voices_path: Path) -> list[str]:
+    """Voice names without loading the 325 MB graph or the 54 MB of style rows.
+
+    An .npz is a zip; its central directory is enough. `/healthz` advertises the
+    voice list even when this engine has not been loaded yet, because the API's
+    capabilities probe passes it straight through to the browser.
+    """
+    try:
+        with zipfile.ZipFile(voices_path) as zf:
+            names = [Path(n).stem for n in zf.namelist()]
+    except (OSError, zipfile.BadZipFile):
+        return []
+    return sorted(n for n in names if n[:3] in ("zf_", "zm_"))
 
 
 class Tokenizer:
@@ -111,36 +81,7 @@ class Tokenizer:
 
 
 @dataclass
-class SynthesisStats:
-    chars: int
-    phonemes: int
-    chunks: int
-    audio_s: float
-    synth_s: float
-    g2p_s: float
-    voice: str
-    speed: float
-
-    @property
-    def rtf(self) -> float:
-        return self.synth_s / self.audio_s if self.audio_s > 0 else 0.0
-
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            "chars": self.chars,
-            "phonemes": self.phonemes,
-            "chunks": self.chunks,
-            "audio_s": round(self.audio_s, 3),
-            "synth_s": round(self.synth_s, 3),
-            "g2p_s": round(self.g2p_s, 3),
-            "rtf": round(self.rtf, 3),
-            "voice": self.voice,
-            "speed": self.speed,
-        }
-
-
-@dataclass
-class KokoroZhEngine:
+class KokoroZhEngine(EngineBase):
     """One loaded model. `synthesize` is serialised by a lock: the graph is
     thread-safe, but two concurrent runs on an 8 GB laptop just page."""
 
@@ -148,18 +89,23 @@ class KokoroZhEngine:
     voices_path: Path
     config_path: Path
     threads: int = 4
+    default_female_voice: str = "zf_001"
+    default_male_voice: str = "zm_010"
     session: Any = field(init=False, repr=False)
     voices: dict[str, np.ndarray] = field(init=False, repr=False)
     tokenizer: Tokenizer = field(init=False, repr=False)
     g2p: Any = field(init=False, repr=False)
-    device: str = field(init=False, default="cpu")
-    rtf_last: float | None = field(init=False, default=None)
-    _lock: threading.Lock = field(init=False, default_factory=threading.Lock, repr=False)
+
+    name = "kokoro"
+    model_name = MODEL_NAME
+    sample_rate = SAMPLE_RATE
+    single_speaker = False
 
     def __post_init__(self) -> None:
         import onnxruntime as ort
         from misaki import zh
 
+        EngineBase.__init__(self)
         opts = ort.SessionOptions()
         opts.intra_op_num_threads = self.threads
         opts.inter_op_num_threads = 1
@@ -167,7 +113,6 @@ class KokoroZhEngine:
         self.session = ort.InferenceSession(
             str(self.model_path), opts, providers=["CPUExecutionProvider"]
         )
-        self.device = "cpu/onnxruntime"
         with np.load(self.voices_path) as packed:
             self.voices = {name: packed[name] for name in packed.files}
         self.tokenizer = Tokenizer.from_config(self.config_path)
@@ -186,6 +131,9 @@ class KokoroZhEngine:
 
     def has_voice(self, name: str) -> bool:
         return name in self.voices
+
+    def default_voice(self, gender: str | None) -> str:
+        return self.default_male_voice if gender == "male" else self.default_female_voice
 
     # ---- pipeline -----------------------------------------------------------
     def phonemize(self, text: str) -> str:
@@ -230,27 +178,25 @@ class KokoroZhEngine:
         t0 = time.perf_counter()
         chunks = self._chunks(text)
         t1 = time.perf_counter()
+        gap = np.zeros(self.gap_samples, dtype=np.float32)
         pieces: list[np.ndarray] = []
         with self._lock:
             for ids in chunks:
-                wav = self._run(ids, pack, speed * length_speed(len(ids)))
-                pieces.append(wav)
-                pieces.append(np.zeros(GAP_SAMPLES, dtype=np.float32))
+                pieces.append(self._run(ids, pack, speed * length_speed(len(ids))))
+                pieces.append(gap)
         t2 = time.perf_counter()
-        audio = np.concatenate(pieces) if pieces else np.zeros(0, dtype=np.float32)
-        # Trim the trailing gap; keep the inter-sentence ones.
-        if len(audio) >= GAP_SAMPLES:
-            audio = audio[:-GAP_SAMPLES]
-        pcm = np.clip(audio * 32767.0, -32768, 32767).astype(np.int16)
+        pcm = self.to_pcm16(self.join(pieces))
         stats = SynthesisStats(
+            engine=self.name,
             chars=len(text),
             phonemes=sum(len(c) for c in chunks),
             chunks=len(chunks),
-            audio_s=len(pcm) / SAMPLE_RATE,
+            audio_s=len(pcm) / self.sample_rate,
             synth_s=t2 - t1,
             g2p_s=t1 - t0,
             voice=voice,
             speed=speed,
+            sample_rate=self.sample_rate,
         )
         self.rtf_last = round(stats.rtf, 3)
         return pcm, stats

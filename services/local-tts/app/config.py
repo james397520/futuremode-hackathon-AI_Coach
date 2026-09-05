@@ -16,11 +16,27 @@ class Settings(BaseSettings):
 
     host: str = "127.0.0.1"
     port: int = 8795
+    #: Which engine speaks when the request does not say. `breeze` is Taiwanese
+    #: and single-speaker, `kokoro` is mainland-accented with 100 voices; see
+    #: docs/HANDOFF.md §16.16. Falls back to whichever weights are on disk.
+    engine: str = "breeze"
     #: Where fetch_model.sh put the weights. Gitignored.
     model_dir: Path = Field(default=SERVICE_ROOT / "models")
     model_file: str = "kokoro-v1.1-zh.onnx"
     voices_file: str = "voices-v1.1-zh.bin"
     config_file: str = "config.json"
+    #: Breeze2-VITS: breeze2-vits.onnx + tokens.txt + lexicon.txt.
+    breeze_dir: Path = Field(default=SERVICE_ROOT / "models" / "breeze2-vits")
+    #: The checkpoint is ~14 dB quieter than Kokoro; ×5 matches their RMS. The
+    #: engine backs the gain off rather than clipping a loud line.
+    breeze_gain: float = 5.0
+    #: Duration multiplier applied on top of the request's `speed`. > 1 slows
+    #: the delivery; Breeze at 1.0 speaks about 30 % faster than Kokoro.
+    breeze_length_scale: float = 1.0
+    #: Layer the 台灣讀音 table over the shipped lexicon (`taiwan_readings.py`).
+    #: On by default — the checkpoint is a Taiwan voice shipped with mainland
+    #: readings. Set 0 to hear the file as MediaTek published it.
+    taiwan_lexicon: bool = True
     #: Default voices per gender. Chosen from the model card's own showcase
     #: (HEARME_zf_001 / HEARME_zm_010); every zf_*/zm_* in the voices file is
     #: still selectable by name.

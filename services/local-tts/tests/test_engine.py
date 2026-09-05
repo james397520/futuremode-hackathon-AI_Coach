@@ -1,9 +1,10 @@
-"""Text handling around the model: sentence splitting, clause cutting, the
-length→speed curve and the vocab tokenizer. No weights needed."""
+"""Text handling shared by both engines, plus Kokoro's own vocab tokenizer and
+length→speed curve. No weights needed."""
 
 from __future__ import annotations
 
-from app.engine import Tokenizer, length_speed, normalize, split_long, split_sentences
+from app.engines.base import normalize, split_long, split_sentences
+from app.engines.kokoro import Tokenizer, length_speed
 
 
 def test_split_sentences_on_cjk_terminators() -> None:
