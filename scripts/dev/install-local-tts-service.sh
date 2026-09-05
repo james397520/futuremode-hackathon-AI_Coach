@@ -5,8 +5,9 @@
 #   scripts/dev/install-local-tts-service.sh --uninstall
 #   scripts/dev/install-local-tts-service.sh --status
 #
-# What it runs: services/local-tts (FastAPI + onnxruntime, Kokoro-82M-v1.1-zh)
-# on 127.0.0.1:${LOCAL_TTS_PORT:-8795}. The API's `LocalHttpTts` adapter posts
+# What it runs: services/local-tts (FastAPI + onnxruntime) on
+# 127.0.0.1:${LOCAL_TTS_PORT:-8795}, speaking Breeze2-VITS by default with
+# Kokoro-82M-v1.1-zh as the second engine. The API's `LocalHttpTts` adapter posts
 # persona lines there and falls back to ElevenLabs when the port is closed.
 #
 # Why launchd and not a child of the API: the model takes ~2 s to load and
@@ -15,7 +16,8 @@
 # anyone remembering to. KeepAlive restarts it if onnxruntime ever crashes.
 #
 # Weights live in services/local-tts/models (gitignored). They are fetched on
-# first install by services/local-tts/scripts/fetch_model.sh (~380 MB).
+# first install by services/local-tts/scripts/fetch_model.sh (~505 MB: 124 MB of
+# Breeze under models/breeze2-vits, 380 MB of Kokoro beside it).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 LABEL="com.aicoach.local-tts"
@@ -50,7 +52,10 @@ if [ ! -x "$PY" ]; then
   command -v uv >/dev/null || { echo "uv not found; install it first (https://docs.astral.sh/uv/)" >&2; exit 1; }
   (cd "$SVC" && uv venv --python 3.12 .venv && uv pip install --python .venv/bin/python -e .)
 fi
-[ -f "$SVC/models/kokoro-v1.1-zh.onnx" ] || bash "$SVC/scripts/fetch_model.sh"
+# Each engine is fetched independently: an install that predates Breeze only
+# needs the 124 MB, and a missing Breeze must not re-download 380 MB of Kokoro.
+[ -f "$SVC/models/breeze2-vits/breeze2-vits.onnx" ] || bash "$SVC/scripts/fetch_model.sh" breeze
+[ -f "$SVC/models/kokoro-v1.1-zh.onnx" ] || bash "$SVC/scripts/fetch_model.sh" kokoro
 
 mkdir -p "$(dirname "$PLIST")"
 # PATH is explicit: launchd does not read the shell profile, and /speak?format=mp3
