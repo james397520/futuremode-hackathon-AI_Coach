@@ -54,6 +54,7 @@ class EventType:
     AGENT_RESPONSE_PARTIAL = "agent.response.partial"
     AGENT_RESPONSE_FINAL = "agent.response.final"
     PERSONA_STATE_UPDATED = "persona.state.updated"
+    TRAINEE_AFFECT_UPDATED = "trainee.affect.updated"
     COACH_INSIGHT = "coach.insight"
     KNOWLEDGE_CITATION = "knowledge.citation"
     SCORE_UPDATED = "score.updated"
@@ -366,6 +367,11 @@ class EventEmitter:
     async def persona_state_updated(self, state: Any) -> dict[str, Any]:
         return await self.emit(
             {"type": EventType.PERSONA_STATE_UPDATED, "state": _jsonable(state)}
+        )
+
+    async def trainee_affect_updated(self, affect: Any) -> dict[str, Any]:
+        return await self.emit(
+            {"type": EventType.TRAINEE_AFFECT_UPDATED, "affect": _jsonable(affect)}
         )
 
     async def coach_insight(self, insight: Any) -> dict[str, Any]:

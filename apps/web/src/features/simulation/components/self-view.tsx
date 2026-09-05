@@ -19,7 +19,10 @@
  */
 import type { MutableRefObject } from 'react';
 
+import type { TraineeAffect } from '@ai-coach/shared';
+
 import type { AffectReading } from '../lib/affect';
+import { FACE_TO_AFFECT_LABEL } from '../lib/affect';
 import { AFFECT_LABEL } from '../lib/labels';
 import { onMediaSurface } from '../lib/tone';
 import { AffectFace } from './affect-face';
@@ -39,6 +42,12 @@ export interface SelfViewProps {
   /** Classifier threw. Shown so a broken model is not mistaken for a still face. */
   lastError?: string | null;
   error?: string | null;
+  /**
+   * Server-fused reading (text + face). It arrives once per turn, so the live
+   * face reading above still drives the badge between turns — otherwise the
+   * badge would freeze for the whole time the customer is answering.
+   */
+  fused?: TraineeAffect | null;
   className?: string;
 }
 
@@ -51,8 +60,15 @@ export function SelfView({
   noFace = false,
   lastError = null,
   error = null,
+  fused = null,
   className,
 }: SelfViewProps) {
+  // The fused label is the product's answer; the raw face is only what this
+  // machine happens to see right now. Prefer the former whenever it has one,
+  // and say so when the two signals disagreed.
+  const fusedLabel = fused && fused.source !== 'none' ? fused.label : null;
+  const liveLabel = reading ? FACE_TO_AFFECT_LABEL[reading.label] : null;
+
   const status = error
     ? error
     : lastError
@@ -63,12 +79,11 @@ export function SelfView({
           ? '尚未載入模型'
           : noFace
             ? '沒有偵測到臉'
-            : reading
-              ? (AFFECT_LABEL[reading.label] ?? reading.label)
-              : '偵測中…';
+            : (fusedLabel ?? liveLabel ?? '偵測中…');
 
   // The badge only wears a real face when there is a real reading behind it.
   const faceLabel = reading && analyzerInstalled && !noFace && !lastError ? reading.label : null;
+  const conflicted = fused?.conflict === true;
 
   return (
     <div
@@ -100,8 +115,16 @@ export function SelfView({
           <span
             className="max-w-full truncate rounded-pill px-2 py-0.5 text-center text-tiny backdrop-blur"
             style={onMediaSurface(58)}
+            // A conflict is not an error and must not be hidden: the words and
+            // the face said different things, and the words won.
+            title={
+              conflicted
+                ? '文字與表情判讀不一致，以文字（有逐字證據）為準'
+                : (fused?.evidence_quote || undefined)
+            }
           >
             {status}
+            {conflicted ? ' ·⁉' : ''}
           </span>
         </div>
       </div>

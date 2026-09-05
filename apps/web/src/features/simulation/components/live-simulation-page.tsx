@@ -44,6 +44,7 @@ import {
   usePartials,
   usePersonaHistory,
   usePersonaState,
+  useTraineeAffect,
   useRuntimeStatus,
   useSessionActions,
   useSessionError,
@@ -92,6 +93,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
   const suppressedCoachCount = useSuppressedCoachCount();
   const complianceFindings = useComplianceFindings();
   const personaState = usePersonaState();
+  const traineeAffect = useTraineeAffect();
   const personaHistory = usePersonaHistory();
   const timeline = useTimeline();
   const liveScores = useLiveScores();
@@ -502,6 +504,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
                   modelLoading={camera.modelLoading}
                   noFace={camera.noFace}
                   lastError={camera.lastError}
+                  fused={traineeAffect}
                   error={camera.error}
                 />
               }

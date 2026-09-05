@@ -28,6 +28,11 @@ export type StreamingEvent =
   | (EventBase & { type: 'agent.response.final'; turn: TranscriptTurn })
   | (EventBase & { type: 'persona.state.updated'; state: PersonaSimulationState })
   | (EventBase & { type: 'coach.insight'; insight: CoachInsight })
+  /**
+   * 學員情緒（文字 + 臉部融合）。文字那路有逐字證據可稽核，臉部那路是瀏覽器端
+   * 未校準的規則分數；兩者衝突時以文字為準並標記 conflict，不做平均。
+   */
+  | (EventBase & { type: 'trainee.affect.updated'; affect: TraineeAffect })
   | (EventBase & { type: 'knowledge.citation'; turn_id: ID; citations: Citation[] })
   | (EventBase & { type: 'score.updated'; skill: SkillKey; score: number; confidence: number })
   | (EventBase & { type: 'compliance.warning'; finding: ComplianceFinding })
@@ -36,6 +41,28 @@ export type StreamingEvent =
   | (EventBase & { type: 'session.error'; code: string; message: string; recoverable: boolean });
 
 export type StreamingEventType = StreamingEvent['type'];
+
+export type AffectLabel = '平穩' | '緊張' | '不耐煩' | '挫折' | '正向' | '不明確';
+export type AffectIntensity = 'low' | 'medium' | 'high' | 'unknown';
+
+export interface TraineeAffect {
+  label: AffectLabel;
+  intensity: AffectIntensity;
+  confidence: number;
+  /** 文字與臉部各有話說但說法不同。 */
+  conflict: boolean;
+  source: 'text' | 'face' | 'both' | 'none';
+  text?: {
+    label: AffectLabel;
+    intensity: AffectIntensity;
+    evidence_quote: string;
+    reason: string;
+    suggestion: string;
+  } | null;
+  face?: { raw_label: string; label: AffectLabel; confidence: number; at_ms: number } | null;
+  evidence_quote: string;
+  suggestion: string;
+}
 
 /** §19 Multi-Agent 名稱 — thinking indicator 與 telemetry 都用這組 */
 export const AGENT_NAMES = [

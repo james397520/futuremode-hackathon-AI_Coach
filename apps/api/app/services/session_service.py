@@ -28,6 +28,7 @@ from app.agents.orchestrator import ConversationOrchestrator, TurnInput, TurnRes
 from app.agents.scenario_director import DirectorState, ScenarioDirector
 from app.core.context import RequestContext  # assumed: app.core.context.RequestContext
 from app.domain import PersonaSimulationState  # assumed: re-exported from app.domain
+from app.domain.affect import face_from_command
 from app.services.base import (
     MANAGEMENT_ROLES,
     ROLE_COACH,
@@ -393,6 +394,7 @@ class SessionService(BaseService):
         text: str,
         *,
         client_intent_hint: ClientIntentHint | None = None,
+        face_affect: dict[str, Any] | None = None,
         orchestrator: ConversationOrchestrator | None = None,
     ) -> TurnResult:
         """One trainee turn. Delegates the AI work to the orchestrator (§19)."""
@@ -437,6 +439,7 @@ class SessionService(BaseService):
             score_live_enabled=runtime.score_live_enabled,
             voice_enabled=runtime.voice_enabled,
             client_intent_hint=client_intent_hint,
+            face_affect=face_from_command(face_affect),
             disclosure_made_earlier=runtime.disclosure_made,
         )
         result = await conductor.handle_turn(payload)

@@ -403,9 +403,13 @@ class _Connection:
         if self._pending_hint:
             hint = ClientIntentHint(**self._pending_hint)
             self._pending_hint = None
+        # The facial reading is consumed by the turn it precedes, then cleared —
+        # a stale expression from three turns ago is not evidence about this one.
+        face = self._trainee_affect
+        self._trainee_affect = None
         try:
             await self.service.handle_message(
-                self.session_id, text, client_intent_hint=hint
+                self.session_id, text, client_intent_hint=hint, face_affect=face
             )
         except asyncio.CancelledError:
             raise

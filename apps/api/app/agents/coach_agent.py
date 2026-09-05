@@ -74,6 +74,9 @@ class CoachRequest(BaseModel):
     learning_objectives: list[str] = Field(default_factory=list)
     required_talking_points: list[str] = Field(default_factory=list)
     recent_turns: list[tuple[str, str]] = Field(default_factory=list)
+    #: Fused trainee affect for this turn, when there is one. Advisory context
+    #: for the hint's *tone* — never something to psychoanalyse back at them.
+    trainee_affect: dict[str, Any] = Field(default_factory=dict)
     #: only true for the end-of-session pass
     post_session: bool = False
     #: trainee pressed "request hint" (§19 quick actions) — still refused in assessment
@@ -104,6 +107,7 @@ class CoachAgent(Agent[CoachRequest, CoachOutput]):
                 ),
                 data_block("persona_state", request.persona_state),
                 data_block("director_signals", request.director_signals),
+                data_block("trainee_affect", request.trainee_affect),
                 data_block(
                     "task",
                     "post_session_summary" if request.post_session else "single_turn_coaching",

@@ -29,6 +29,7 @@ import type {
   SessionState,
   SkillKey,
   StreamingEvent,
+  TraineeAffect,
   TranscriptTurn,
 } from '@ai-coach/shared';
 
@@ -99,6 +100,8 @@ export interface SimulationData {
   pendingCitations: CitationsByTurn;
 
   personaState: PersonaSimulationState | null;
+  /** Fused trainee affect (text + face). Null until the first turn reports one. */
+  traineeAffect: TraineeAffect | null;
   personaHistory: PersonaStateSnapshot[];
   timeline: TimelineMarker[];
 
@@ -158,6 +161,7 @@ export function createInitialData(sessionId: ID, mode: SessionMode = 'training')
     pendingCitations: {},
 
     personaState: null,
+    traineeAffect: null,
     personaHistory: [],
     timeline: [],
 
@@ -433,6 +437,10 @@ export function reduceEvent(state: SimulationData, event: StreamingEvent): Simul
         activeAgent: null,
         turnCount: turns.length,
       };
+    }
+
+    case 'trainee.affect.updated': {
+      return { ...base, traineeAffect: event.affect };
     }
 
     case 'persona.state.updated': {
@@ -797,6 +805,8 @@ export const useSpeechPartial = (): SimulationData['speechPartial'] =>
 
 export const usePersonaState = (): PersonaSimulationState | null =>
   useSessionStore((s) => s.personaState);
+export const useTraineeAffect = (): TraineeAffect | null =>
+  useSessionStore((s) => s.traineeAffect);
 export const usePersonaHistory = (): PersonaStateSnapshot[] => useSessionStore((s) => s.personaHistory);
 export const useTimeline = (): TimelineMarker[] => useSessionStore((s) => s.timeline);
 

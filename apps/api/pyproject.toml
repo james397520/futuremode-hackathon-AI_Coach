@@ -93,6 +93,12 @@ select = [
   "TID",       # tidy imports
 ]
 ignore = [
+  # This product is written in Traditional Chinese: every prompt, every
+  # user-facing string and most comments are zh-TW. RUF001/2/3 flag CJK
+  # punctuation (，：；（）) as "ambiguous" against its ASCII lookalike, which
+  # here is not a typo but the correct character — replacing them would corrupt
+  # the copy. Hundreds of these were burying the real findings.
+  "RUF001", "RUF002", "RUF003",
   "ANN401",   # allow `Any` in narrowly-typed adapter seams
   "B008",     # FastAPI Depends(...) in defaults is the idiom
   "S101",     # asserts are used by the tenancy invariant helpers

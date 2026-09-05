@@ -27,12 +27,27 @@ COACH_SYSTEM = """\
 """
 
 
+#: Appended to the coach's system prompt. `trainee_affect` is a *signal about
+#: delivery*, not a subject: a coach that starts commenting on the trainee's
+#: feelings instead of their technique is worse than one that ignores them.
+AFFECT_CLAUSE = (
+    "資料中的 trainee_affect 是本輪學員語氣的判讀（可能來自文字或表情，"
+    "confidence 低或 conflict 為真時代表不可靠）。"
+    "把它當成調整「提示語氣」的依據——例如學員顯得挫折時先肯定再給建議——"
+    "而不是拿來評論學員的情緒或心理狀態。任何情況下都不要在提示中複述這個判讀。"
+)
+
+
 def coach_system_prompt(locale: str, mode: str) -> str:
-    return COACH_SYSTEM.format(
-        locale_clause=locale_clause(locale),
-        mode_clause=mode_clause(mode),
-        injection_guard=INJECTION_GUARD,
+    return (
+        COACH_SYSTEM.format(
+            locale_clause=locale_clause(locale),
+            mode_clause=mode_clause(mode),
+            injection_guard=INJECTION_GUARD,
+        )
+        + "\n"
+        + AFFECT_CLAUSE
     )
 
 
-__all__ = ["COACH_SYSTEM", "coach_system_prompt"]
+__all__ = ["COACH_SYSTEM", "AFFECT_CLAUSE", "coach_system_prompt"]

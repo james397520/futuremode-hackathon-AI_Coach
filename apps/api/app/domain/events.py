@@ -28,6 +28,7 @@ from typing import Annotated, Literal, TypeAlias, get_args
 
 from pydantic import AliasChoices, ConfigDict, Field, TypeAdapter
 
+from app.domain.affect import TraineeAffect
 from app.domain.common import ID, Confidence, DomainModel, Score100
 from app.domain.enums import (
     AgentName,
@@ -131,6 +132,13 @@ class PersonaStateUpdatedEvent(EventBase):
     state: PersonaSimulationState
 
 
+class TraineeAffectUpdated(EventBase):
+    """Fused trainee affect (text + face). See `app.domain.affect`."""
+
+    type: Literal["trainee.affect.updated"] = "trainee.affect.updated"
+    affect: TraineeAffect
+
+
 class CoachInsightEvent(EventBase):
     type: Literal["coach.insight"] = "coach.insight"
     insight: CoachInsight
@@ -206,6 +214,7 @@ StreamingEvent: TypeAlias = Annotated[
     | AgentResponsePartialEvent
     | AgentResponseFinalEvent
     | PersonaStateUpdatedEvent
+    | TraineeAffectUpdated
     | CoachInsightEvent
     | KnowledgeCitationEvent
     | ScoreUpdatedEvent
@@ -269,6 +278,16 @@ class ClientIntentHintCommand(DomainModel):
     confidence: Confidence
 
 
+class TraineeAffectCommand(EventBase):
+    """Browser-side facial affect. Advisory: the client is untrusted, and no
+    image data is ever accepted — only a label and a confidence."""
+
+    type: Literal["trainee.affect"] = "trainee.affect"
+    label: str
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    at_ms: int = 0
+
+
 class AckCommand(DomainModel):
     type: Literal["ack"] = "ack"
     seq: int = Field(ge=0)
@@ -282,6 +301,7 @@ ClientCommand: TypeAlias = Annotated[
     | CoachRequestHintCommand
     | VoicePushToTalkCommand
     | ClientIntentHintCommand
+    | TraineeAffectCommand
     | AckCommand,
     Field(discriminator="type"),
 ]

@@ -108,3 +108,21 @@ export function shouldEmit(next: AffectReading, last: AffectReading | null): boo
   if (last.label !== next.label) return true;
   return Math.abs(last.confidence - next.confidence) >= CONFIDENCE_EPSILON;
 }
+
+/**
+ * The browser's eight labels in the server's six-label space, mirroring
+ * `apps/api/app/domain/affect.py::FACE_TO_LABEL`. Kept in step by hand; the two
+ * lists are short and a mismatch shows up immediately as a mislabelled badge.
+ * `surprised` has no counterpart — surprise is not an attitude to the
+ * conversation — so it maps to 不明確 rather than being forced into 緊張.
+ */
+export const FACE_TO_AFFECT_LABEL: Record<AffectLabel, string> = {
+  neutral: '平穩',
+  happy: '正向',
+  sad: '挫折',
+  angry: '不耐煩',
+  disgusted: '不耐煩',
+  contempt: '不耐煩',
+  fearful: '緊張',
+  surprised: '不明確',
+};

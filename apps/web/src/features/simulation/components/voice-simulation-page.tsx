@@ -43,6 +43,7 @@ import {
   useLiveScores,
   usePartials,
   usePersonaState,
+  useTraineeAffect,
   useRuntimeStatus,
   useSessionActions,
   useSessionError,
@@ -87,6 +88,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
   const suppressedCoachCount = useSuppressedCoachCount();
   const complianceFindings = useComplianceFindings();
   const personaState = usePersonaState();
+  const traineeAffect = useTraineeAffect();
   const liveScores = useLiveScores();
   const activeAgent = useActiveAgent();
   const agentActivityAtMs = useSessionStore((s) => s.agentActivityAtMs);
@@ -441,6 +443,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                   modelLoading={camera.modelLoading}
                   noFace={camera.noFace}
                   lastError={camera.lastError}
+                  fused={traineeAffect}
                   error={camera.error}
                 />
                 <PersonaStage
