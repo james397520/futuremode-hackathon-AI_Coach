@@ -12,11 +12,11 @@
  *   雲端  force ElevenLabs and stay **silent** when there is no clip, so a demo
  *         cannot be quietly downgraded to a system voice without anyone noticing.
  *
- * The recognition note is not decoration. `speechSynthesis` is genuinely
- * on-device, but `SpeechRecognition` behind the same `webkit` prefix is Apple's
- * recogniser in Safari and Google's servers in Chromium, with nothing in the API
- * to distinguish them. In a corporate training product, where the microphone
- * audio goes is something the user is entitled to see.
+ * The recognition note states the one real STT path (mic → our API → Scribe)
+ * and says the browser's own `SpeechRecognition` is not used. That API sits
+ * behind the same `webkit` prefix in every browser but is Apple's recogniser in
+ * Safari and Google's servers in Chromium; an earlier wording mentioned Google
+ * without saying "unused", which read as if two STT engines were in play.
  */
 import type { RecognitionCapability } from '../lib/system-speech';
 import { insetSurface, toneText } from '../lib/tone';
@@ -83,15 +83,15 @@ export function SpeechEngineToggle({
         {OPTIONS.find((o) => o.value === value)?.hint}
       </p>
 
-      {recognition ? (
-        <p
-          className="text-tiny"
-          // A warning colour only when the audio actually leaves the machine.
-          style={{ color: toneText(recognition.engine === 'google' ? 'warning' : 'neutral') }}
-        >
-          語音辨識：{recognition.note}
-        </p>
-      ) : null}
+      {/* One STT path exists: microphone → our API → ElevenLabs Scribe. The
+          browser's own SpeechRecognition is deliberately NOT used — in Chromium
+          it streams the mic to Google — and saying so here stops the previous
+          wording from reading as if it were. */}
+      <p className="text-tiny text-text-tertiary">
+        語音辨識：由伺服器端（ElevenLabs Scribe）處理，麥克風音訊不會送到瀏覽器內建辨識
+        {recognition?.engine === 'google' ? '（此瀏覽器的內建辨識會送 Google，已停用）' : ''}
+        。
+      </p>
     </div>
   );
 }

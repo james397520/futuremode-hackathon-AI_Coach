@@ -17,7 +17,7 @@ Responsibilities
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping
 from typing import Any
 
 import structlog
@@ -29,6 +29,8 @@ from app.agents.scenario_director import DirectorState, ScenarioDirector
 from app.core.context import RequestContext  # assumed: app.core.context.RequestContext
 from app.domain import PersonaSimulationState  # assumed: re-exported from app.domain
 from app.domain.affect import face_from_command
+from app.domain.request_response import SessionTranscriptResponse
+from app.domain.session import CoachInsight, TranscriptTurn
 from app.services.base import (
     MANAGEMENT_ROLES,
     ROLE_COACH,
@@ -37,7 +39,6 @@ from app.services.base import (
     new_id,
 )
 from app.services.exceptions import (
-    ConflictError,
     NotFoundError,
     PermissionDeniedError,
     StateTransitionError,
@@ -527,6 +528,42 @@ class SessionService(BaseService):
             duration_ms=_duration_ms(started, ended),
         )
 
+    async def get_transcript(self, session_id: str) -> SessionTranscriptResponse:
+        """§25 / §30 transcript in the shape the route declares.
+
+        The route has always declared `SessionTranscriptResponse`; the service
+        only ever had `transcript()`, which returns a bare list, so every call
+        500'd on response validation. Built from `replay()` so the insights and
+        the state timeline come along for free. Rows are filtered to the model's
+        declared fields because `DomainModel` is `extra="forbid"` and the ORM
+        rows carry `seq`, tenant columns and timestamps the contract does not.
+        """
+        payload = await self.replay(session_id)
+
+        def _fit(model: type[Any], row: Mapping[str, Any]) -> Any:
+            allowed = set(model.model_fields)
+            return model.model_validate({k: v for k, v in row.items() if k in allowed})
+
+        # The stored timeline is a list of per-turn *deltas* (only the fields the
+        # director changed), not full states. A timeline of states is rebuilt by
+        # starting from the pinned persona's seeded state and folding each delta
+        # in — which is also what §31 means by a state timeline.
+        fields = set(PersonaSimulationState.model_fields)
+        running = self.initial_persona_state(payload.pinned).model_dump()
+        snapshots: list[PersonaSimulationState] = []
+        for item in payload.state_timeline:
+            if not isinstance(item, Mapping):
+                continue
+            running.update({k: v for k, v in item.items() if k in fields})
+            snapshots.append(PersonaSimulationState.model_validate(running))
+
+        return SessionTranscriptResponse(
+            session_id=session_id,
+            turns=[_fit(TranscriptTurn, t) for t in payload.transcript],
+            insights=[_fit(CoachInsight, i) for i in payload.coach_insights],
+            state_timeline=snapshots,
+        )
+
     async def transcript(self, session_id: str) -> list[dict[str, Any]]:
         await self._require(session_id, read_only=True)
         turns = await self.repo.list(
@@ -881,7 +918,6 @@ async def _request_hint(self: SessionService, session_id: str, payload: Any = No
 SessionService.create_session = _create_session          # type: ignore[attr-defined]
 SessionService.end_session = SessionService.end          # type: ignore[attr-defined]
 SessionService.get_session = _get_session                 # type: ignore[attr-defined]
-SessionService.get_transcript = SessionService.transcript  # type: ignore[attr-defined]
 async def _list_sessions(
     self: SessionService,
     *,
