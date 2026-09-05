@@ -68,6 +68,7 @@ import { SessionHeader } from './session-header';
 import { SimulationStyles } from './simulation-styles';
 import { TranscriptFeed, type SystemNotice } from './transcript-feed';
 import { TrainingGrid } from './training-grid';
+import { AffectNudge } from './affect-nudge';
 import { SelfView } from './self-view';
 import { Waveform } from './waveform';
 
@@ -446,6 +447,13 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                     openingContext={bootstrap.scenario.openingContext}
                   />
                 </GlassCard>
+
+                <AffectNudge
+                  reading={camera.reading}
+                  cameraLive={camera.live}
+                  traineesTurn={status === 'listening' || status === 'idle' || status === 'ready'}
+                  onAskHint={isTraining ? () => socket.requestHint() : undefined}
+                />
 
                 <Composer
                   status={status}

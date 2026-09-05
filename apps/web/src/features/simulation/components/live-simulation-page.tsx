@@ -540,6 +540,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
                 onToggleMic={handleToggleMic}
                 cameraLive={camera.live}
                 onToggleCamera={camera.toggle}
+                affectReading={camera.reading}
                 onRequestHint={isTraining ? () => socket.requestHint() : undefined}
                 training={trainingHandlers}
                 onPauseResume={handlePauseResume}

@@ -144,6 +144,14 @@ async def session_ws_endpoint(
         if status in ("connecting", "reconnecting"):
             # Transitions to `ready` *and* publishes `session.started`.
             await service.mark_ready(session_id)
+            # The customer opens (the scenario's quoted first line); no-op once
+            # the session has any turn, so a reconnect never repeats it.
+            opener = getattr(service, "speak_opening_line", None)
+            if opener is not None:
+                try:
+                    await opener(session_id)
+                except Exception as exc:
+                    log.info("ws.opening_line_skipped", session=session_id, error=repr(exc))
         elif status == "ready":
             ev = await emitter.session_started("ready", iso_now())
             log.info("ws.session_started_emitted", session=session_id, seq=ev.get("seq"))

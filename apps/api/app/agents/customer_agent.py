@@ -143,8 +143,25 @@ class CustomerAgent(Agent[CustomerTurnRequest, CustomerReply]):
         director = request.director
         state = director.state if director is not None else None
         objection = director.objection_directive if director is not None else None
+        traits = request.persona.get("traits") if isinstance(request.persona, dict) else None
+        patience = None
+        if isinstance(traits, dict):
+            try:
+                raw_patience = traits.get("patience")
+                patience = int(raw_patience) if raw_patience is not None else None
+            except (TypeError, ValueError):
+                patience = None
+        # An impatient customer talks in clipped sentences. This is also what
+        # keeps a low-patience demo persona's replies inside the transcript
+        # panel without scrolling — the rule is character-driven, not a UI hack.
+        reply_length = (
+            "最多兩句、合計 40 字以內。不客套、不重述對方的話、不解釋自己的情緒。"
+            if patience is not None and patience < 35
+            else "1–4 句，口語。"
+        )
         blocks = [
             data_block("persona", request.persona),
+            data_block("reply_length", reply_length),
             data_block(
                 "persona_private",
                 {

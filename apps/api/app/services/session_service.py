@@ -17,6 +17,7 @@ Responsibilities
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -354,6 +355,45 @@ class SessionService(BaseService):
         elif requested == "ready" and current == "paused":
             await emitter.session_resumed()
         return self.to_view(updated)
+
+    async def speak_opening_line(self, session_id: str) -> dict[str, Any] | None:
+        """Let the customer open the conversation with the line the scenario puts
+        in their mouth — the 「…」-quoted sentence in `opening_context`.
+
+        Every scenario is written that way ("他坐下來第一句話是：「…」"), yet the
+        session used to start with the trainee staring at a description card and
+        the customer silent. Idempotent: nothing happens once the session has any
+        turn, so a reconnect never repeats the opener.
+        """
+        row = await self._require(session_id, read_only=True)
+        existing = await self.repo.list(
+            "TranscriptTurn", filters={"session_id": session_id}, order_by="timestamp_ms"
+        )
+        if existing:
+            return None
+        pinned = await self._pinned_for_row(row)
+        context = str((pinned.scenario or {}).get("opening_context") or "")
+        quoted = re.findall(r"「([^」]{2,120})」", context)
+        if not quoted:
+            return None
+        text = quoted[-1].strip()
+        emitter = await self.emitters.get(
+            session_id, tenant_id=self.tenant_id, workspace_id=self.workspace_id
+        )
+        turn: dict[str, Any] = {
+            "id": new_id("pt"),
+            "session_id": session_id,
+            "seq": 0,
+            "speaker": "persona",
+            "text": text,
+            "timestamp_ms": now_ms(),
+        }
+        await self.repo.add("TranscriptTurn", {**turn, **self.owned_fields()})
+        await self.repo.commit()
+        await emitter.agent_response_final(
+            {k: v for k, v in turn.items() if k != "seq"}
+        )
+        return turn
 
     async def mark_ready(self, session_id: str) -> SessionView:
         return await self.transition(session_id, "ready")
