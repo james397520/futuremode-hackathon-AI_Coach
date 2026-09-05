@@ -87,6 +87,13 @@ export interface VoiceSliceState {
    * server sent nothing, so a demo cannot be quietly downgraded.
    */
   speechEngine: 'auto' | 'system' | 'cloud';
+  /**
+   * Which recogniser transcribes the trainee. `mac` keeps the audio on this
+   * machine (Apple Speech.framework via our API's helper) and falls back to the
+   * cloud when the helper cannot answer; `cloud` is vendor only; `auto` is the
+   * server's STT_PROVIDER. Only offered when the API reports the helper works.
+   */
+  sttEngine: 'auto' | 'mac' | 'cloud';
 }
 
 export interface SimulationData {
@@ -151,6 +158,7 @@ export const initialVoiceState: VoiceSliceState = {
   lastError: null,
   bargeInCount: 0,
   speechEngine: 'auto',
+  sttEngine: 'auto',
 };
 
 export function createInitialData(sessionId: ID, mode: SessionMode = 'training'): SimulationData {

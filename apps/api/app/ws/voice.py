@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from enum import StrEnum
 from typing import Any, Protocol, runtime_checkable
@@ -251,6 +252,234 @@ class ElevenLabsStt:
             raise
         text = _to_traditional(str(payload.get("text") or "").strip(), language)
         yield TranscriptChunk(text=text, is_final=True)
+
+
+class MacSpeechStt:
+    """macOS-native recognition via the `tools/mac-stt` helper (Speech.framework).
+
+    Runs entirely on this machine when `on_device` is set — no key, no network,
+    no vendor. The browser records Opus-in-WebM, which AVFoundation cannot read,
+    so anything that is not already wav/m4a/mp3/aiff is transcoded with ffmpeg
+    first. Every failure raises; `FallbackStt` decides what happens next.
+    """
+
+    provider = "mac"
+
+    def __init__(
+        self,
+        *,
+        binary: str | None = None,
+        on_device: bool = True,
+        runner: Any | None = None,
+        timeout_s: float = 70.0,
+        port: int | None = None,
+    ) -> None:
+        self.binary = binary or _default_mac_stt_bin()
+        self.port = _default_mac_stt_port() if port is None else port
+        self.on_device = on_device
+        self._runner = runner  # test seam: async (argv) -> (returncode, stdout, stderr)
+        self.timeout_s = timeout_s
+
+    def available(self) -> bool:
+        import os
+        from pathlib import Path
+
+        return bool(self.binary) and Path(self.binary).is_file() and os.access(self.binary, os.X_OK)
+
+    async def probe(self, language: str = "zh-TW") -> dict[str, Any]:
+        daemon = await self.daemon_probe(language)
+        if daemon is not None:
+            daemon["daemon"] = True
+            return daemon
+        if not self.available():
+            return {"available": False, "reason": "helper not built"}
+        code, out, _ = await self._run([self.binary, "--probe", "--locale", language])
+        try:
+            return json.loads(out) if code == 0 else {"available": False, "reason": out[:200]}
+        except json.JSONDecodeError:
+            return {"available": False, "reason": "bad probe output"}
+
+
+    async def _run(self, argv: list[str]) -> tuple[int, str, str]:
+        if self._runner is not None:
+            return await self._runner(argv)
+        proc = await asyncio.create_subprocess_exec(
+            *argv, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+        try:
+            out, err = await asyncio.wait_for(proc.communicate(), timeout=self.timeout_s)
+        except TimeoutError:
+            proc.kill()
+            raise RuntimeError("mac-stt timed out") from None
+        return proc.returncode or 0, out.decode("utf-8", "replace"), err.decode("utf-8", "replace")
+
+    async def stream(
+        self,
+        audio: AsyncIterator[bytes],
+        *,
+        language: str = "zh-TW",
+        mime_type: str = "audio/webm",
+    ) -> AsyncIterator[TranscriptChunk]:
+        import shutil
+        import tempfile
+        from pathlib import Path
+
+        buffer = bytearray()
+        async for frame in audio:
+            buffer.extend(frame)
+        if not buffer:
+            return
+        if not self.available():
+            raise RuntimeError("mac-stt helper not built (run tools/mac-stt/build.sh)")
+
+        if "mp4" in mime_type:
+            ext = "mp4"
+        elif "mpeg" in mime_type:
+            ext = "mp3"
+        elif "wav" in mime_type:
+            ext = "wav"
+        else:
+            ext = "webm"
+        with tempfile.TemporaryDirectory(prefix="aicoach-stt-") as tmp:
+            src = Path(tmp) / f"utterance.{ext}"
+            src.write_bytes(bytes(buffer))
+            target = src
+            if ext in ("webm", "ogg"):
+                ffmpeg = shutil.which("ffmpeg")
+                if not ffmpeg:
+                    raise RuntimeError("ffmpeg required to decode WebM/Opus for mac-stt")
+                target = Path(tmp) / "utterance.wav"
+                code, _, err = await self._run(
+                    [ffmpeg, "-loglevel", "error", "-y", "-i", str(src),
+                     "-ar", "16000", "-ac", "1", str(target)]
+                )
+                if code != 0:
+                    raise RuntimeError(f"ffmpeg failed: {err[:160]}")
+            payload = await self._via_daemon(str(target), language)
+            if payload is None:
+                argv = [self.binary, "--file", str(target), "--locale", language,
+                        "--on-device" if self.on_device else "--allow-server"]
+                code, out, err = await self._run(argv)
+                try:
+                    payload = json.loads(out) if out.strip() else {}
+                except json.JSONDecodeError:
+                    payload = {}
+                if code != 0 and "error" not in payload:
+                    payload["error"] = err[:160] or f"exit {code}"
+        if "error" in payload:
+            raise RuntimeError(f"mac-stt: {payload['error']}")
+        yield TranscriptChunk(text=str(payload.get("text") or "").strip(), is_final=True)
+
+    async def _via_daemon(self, path: str, language: str) -> dict[str, Any] | None:
+        """One request to the resident helper. None when it is not running —
+        the caller then falls back to a one-shot process, which will itself be
+        refused by TCC when spawned from the API, so the daemon is the path that
+        actually works in production; the fallback exists for dev shells."""
+        port = self.port
+        if not port:
+            return None
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection("127.0.0.1", port), timeout=1.0
+            )
+        except (OSError, TimeoutError):
+            return None
+        try:
+            req = {"id": 1, "file": path, "locale": language, "onDevice": self.on_device}
+            writer.write((json.dumps(req) + "\n").encode("utf-8"))
+            await writer.drain()
+            line = await asyncio.wait_for(reader.readline(), timeout=self.timeout_s)
+        finally:
+            writer.close()
+        try:
+            return json.loads(line.decode("utf-8")) if line else {"error": "daemon closed"}
+        except json.JSONDecodeError:
+            return {"error": "bad daemon reply"}
+
+    async def daemon_probe(self, language: str = "zh-TW") -> dict[str, Any] | None:
+        """Capability report from the running daemon, or None when it is down."""
+        if not self.port:
+            return None
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection("127.0.0.1", self.port), timeout=1.0
+            )
+        except (OSError, TimeoutError):
+            return None
+        try:
+            writer.write((json.dumps({"id": 0, "probe": True, "locale": language}) + "\n").encode())
+            await writer.drain()
+            line = await asyncio.wait_for(reader.readline(), timeout=10.0)
+        finally:
+            writer.close()
+        try:
+            return json.loads(line.decode("utf-8")) if line else None
+        except json.JSONDecodeError:
+            return None
+
+
+class FallbackStt:
+    """Try one recogniser, fall through to the next on failure.
+
+    Ordering is a product decision, not a technical one: `mac` first keeps the
+    audio on the machine whenever the machine can do it, and only sends to the
+    cloud when it cannot. The provider name reports which one actually answered.
+    """
+
+    def __init__(self, *adapters: Any) -> None:
+        self.adapters = [a for a in adapters if a is not None]
+        self.provider = "none"
+
+    async def stream(
+        self,
+        audio: AsyncIterator[bytes],
+        *,
+        language: str = "zh-TW",
+        mime_type: str = "audio/webm",
+    ) -> AsyncIterator[TranscriptChunk]:
+        frames = [f async for f in audio]
+        last: Exception | None = None
+        for adapter in self.adapters:
+            try:
+                stream = adapter.stream(
+                    _replay_frames(frames), language=language, mime_type=mime_type
+                )
+                async for chunk in stream:
+                    self.provider = adapter.provider
+                    yield chunk
+                return
+            except Exception as exc:
+                last = exc
+                log.info("voice.stt_fallback", from_provider=adapter.provider, error=repr(exc))
+        if last is not None:
+            raise last
+
+
+def _default_mac_stt_port() -> int:
+    try:
+        from app.core.config import get_settings
+
+        return int(getattr(get_settings(), "mac_stt_port", 8790) or 0)
+    except Exception:
+        return 8790
+
+
+def _default_mac_stt_bin() -> str:
+    from pathlib import Path
+
+    try:
+        from app.core.config import get_settings
+
+        configured = str(getattr(get_settings(), "mac_stt_bin", "") or "")
+    except Exception:
+        configured = ""
+    if not configured:
+        return ""
+    path = Path(configured)
+    if not path.is_absolute():
+        # apps/api/app/ws/voice.py -> repo root is four levels up.
+        path = Path(__file__).resolve().parents[4] / path
+    return str(path)
 
 
 class OpenAiTts:
@@ -588,21 +817,36 @@ async def _replay_frames(frames: Sequence[bytes]) -> AsyncIterator[bytes]:
 
 
 
-def build_stt() -> SttPort:
-    """The configured speech-to-text adapter, or `NullStt` when no key is set.
+def build_stt(engine: str | None = None) -> SttPort:
+    """The speech-to-text adapter for one request.
 
-    Separate from `build_voice_session` because HTTP transcription needs no
-    emitter, no TTS and no session state — just the adapter.
+    `engine` is the client's per-utterance choice: `mac` (on-device, falls back
+    to the cloud if the helper cannot answer), `cloud` (vendor only), or None /
+    `auto` for the server's `STT_PROVIDER`. Separate from `build_voice_session`
+    because HTTP transcription needs no emitter, no TTS and no session state.
     """
     try:
         from app.core.config import get_settings
 
         settings = get_settings()
-        stt_provider = str(getattr(settings, "stt_provider", "elevenlabs"))
-        if stt_provider == "elevenlabs" and getattr(settings, "elevenlabs_api_key", None):
-            return ElevenLabsStt()
-        if stt_provider == "openai" and getattr(settings, "openai_api_key", None):
-            return OpenAiStt()
+        cloud: Any = None
+        if getattr(settings, "elevenlabs_api_key", None):
+            cloud = ElevenLabsStt()
+        elif getattr(settings, "openai_api_key", None):
+            cloud = OpenAiStt()
+
+        want = (engine or str(getattr(settings, "stt_provider", "elevenlabs"))).lower()
+        if want == "auto":
+            want = str(getattr(settings, "stt_provider", "elevenlabs")).lower()
+
+        if want == "mac":
+            mac = MacSpeechStt()
+            if mac.available():
+                return FallbackStt(mac, cloud) if cloud is not None else mac
+            log.info("voice.mac_stt_unavailable", binary=mac.binary)
+            return cloud or NullStt()
+        if want in ("cloud", "elevenlabs", "openai"):
+            return cloud or NullStt()
     except Exception as exc:
         log.warning("voice.stt_setup_failed", error=repr(exc))
     return NullStt()

@@ -125,6 +125,10 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
 
   // ---- Voice pipeline ------------------------------------------------------
 
+  const sttEngine = useSessionStore((st) => st.voice.sttEngine);
+  const sttEngineRef = useRef(sttEngine);
+  sttEngineRef.current = sttEngine;
+
   const voice = useVoiceSession({
     enabled: true,
     personaGender: bootstrap?.persona.gender ?? null,
@@ -149,7 +153,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
       // the optimistic echo and every downstream agent see exactly what a
       // typed message would have produced.
       void endpoints
-        .transcribeUtterance(sessionId, blob, mime)
+        .transcribeUtterance(sessionId, blob, mime, sttEngineRef.current)
         .then((result) => {
           const text = result.text.trim();
           if (text) socketRef.current?.sendMessage(text);

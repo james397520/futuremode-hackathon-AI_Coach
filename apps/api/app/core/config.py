@@ -25,7 +25,7 @@ AppEnv = Literal["local", "test", "staging", "production"]
 WebGpuMode = Literal["auto", "on", "off"]
 LlmProvider = Literal["openai", "azure_openai", "aup", "minimax", "none"]
 TtsProvider = Literal["elevenlabs", "openai", "none"]
-SttProvider = Literal["elevenlabs", "openai", "none"]
+SttProvider = Literal["mac", "elevenlabs", "openai", "none"]
 VectorBackend = Literal["qdrant", "memory", "chroma", "faiss"]
 
 #: Placeholder shipped in ``.env.example``; must never reach a deployed environment.
@@ -89,6 +89,14 @@ class Settings(BaseSettings):
     tts_provider: TtsProvider = Field(default="elevenlabs", validation_alias="TTS_PROVIDER")
     # Scribe needs no OpenAI dependency, so ElevenLabs covers both directions by default.
     stt_provider: SttProvider = Field(default="elevenlabs", validation_alias="STT_PROVIDER")
+    # macOS-native recogniser (tools/mac-stt). Used when STT_PROVIDER=mac, or as
+    # the on-device choice a client may request per utterance; falls back to the
+    # cloud provider when the helper is missing or unauthorised.
+    mac_stt_bin: str = Field(default="tools/mac-stt/bin/mac-stt", validation_alias="MAC_STT_BIN")
+    # The helper runs as its own launchd agent (TCC attributes the permission to
+    # it, not to whoever spawned it) and listens on loopback. The API talks to it
+    # here; a per-call subprocess is only the fallback when the daemon is down.
+    mac_stt_port: int = Field(default=8790, validation_alias="MAC_STT_PORT")
     llm_model: str = Field(default="gpt-4o", validation_alias="LLM_MODEL")
     minimax_base_url: str = Field(
         default="https://api.minimax.io/anthropic/v1", validation_alias="MINIMAX_BASE_URL"

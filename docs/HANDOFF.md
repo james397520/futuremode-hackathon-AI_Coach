@@ -443,3 +443,23 @@ exit code=139   # SIGSEGV  (兩次)
 ### 17.2 注意
 - 三個新 persona 沒填 `voice_id`，由 `voice_catalog.py` 依性別年齡選；王伯伯 67 歲用中年男聲（ElevenLabs 沒有老年聲），系統語音 fallback 則有 Grandpa。
 - seed 是**增量**的：既有列不動、新 id 插入；重跑不會覆蓋（除非 `--force`）。
+
+### 16.4 macOS 原生 STT（`tools/mac-stt`，Speech.framework）
+本機、離線、不經任何 vendor。`STT_PROVIDER=mac` 或前端選「Mac 本機」時使用，本機失敗自動落到雲端（`FallbackStt`），回應的 `provider` 欄位會說是誰答的。
+
+**架構：常駐 launchd agent + 本機 TCP，不是 API 的子行程。** 這不是偏好，是 TCC 的硬限制：
+- TCC 把權限請求算在**負責的父程式**頭上。從 shell 或 API 直接 exec 的 helper，會被用 Terminal／Claude／Python 的 Info.plist 來審，那些沒有 `NSSpeechRecognitionUsageDescription` → 直接 SIGABRT（crash report 寫的是誤導性的「app 缺少用途說明」）。
+- 把 Info.plist 用 `-sectcreate __TEXT __info_plist` 嵌進裸二進位**沒用**，TCC 只讀 bundle 的 `Contents/Info.plist`。
+- 這台 CLT 的 swiftc 預設 target 是 macOS **28.0**（系統是 27.0），LaunchServices 會以 -10825 拒絕註冊 bundle；必須 `-target arm64-apple-macos13.0` 並設 `LSMinimumSystemVersion`。
+- 以 launchd agent 啟動（`launchctl submit` 驗證過）就是自己的責任方 → 授權提示只彈一次，之後記在 bundle id `com.aicoach.mac-stt` 上。
+
+| 元件 | 位置 |
+|---|---|
+| Swift CLI／daemon | `tools/mac-stt/Sources/main.swift`（`--probe`、`--file`、`--serve --port 8790`） |
+| 建置成 .app bundle | `tools/mac-stt/build.sh`（ad-hoc codesign + lsregister） |
+| launchd 安裝 | `scripts/dev/install-mac-stt-service.sh`（`--status` / `--uninstall`） |
+| 隨網頁伺服器帶起 | `pnpm dev` 的 `predev` → `scripts/dev/ensure-services.sh` 會確保 API 與 mac-stt 兩個 agent 都在跑 |
+| API 端 | `MacSpeechStt`（daemon 優先，TCP 127.0.0.1:`MAC_STT_PORT`；不通才 exec，但 exec 路徑在 API 下一定被 TCC 擋） |
+| 能力探測 | `GET /api/v1/sessions/stt/capabilities` → 前端只在 `mac.available` 時開放「Mac 本機」選項 |
+
+音訊格式：瀏覽器送 Opus/WebM，AVFoundation 讀不了，API 先用 **ffmpeg** 轉 16kHz 單聲道 wav 再交給 daemon（ffmpeg 的 "Error parsing Opus packet header" 是警告，輸出正常）。

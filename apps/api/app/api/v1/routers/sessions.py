@@ -25,7 +25,7 @@ Version pinning (§54): the client cannot choose ``scenario_version`` /
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from typing import Annotated
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile, WebSocket, status
 
@@ -154,6 +154,33 @@ async def post_message(
     return await service.post_message(session_id, payload)
 
 
+@router.get(
+    "/stt/capabilities",
+    summary="Which speech-to-text engines this deployment can offer (§22 / §71)",
+)
+async def stt_capabilities(ctx: CanParticipate) -> dict[str, Any]:
+    """Lets the client show an on-device switch only when the machine can honour it.
+    Probing is cheap (one short subprocess) and cached by TCC after the first ask."""
+    from app.core.config import get_settings
+    from app.ws.voice import MacSpeechStt
+
+    settings = get_settings()
+    mac = MacSpeechStt()
+    probe = (
+        await mac.probe("zh-TW")
+        if mac.available()
+        else {"available": False, "reason": "helper not built"}
+    )
+    return {
+        "default": str(getattr(settings, "stt_provider", "elevenlabs")),
+        "cloud": bool(
+            getattr(settings, "elevenlabs_api_key", None)
+            or getattr(settings, "openai_api_key", None)
+        ),
+        "mac": probe,
+    }
+
+
 #: Roughly 60s of Opus at the browser's default bitrate. Anything larger is not
 #: an utterance, it is a file upload on the wrong endpoint.
 _MAX_UTTERANCE_BYTES = 4 * 1024 * 1024
@@ -170,6 +197,10 @@ async def transcribe_utterance(
     service: SessionDep,
     ctx: CanParticipate,
     file: UploadFile = File(...),
+    engine: Annotated[
+        Literal["auto", "mac", "cloud"],
+        Query(description="auto | mac (on-device, cloud fallback) | cloud"),
+    ] = "auto",
 ) -> SessionTranscribeResponse:
     """The microphone never streams to a vendor from the browser. Audio comes here,
     the API holds the vendor key, and the text goes back for the client to send
@@ -190,7 +221,7 @@ async def transcribe_utterance(
     if len(data) > _MAX_UTTERANCE_BYTES:
         raise ValidationFailedError("utterance too large")
 
-    stt = build_stt()
+    stt = build_stt(engine)
     mime = file.content_type or "audio/webm"
 
     async def one() -> AsyncIterator[bytes]:

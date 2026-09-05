@@ -20,6 +20,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Citation } from '@ai-coach/shared';
 
+import { useQuery } from '@tanstack/react-query';
+
 import { api, endpoints } from '@/lib/api-client';
 
 import { useSessionBootstrap } from '../hooks/use-session-bootstrap';
@@ -96,6 +98,13 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
   const personaState = usePersonaState();
   const traineeAffect = useTraineeAffect();
   const speechEngine = useSessionStore((st) => st.voice.speechEngine);
+  // Probed once per page: whether this deployment can transcribe on-device.
+  const { data: sttCapability = null } = useQuery({
+    queryKey: ['stt', 'capabilities'],
+    queryFn: () => endpoints.sttCapabilities(),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
   const personaHistory = usePersonaHistory();
   const timeline = useTimeline();
   const liveScores = useLiveScores();
@@ -141,6 +150,10 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
   const socketRef = useRef<ReturnType<typeof useSessionSocket> | null>(null);
   const voiceRef = useRef<ReturnType<typeof useVoiceSession> | null>(null);
 
+  const sttEngine = useSessionStore((st) => st.voice.sttEngine);
+  const sttEngineRef = useRef(sttEngine);
+  sttEngineRef.current = sttEngine;
+
   const voice = useVoiceSession({
     enabled: Boolean(bootstrap?.voiceEnabled) && micWanted,
     personaGender: bootstrap?.persona.gender ?? null,
@@ -163,7 +176,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
       // the optimistic echo and every downstream agent see exactly what a
       // typed message would have produced.
       void endpoints
-        .transcribeUtterance(sessionId, blob, mime)
+        .transcribeUtterance(sessionId, blob, mime, sttEngineRef.current)
         .then((result) => {
           const text = result.text.trim();
           if (text) socketRef.current?.sendMessage(text);
@@ -627,6 +640,9 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
             onChange={(next) => actions.setVoice({ speechEngine: next })}
             systemVoiceCount={voice.systemVoices.length}
             recognition={voice.recognition}
+            sttValue={sttEngine}
+            onSttChange={(next) => actions.setVoice({ sttEngine: next })}
+            sttCapability={sttCapability}
           />
         }
       />
