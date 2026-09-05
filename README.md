@@ -6,6 +6,7 @@ FUTUREMODE 2026 台灣未來祭 · BUILDMODE 黑客松參賽作品 · **Track 5*
 
 - 專案網站：<https://james397520.github.io/futuremode-hackathon-AI_Coach/>
 - 儲存庫：<https://github.com/james397520/futuremode-hackathon-AI_Coach>
+- 應用程式原始碼與安裝說明：[PLATFORM_README.md](PLATFORM_README.md)（本檔案是黑客松提交總覽，實際的 monorepo 開發文件在該檔）
 
 ## 問題與目標
 
@@ -54,9 +55,11 @@ SkillCoach 希望運用多模態導引，打造一個具有溫度的 Agent 引�
 
 ## 安裝與執行
 
-> 目前本儲存庫只包含黑客松的專案介紹網站（`docs/`），尚未包含 SkillCoach 應用程式本身的原始碼——詳見下方「限制與未來工作」。
+本儲存庫包含兩部分：黑客松專案介紹網站（`docs/`）與 SkillCoach 應用程式本體（monorepo：`apps/`、`services/`、`packages/`、`database/`、`infra/`）。
 
-本機預覽介紹網站：
+**應用程式本體**的完整安裝與執行步驟，請見 [PLATFORM_README.md](PLATFORM_README.md)。
+
+**介紹網站**本機預覽：
 
 ```bash
 python -m http.server 8765 --directory docs
@@ -72,11 +75,11 @@ python -m http.server 8765 --directory docs
 
 ## 限制與未來工作
 
-**目前已知限制**
+> 應用程式本體的已知限制與後續規劃，請見 [PLATFORM_README.md](PLATFORM_README.md) 與 [docs/roadmap.md](docs/roadmap.md)。
 
-- 本儲存庫目前僅有專案介紹網站（`docs/`），SkillCoach 應用程式本身（前後端、模型串接）尚未上傳到此 repo，因此系統架構與技術選型目前是設計規劃，尚未有可執行的實作可供驗證。
+**與本介紹網站相關的已知落差**
 
-> 產品面（多語系支援、3D 虛擬人表情豐富度、評估 rubric 自動化程度、語音延遲與離線能力等）的具體限制與後續發展方向，需要團隊依實際開發進度補充，此處尚未列出未經確認的項目。
+- 介紹網站（`docs/`）上列出的技術／供應商（EastRouter、ElevenLabs、GMI、React、Three.js 等）取自簡報構想，與 `PLATFORM_README.md` 描述的實際技術棧（Next.js、FastAPI、MiniMax、PostgreSQL、Redis、Qdrant）不完全一致，尚待團隊統一對外說法。
 
 ## 第三方服務、資料與素材
 
