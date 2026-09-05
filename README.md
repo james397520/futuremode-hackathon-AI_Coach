@@ -70,10 +70,6 @@ SkillCoach 希望運用多模態導引，打造一個具有溫度的 Agent 引�
 
 - 獨立運行開源 embedding 與 cross-encoder rerank 模型（ONNX Runtime），與對話 LLM 解耦，方便未來替換或私有化部署；對外 API 端點仍在開發中。
 
-**目前已串通與尚未串通**
-
-- 對話大腦目前實際串接、有測試覆蓋的是 **MiniMax**（Anthropic 相容 Messages API）；語音合成（ElevenLabs）程式碼已存在但預設關閉，尚未實際跑通；介紹網站提及的 EastRouter、GMI 目前在程式碼中查無對應實作。
-
 ## 實際運作流程
 
 下面是一次真實對練的執行紀錄（金融理專情境、客戶人設 `cautious`），
@@ -177,16 +173,6 @@ python -m http.server 8765 --directory docs
 
 - 線上網站：<https://james397520.github.io/futuremode-hackathon-AI_Coach/>
 - 評選影片：待補
-
-## 限制與未來工作
-
-> 應用程式本體的已知限制與後續規劃，請見 [PLATFORM_README.md](PLATFORM_README.md) 與 [docs/roadmap.md](docs/roadmap.md)。
-
-**與本介紹網站相關的已知落差**
-
-- 介紹網站（`docs/`）上列出的前端技術（React、Vite、Three.js）與 `PLATFORM_README.md` 的實際技術棧（Next.js）不同，尚待團隊統一對外說法。
-- 介紹網站提及的 AI 供應商 EastRouter、GMI，在 `apps/api`、`services/avatar-runtime`、`services/inference` 程式碼與 `.env.example` 中查無對應實作；實際串接並有測試覆蓋的對話模型是 MiniMax，ElevenLabs 語音合成程式碼已存在但預設關閉、尚未實際跑通（詳見上方「核心技術功能」）。
-- `docs/roadmap.md` 內容已明顯過時（例如聲稱 `main.py` 不存在、router 只完成 1 個），與目前程式碼實況（`app/main.py` 與全部 18 個 router 皆已存在）不符，請以 `docs/HANDOFF.md` 的最新進度為準，`roadmap.md` 待團隊更新。
 
 ## 第三方服務、資料與素材
 
