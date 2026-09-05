@@ -57,3 +57,22 @@ def test_ungendered_personas_still_get_a_consistent_voice() -> None:
     a = resolve_voice_id({"id": "p1", "age": 40})
     b = resolve_voice_id({"id": "p1", "age": 40})
     assert a == b and a
+
+
+def test_pinned_persona_carries_gender_so_voice_selection_can_see_it() -> None:
+    """Regression: pin() omitted `gender`, so resolve_voice_id fell to the
+    ungendered hash and a female persona could get the male voice."""
+    from types import SimpleNamespace
+
+    from app.services.session_service import SessionService
+
+    persona = SimpleNamespace(
+        id="per_lin", version=1, name="林佳穎", gender="female", age=29, occupation="行銷專員",
+        industry="零售", background="", language="zh-TW", locale="zh-TW", traits={},
+        voice={"provider": "elevenlabs", "voice_id": None}, avatar_url=None, hidden={},
+    )
+    scenario = SimpleNamespace(id="sc", version=1, rubric_id=None, knowledge_base_ids=[])
+    pinned = SessionService.pin(SessionService.__new__(SessionService), scenario, persona)
+    assert pinned.persona["gender"] == "female"
+    assert pinned.persona["id"] == "per_lin"
+    assert resolve_voice_id(pinned.persona) == VOICES[("female", "young")][0]

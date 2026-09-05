@@ -279,9 +279,13 @@ class SessionService(BaseService):
             "success_condition", "failure_condition", "time_limit_seconds", "max_turns",
             "minimum_score", "rubric_id", "compliance_rules", "required_disclosures",
         )
+        # `id` and `gender` are not cosmetic: voice selection keys on gender and
+        # hashes the id for the ungendered fallback. Leaving them out made every
+        # session's persona "ungendered", so 林佳穎 (female) spoke with the male
+        # voice whenever the hash landed on it.
         persona_fields = (
-            "name", "age", "occupation", "industry", "background", "language", "locale",
-            "traits", "voice", "avatar_url",
+            "id", "name", "gender", "age", "occupation", "industry", "background",
+            "language", "locale", "traits", "voice", "avatar_url",
         )
         return PinnedSnapshot(
             scenario_id=str(field(scenario, "id", "")),
