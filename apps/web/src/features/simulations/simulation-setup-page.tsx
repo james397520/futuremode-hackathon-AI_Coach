@@ -62,7 +62,20 @@ export function SimulationSetupPage({ scenarioId }: { scenarioId: string }) {
       }
     })();
   };
-  const persona = scenario ? personaById(scenario.persona_id) : undefined;
+  /*
+   * The persona comes from the same database as the scenario. This used to be
+   * `personaById(scenario.persona_id)` — a *fixture* lookup keyed on ids like
+   * `per_chen`, which never matches the real 32-char id an API scenario
+   * carries, so the whole customer card (name, traits, hidden state) silently
+   * vanished. The fixture stays as a fallback for fixture-only scenarios.
+   */
+  const { data: livePersona } = useQuery({
+    queryKey: ['persona', scenario?.persona_id],
+    queryFn: () => endpoints.getPersona(scenario!.persona_id),
+    enabled: Boolean(scenario?.persona_id),
+    retry: false,
+  });
+  const persona = livePersona ?? (scenario ? personaById(scenario.persona_id) : undefined);
   const canSeeHidden = useCan('persona.manage');
   const { label: runtimeLabel } = useComputeCapability();
 
@@ -350,11 +363,19 @@ export function SimulationSetupPage({ scenarioId }: { scenarioId: string }) {
                 const kb = knowledgeBaseById(kbId);
                 return (
                   <li key={kbId} className="text-body-sm">
+                    {/*
+                      * A real scenario carries a real knowledge-base id, which the
+                      * fixture lookup misses. Printing `kbId` then put a 32-char
+                      * hash where a name belongs. The API cannot fill the gap yet
+                      * (`GET /knowledge-bases` answers 500 — `KnowledgeService`
+                      * has no `list_knowledge_bases`), so until it can, say what
+                      * is true in words rather than showing the raw id.
+                      */}
                     <Link href={`/knowledge/${kbId}`} className="font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]">
-                      {kb?.name ?? kbId}
+                      {kb?.name ?? '本情境指定的知識庫'}
                     </Link>
                     <p className="text-tiny text-text-tertiary">
-                      {kb ? `${kb.document_count} 份文件 · ${kb.chunk_count.toLocaleString('zh-TW')} 個片段` : '此工作區無法使用'}
+                      {kb ? `${kb.document_count} 份文件 · ${kb.chunk_count.toLocaleString('zh-TW')} 個片段` : '開啟知識庫查看內容'}
                     </p>
                   </li>
                 );
