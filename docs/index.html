@@ -199,6 +199,28 @@
   .vision ol li b{display:block;font-size:17px}
   .vision ol li span{color:var(--fg-2);font-size:14px}
 
+  /* live transcript */
+  .transcript{margin-top:48px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg-2);overflow:hidden}
+  .turn{display:grid;grid-template-columns:1fr 300px;gap:0;border-bottom:1px solid var(--line)}
+  .turn:last-child{border-bottom:0}
+  @media(max-width:860px){.turn{grid-template-columns:1fr}}
+  .turn .dialog{padding:20px 24px;display:grid;gap:8px}
+  .turn .note{padding:20px 24px;border-left:1px solid var(--line);background:rgba(255,255,255,.02);font-size:13px;color:var(--fg-2);line-height:1.6}
+  @media(max-width:860px){.turn .note{border-left:0;border-top:1px solid var(--line)}}
+  .turn .note b{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3);margin-bottom:6px}
+  .line{display:grid;grid-template-columns:76px 1fr;gap:12px;align-items:start;font-size:15px}
+  .line .who{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--fg-3);padding-top:4px}
+  .line.student .what{color:var(--fg)}
+  .line.customer .what{color:var(--fg-2)}
+  .sysline{font-family:var(--mono);font-size:12px;color:var(--fg-3);padding-left:88px}
+  .sysline.warn{color:#f0a868}
+  .sysline.fail{color:#e88b8b}
+  .cmdline{font-family:var(--mono);font-size:13px;color:var(--fg);padding-left:88px}
+  .final{margin-top:20px;display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  @media(max-width:860px){.final{grid-template-columns:repeat(2,1fr)}}
+  .final .dim{background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .final .dim b{display:block;font-size:26px;font-weight:800;letter-spacing:-.02em}
+  .final .dim span{display:block;font-size:12px;color:var(--fg-3);margin-top:4px}
   .todo{outline:1px dashed #444;outline-offset:2px;border-radius:4px}
 </style>
 </head>
@@ -214,6 +236,7 @@
       <li><a href="#eco">生態系</a></li>
       <li><a href="#arch">架構</a></li>
       <li><a href="#engineering">核心技術</a></li>
+      <li><a href="#flow">運作實例</a></li>
       <li><a href="#tech">技術</a></li>
       <li><a href="#demo">展示</a></li>
       <li><a href="#team">團隊</a></li>
@@ -505,6 +528,78 @@
         </ul>
       </div>
     </div>
+  </div>
+</section>
+
+<section id="flow">
+  <div class="wrap">
+    <div class="eyebrow">In Action</div>
+    <h2>實際運作流程</h2>
+    <p class="lead">一次真實對練的執行紀錄（金融理專情境、客戶人設 cautious）。左邊是對話，右邊是系統同時在背景做的事。</p>
+
+    <div class="transcript">
+      <div class="turn">
+        <div class="dialog">
+          <div class="line student"><span class="who">學員</span><span class="what">妳好</span></div>
+          <div class="line customer"><span class="who">AI 客戶</span><span class="what">你好，我有一筆存款想了解基金，但很在意本金會不會虧損。</span></div>
+          <div class="sysline">文件狀態：not_needed</div>
+        </div>
+        <div class="note"><b>RAG 三態</b>這一輪不需要查知識庫，系統據實標示 not_needed，而不是每輪都假裝有引用。</div>
+      </div>
+
+      <div class="turn">
+        <div class="dialog">
+          <div class="line student"><span class="who">學員</span><span class="what">我們的基金保證獲利</span></div>
+          <div class="line customer"><span class="who">AI 客戶</span><span class="what">如果市場下跌，我的本金真的完全不受影響嗎？</span></div>
+          <div class="sysline">文件狀態：retrieved_context</div>
+          <div class="sysline warn">⚠ 疑似保本／獲利承諾　我們的基金保證獲利</div>
+        </div>
+        <div class="note"><b>合規檢查</b>「保證獲利」在金融銷售是實質違規話術，系統在對話當下就攔截標記，不必等到事後檢討。</div>
+      </div>
+
+      <div class="turn">
+        <div class="dialog">
+          <div class="line student"><span class="who">學員</span><span class="what">不受影響</span></div>
+          <div class="line customer"><span class="who">AI 客戶</span><span class="what">這個基金真的完全不會有虧損嗎？還是說有什麼情況會導致本金受損？</span></div>
+          <div class="sysline fail">第 3 輪評估失敗：AI 分數缺乏學員發言證據。</div>
+        </div>
+        <div class="note"><b>證據核對</b>評分模型給了分數卻拿不出逐字稿裡的原話證據，整輪評估直接作廢——不編分數，也不硬給。</div>
+      </div>
+
+      <div class="turn">
+        <div class="dialog">
+          <div class="line student"><span class="who">學員</span><span class="what">您的本金是多少呢？</span></div>
+          <div class="line customer"><span class="who">AI 客戶</span><span class="what">30萬元。</span></div>
+          <div class="sysline">背景評估等待中（回合）：7</div>
+        </div>
+        <div class="note"><b>背景評分</b>學員終於開始探索需求。評分在背景跑，不打斷對話節奏，需求探索的分數也從這輪起才有依據。</div>
+      </div>
+
+      <div class="turn">
+        <div class="dialog">
+          <div class="line student"><span class="who">學員</span><span class="what">有可能的我們的波動大約是3％</span></div>
+          <div class="line customer"><span class="who">AI 客戶</span><span class="what">如果市場下跌3%，我的本金會虧多少？這樣不會超過我承受的1萬5千塊嗎？</span></div>
+          <div class="sysline">文件狀態：missing</div>
+        </div>
+        <div class="note"><b>查無依據</b>知識庫找不到支撐這個數字的文件，系統標示 missing 而不是讓模型自行編一個看起來合理的答案。</div>
+      </div>
+
+      <div class="turn">
+        <div class="dialog">
+          <div class="cmdline">/finish　→　產生最終報告</div>
+        </div>
+        <div class="note"><b>指令</b>對話中可隨時用 /score 查看背景累積的分數，/finish 產生總評。</div>
+      </div>
+    </div>
+
+    <div class="final">
+      <div class="dim"><b>60</b><span>專業準確度</span></div>
+      <div class="dim"><b>40</b><span>需求探索</span></div>
+      <div class="dim"><b>50</b><span>同理心</span></div>
+      <div class="dim"><b>50</b><span>異議處理</span></div>
+      <div class="dim"><b>70</b><span>風險揭露</span></div>
+    </div>
+    <p class="lead" style="margin-top:24px">最終報告每個維度都附理由與改善建議，例如需求探索 40 分的理由是「未主動詢問投資目標、持有期間、風險承受能力或緊急資金需求」——分數指得出是哪一句沒做到，不是一個沒有來源的數字。</p>
   </div>
 </section>
 
