@@ -113,6 +113,14 @@ export interface UseVoiceSessionOptions {
   onSilenceTimeout?: () => void;
   silenceTimeoutMs?: number;
   /**
+   * End-of-utterance silence. Speech is only "finished" after this much
+   * continuous quiet; a pause shorter than this is the same sentence. The VAD
+   * itself reacts in tens of milliseconds, which is right for the level meter
+   * and barge-in but wrong for segmentation — at that granularity every
+   * breath became its own message.
+   */
+  utteranceEndSilenceMs?: number;
+  /**
    * One finished utterance (push-to-talk released, or VAD saw the trainee stop).
    * The blob is what the microphone heard; the page decides what to do with it
    * — in practice, send it to the API for transcription. Never leaves the hook
@@ -200,6 +208,7 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     personaSpeaking,
     pushToTalk = false,
     silenceTimeoutMs = 8000,
+    utteranceEndSilenceMs = 900,
     personaGender = null,
     personaAge = null,
     locale = 'zh-TW',
@@ -243,6 +252,10 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
   const levelRef = useRef(0);
   const noiseRef = useRef(0);
   const speakingSinceRef = useRef<number | null>(null);
+  // Pending end-of-utterance timer; non-null means "quiet, but maybe just a pause".
+  const endpointTimerRef = useRef<number | null>(null);
+  const endSilenceRef = useRef(utteranceEndSilenceMs);
+  endSilenceRef.current = utteranceEndSilenceMs;
   const lastVoiceAtRef = useRef<number>(0);
   const silenceTimerRef = useRef<number | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
@@ -394,6 +407,11 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       setAnalyser(null);
       return;
     }
+    if (endpointTimerRef.current !== null) {
+      window.clearTimeout(endpointTimerRef.current);
+      endpointTimerRef.current = null;
+    }
+    speakingSinceRef.current = null;
     try {
       if (graph.recorder && graph.recorder.state !== 'inactive') graph.recorder.stop();
       graph.recorder = null;
@@ -461,6 +479,19 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     }
   }, []);
 
+  /** Close the current utterance now: stop capture, hand the blob over. */
+  const finalizeUtterance = useCallback(() => {
+    if (endpointTimerRef.current !== null) {
+      window.clearTimeout(endpointTimerRef.current);
+      endpointTimerRef.current = null;
+    }
+    if (speakingSinceRef.current === null) return;
+    const duration = Date.now() - speakingSinceRef.current;
+    speakingSinceRef.current = null;
+    stopRecording(duration);
+    callbacks.current.onSpeechEnd?.(duration);
+  }, [stopRecording]);
+
   // ---- VAD / barge-in ------------------------------------------------------
 
   const handleVad = useCallback(
@@ -471,24 +502,32 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
 
       setVadActive((prev) => (prev === effective ? prev : effective));
 
-      if (effective && speakingSinceRef.current === null) {
-        speakingSinceRef.current = Date.now();
-        startRecording();
-        callbacks.current.onSpeechStart?.();
-        // Barge-in: the trainee took the floor while the persona was talking.
-        if (personaSpeakingRef.current) {
-          cancelTts();
-          actions.registerBargeIn();
-          callbacks.current.onBargeIn?.();
+      if (effective) {
+        // Voice resumed inside the pause window: same utterance, keep recording.
+        if (endpointTimerRef.current !== null) {
+          window.clearTimeout(endpointTimerRef.current);
+          endpointTimerRef.current = null;
         }
-      } else if (!effective && speakingSinceRef.current !== null) {
-        const duration = Date.now() - speakingSinceRef.current;
-        speakingSinceRef.current = null;
-        stopRecording(duration);
-        callbacks.current.onSpeechEnd?.(duration);
+        if (speakingSinceRef.current === null) {
+          speakingSinceRef.current = Date.now();
+          startRecording();
+          callbacks.current.onSpeechStart?.();
+          // Barge-in: the trainee took the floor while the persona was talking.
+          if (personaSpeakingRef.current) {
+            cancelTts();
+            actions.registerBargeIn();
+            callbacks.current.onBargeIn?.();
+          }
+        }
+      } else if (speakingSinceRef.current !== null && endpointTimerRef.current === null) {
+        // Quiet. Do not end the utterance yet — wait out a natural pause.
+        endpointTimerRef.current = window.setTimeout(() => {
+          endpointTimerRef.current = null;
+          finalizeUtterance();
+        }, endSilenceRef.current);
       }
     },
-    [actions, cancelTts, startRecording, stopRecording],
+    [actions, cancelTts, finalizeUtterance, startRecording],
   );
 
   // ---- Start ---------------------------------------------------------------
@@ -746,9 +785,12 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
         for (const track of graph.stream.getAudioTracks()) track.enabled = !value;
         graph.worklet?.port.postMessage({ type: 'mute', value });
       }
-      if (value) handleVad(false);
+      if (value) {
+        finalizeUtterance();
+        handleVad(false);
+      }
     },
-    [actions, handleVad],
+    [actions, finalizeUtterance, handleVad],
   );
 
   const toggleMute = useCallback(() => setMuted(!mutedRef.current), [setMuted]);
@@ -763,10 +805,12 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
         if (speakingSinceRef.current === null) speakingSinceRef.current = Date.now();
         startRecording();
       } else {
+        // Releasing the key *is* the end of the sentence; no pause window here.
+        finalizeUtterance();
         handleVad(false);
       }
     },
-    [actions, handleVad, startRecording],
+    [actions, finalizeUtterance, handleVad, startRecording],
   );
 
   const selectInputDevice = useCallback(

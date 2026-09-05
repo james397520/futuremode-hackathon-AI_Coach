@@ -19,7 +19,7 @@ import type { SessionState } from '@ai-coach/shared';
 import { INPUT_BLOCKED_STATES } from '../lib/session-transitions';
 import { insetSurface, tint, toneText } from '../lib/tone';
 import { LiveDot } from './atoms';
-import { LocalModeToggle } from './local-mode-toggle';
+import { SttLocalToggle, TtsLocalToggle } from './local-mode-toggle';
 import { SttStatus } from './stt-engine-pill';
 import { CameraIcon, CameraOffIcon, LightbulbIcon, MicIcon, MicOffIcon, SendIcon } from './icons';
 import { cn, Textarea } from './kit';
@@ -161,7 +161,12 @@ export function Composer({
           />
         </div>
 
-        {voiceEnabled ? <LocalModeToggle /> : null}
+        {voiceEnabled ? (
+          <>
+            <TtsLocalToggle />
+            <SttLocalToggle />
+          </>
+        ) : null}
 
         {voiceEnabled ? (
           <button

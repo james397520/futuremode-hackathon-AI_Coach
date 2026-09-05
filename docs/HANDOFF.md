@@ -471,3 +471,18 @@ exit code=139   # SIGSEGV  (兩次)
 
 ### 16.6 「本地」開關（麥克風旁，兩頁皆有）
 一顆按鈕把兩件事一起切：**開 = 系統語音 TTS + Mac 本機 STT**，關 = 回到伺服器預設。存在 `localStorage['aicoach.voice.local-mode']`，重新載入後保留——這是隱私／成本立場，不是單場設定。API 回報本機辨識不可用時，開關仍會切 TTS 為系統語音、STT 留在自動，tooltip 會說明「部分」。三段式的細部選擇仍在「音訊與語音」對話框。
+
+### 16.7 斷句（端點偵測）
+VAD 幾十毫秒就反應，這對音量表和插話是對的，對**斷句**是錯的：先前一偵測到靜音就收句送出，講話中每個自然停頓都變成一則訊息（本地辨識快，所以特別明顯）。現在 `useVoiceSession` 有 `utteranceEndSilenceMs`（預設 900ms）：靜音要持續這麼久才算一句結束，中途接著講就併回同一句、同一段錄音。放開空白鍵或按靜音則**立刻**收句——那是使用者明確表示講完了。合成麥克風驗證：700ms 語音＋450ms 停頓＋700ms 語音 → 一次 `/transcribe`。
+
+### 16.8 線上 TTS 延遲實測（ElevenLabs streaming，zh-TW，3 次中位數）
+| 模型 | 24 字 TTFB | 24 字總長 | 2 字總長 |
+|---|---|---|---|
+| eleven_multilingual_v2 | 1040ms | 1103ms | 957ms |
+| **eleven_flash_v2_5**（預設） | **226ms** | **313ms** | 210ms |
+| eleven_turbo_v2_5 | 286ms | 389ms | 247ms |
+
+multilingual_v2 的 ~1 秒幾乎全在首位元組——客戶每句都要「想」一秒才開口。預設改 flash；要音質用 `ELEVENLABS_TTS_MODEL=eleven_multilingual_v2`。
+
+### 16.9 兩個獨立開關（麥克風旁）
+「說：本地」＝客戶語音用系統語音；「聽：本地」＝辨識用 Mac 本機（本機不可用時停用並說明原因）。各自存 `localStorage`（`aicoach.voice.tts-local` / `aicoach.voice.stt-local`）。拆成兩個是因為取捨不同：雲端 TTS 音質好，本地 STT 快且音訊不外傳，兩者可以各選。

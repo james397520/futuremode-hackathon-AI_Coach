@@ -97,6 +97,15 @@ class Settings(BaseSettings):
     # it, not to whoever spawned it) and listens on loopback. The API talks to it
     # here; a per-call subprocess is only the fallback when the daemon is down.
     mac_stt_port: int = Field(default=8790, validation_alias="MAC_STT_PORT")
+    # Measured on this account, zh-TW, 24-char sentence, median of 3, streaming:
+    #   eleven_multilingual_v2  TTFB ~1040ms  total ~1100ms
+    #   eleven_flash_v2_5       TTFB  ~215ms  total  ~310ms
+    #   eleven_turbo_v2_5       TTFB  ~290ms  total  ~390ms
+    # A live customer that takes a second to start talking feels broken; flash
+    # is the default. Set ELEVENLABS_TTS_MODEL=eleven_multilingual_v2 for quality.
+    elevenlabs_tts_model: str = Field(
+        default="eleven_flash_v2_5", validation_alias="ELEVENLABS_TTS_MODEL"
+    )
     llm_model: str = Field(default="gpt-4o", validation_alias="LLM_MODEL")
     minimax_base_url: str = Field(
         default="https://api.minimax.io/anthropic/v1", validation_alias="MINIMAX_BASE_URL"

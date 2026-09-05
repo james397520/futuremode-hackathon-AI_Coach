@@ -455,6 +455,15 @@ class FallbackStt:
             raise last
 
 
+def _default_tts_model() -> str:
+    try:
+        from app.core.config import get_settings
+
+        return str(getattr(get_settings(), "elevenlabs_tts_model", "") or "eleven_flash_v2_5")
+    except Exception:
+        return "eleven_flash_v2_5"
+
+
 def _default_mac_stt_port() -> int:
     try:
         from app.core.config import get_settings
@@ -532,10 +541,10 @@ class ElevenLabsTts:
     def __init__(
         self,
         *,
-        model_id: str = "eleven_multilingual_v2",
+        model_id: str | None = None,
         client: Any | None = None,
     ) -> None:
-        self.model_id = model_id
+        self.model_id = model_id or _default_tts_model()
         self._client = client
 
     def _http(self) -> Any:
