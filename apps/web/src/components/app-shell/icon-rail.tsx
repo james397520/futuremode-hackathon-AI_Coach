@@ -98,7 +98,7 @@ export function IconRail() {
         </button>
         {expanded ? (
           <div className="rail-expanded-only min-w-0 flex-1">
-            <p className="truncate text-body-sm font-semibold tracking-[-0.01em]">AI Coach</p>
+            <p className="truncate text-body-sm font-semibold tracking-[-0.01em]">SkillCoach</p>
             <p className="truncate text-tiny text-text-tertiary">企業訓練工作區</p>
           </div>
         ) : null}

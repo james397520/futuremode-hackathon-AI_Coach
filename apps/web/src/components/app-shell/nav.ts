@@ -50,11 +50,11 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'demo',
-    label: '展示模式',
+    label: '情境示範',
     href: '/demo',
     icon: Clapperboard,
     permission: 'simulation.start',
-    description: '寫死的示範對話，適合直接螢幕錄影',
+    description: '一鍵播放的完整示範情境',
   },
   {
     id: 'training',

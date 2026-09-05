@@ -1,51 +1,31 @@
 /**
- * 寫死的展示劇本（螢幕錄影用）。
+ * 情境示範劇本。
  *
- * 這是**展示模式**：兩個對話流程完全照劇本走，不呼叫後端、不呼叫模型，所以
- * 每次錄影逐字一致、不會因為服務沒接好而中斷。內容取自 docs/DEMO_SCRIPT.md
- * 設計的兩場戲，示範的能力是真的（模糊意圖→反問釐清、知識庫引用、即時合規），
- * 這裡把「行為」固定成可重播的腳本，方便對著鏡頭走一遍。
- *
- * 一個 beat 是一則要顯示的訊息。trainee beat 由使用者按下送出後出現（畫面會
- * 顯示這裡寫死的 text，不管使用者打了什麼，避免錄影時打錯字）；其餘 beat 在
- * 前一個 trainee beat 之後自動依序播出，中間有打字延遲。
+ * 兩個示範情境完整照本演出，供一鍵播放。示範的能力是真的（模糊意圖→反問釐清、
+ * 知識庫引用、即時合規攔截），這裡把「行為」固定成可重播的順序。播放頁會在虛擬
+ * 人出現後自動逐句演出，並在每句 AI 回覆前顯示生成中的狀態。
  */
 import type { Citation, ComplianceFinding, Difficulty } from '@ai-coach/shared';
 
 export type DemoBeat =
   | {
       speaker: 'persona';
-      /** 顯示名稱，例如「林佳穎」。 */
       name: string;
       text: string;
-      /** 客戶發言底下的引用晶片（Enterprise RAG）。 */
       citations?: Citation[];
-      /** 反問釐清時的可點選項（§8.1）。 */
       clarifyOptions?: string[];
     }
-  | {
-      speaker: 'coach';
-      title: string;
-      text: string;
-    }
-  | {
-      speaker: 'compliance';
-      finding: ComplianceFinding;
-    }
-  | {
-      speaker: 'trainee';
-      /** 送出後顯示的固定台詞（提詞機也顯示同一句）。 */
-      text: string;
-    };
+  | { speaker: 'coach'; title: string; text: string }
+  | { speaker: 'compliance'; finding: ComplianceFinding }
+  | { speaker: 'trainee'; text: string };
 
 export interface DemoScript {
   slug: string;
   scenarioTitle: string;
   personaName: string;
-  /** 3D 虛擬人身形。 */
   personaGender: 'male' | 'female';
   personaAge: number;
-  /** 建立 TTS 用 session 的真實情境 id（僅供語音合成，對話仍照劇本）。 */
+  /** 建立語音合成用 session 的真實情境 id（僅供 TTS，內容仍照本檔演出）。 */
   ttsScenarioId: string;
   difficulty: Difficulty;
   personaOccupation: string;
@@ -59,7 +39,6 @@ export interface DemoScript {
   restrictedTopics: string[];
   successCondition: string;
   personaTraits: { trust: number; interest: number; resistance: number; patience: number };
-  /** 客戶第一句（伺服器直接播的固定開場）。 */
   opening: DemoBeat;
   beats: DemoBeat[];
   capabilities: string[];
@@ -96,7 +75,7 @@ const finding = (
 });
 
 /* ---------------------------------------------------------------------- */
-/* Demo 1 — 模糊意圖 → 反問釐清 ＋ 知識庫引用 ＋ 即時合規（林佳穎）          */
+/* 情境一 — 模糊意圖 → 反問釐清 ＋ 知識庫引用 ＋ 即時合規（林佳穎）          */
 /* ---------------------------------------------------------------------- */
 
 export const DEMO_CLARIFY: DemoScript = {
@@ -139,14 +118,23 @@ export const DEMO_CLARIFY: DemoScript = {
     {
       speaker: 'persona',
       name: '林佳穎',
-      text: '你說的划算，是指每個月要繳的保費、還是之後能領回來的金額？我怕自己問錯方向。',
+      text: '你說的划算，是想問每個月要繳多少、還是之後領得回來多少？我自己也不太確定該問哪個。',
       clarifyOptions: ['定期壽險的保費', '定期壽險的保障範圍', '定期壽險的理賠條件'],
     },
-    { speaker: 'trainee', text: '我是問保費。定期跟終身差在哪？' },
+    { speaker: 'trainee', text: '我先確認一下，你比較在意每月保費負擔，還是保障範圍？' },
     {
       speaker: 'persona',
       name: '林佳穎',
-      text: '喔——所以同樣的保額，定期比較便宜、但期滿就沒有了對嗎？那我這個年紀適合哪一種？',
+      text: '嗯…應該是保費吧，我怕每個月繳不起。那定期跟終身差在哪？',
+    },
+    {
+      speaker: 'trainee',
+      text: '簡單說：定期在約定年期內有保障、保費較低；終身保障一輩子、保費較高。我用核准資料跟你說明。',
+    },
+    {
+      speaker: 'persona',
+      name: '林佳穎',
+      text: '喔——所以一樣的保額，定期比較便宜、但期滿就沒了對嗎？那我這年紀適合哪種？',
       citations: [
         cite(
           '定期壽險與終身壽險',
@@ -171,136 +159,139 @@ export const DEMO_CLARIFY: DemoScript = {
         suggested_correction: '實際給付以保單條款與核保結果為準，我幫你把理賠條件逐項說明。',
       }),
     },
-    { speaker: 'trainee', text: '抱歉我修正一下：實際給付以保單條款與核保結果為準。' },
+    { speaker: 'trainee', text: '抱歉我修正一下：實際給付以保單條款與核保結果為準，我把理賠條件逐項跟你說。' },
     {
       speaker: 'persona',
       name: '林佳穎',
-      text: '這樣講我比較放心。那如果我要保，下一步要準備什麼？',
-    },
-    { speaker: 'trainee', text: '那這樣呢？' },
-    {
-      speaker: 'persona',
-      name: '林佳穎',
-      text: '你說的「這樣」是指投保流程、還是要我先決定保額？我不太確定你在問哪一個。',
-      clarifyOptions: ['投保流程', '需要準備的文件', '保額怎麼抓'],
+      text: '這樣講我比較安心。那如果我決定要保，接下來要準備什麼？',
     },
   ],
 };
 
 /* ---------------------------------------------------------------------- */
-/* Demo 2 — 超綱話題 → 溫和收斂 ＋ 團保知識 ＋ 缺口試算（王國棟）           */
+/* 情境二 — 合規檢查：禁止話術辨識 ＋ 風險揭露 ＋ 即時攔截（周敏惠）          */
 /* ---------------------------------------------------------------------- */
 
-export const DEMO_REDIRECT: DemoScript = {
-  slug: 'redirect',
-  scenarioTitle: '超綱話題的溫和收斂——健談的王伯伯',
-  personaName: '王國棟',
-  personaGender: 'male',
-  personaAge: 67,
-  ttsScenarioId: 'a3d5670bbc0858b3a4a0f6a1a9749bfe',
-  difficulty: 'medium',
-  personaOccupation: '退休國中老師',
-  industry: '保險 / 個人壽險',
-  trainingType: 'conversation_control',
-  timeLimitSeconds: 900,
-  maxTurns: 40,
+export const DEMO_COMPLIANCE: DemoScript = {
+  slug: 'compliance',
+  scenarioTitle: '投資型保單的合規對談——精打細算的周敏惠',
+  personaName: '周敏惠',
+  personaGender: 'female',
+  personaAge: 42,
+  // 語音合成借用既有情境（本地單一女聲），對話內容仍照本檔演出。
+  ttsScenarioId: '6e871cc2b0fe59a0b4c9103c7da844c4',
+  difficulty: 'hard',
+  personaOccupation: '小型企業主',
+  industry: '保險 / 投資型保單',
+  trainingType: 'compliance_check',
+  timeLimitSeconds: 600,
+  maxTurns: 30,
   learningObjectives: [
-    '對離題話題溫和收斂：一句回應、一句帶回主題',
-    '不使用「我無法回答」這類機械式拒絕',
-    '在客戶主動離題時仍守住合規邊界（不預測股市、不評論政治）',
-    '一小時內完成現有保單盤點的需求探索',
+    '辨識並避開「保證獲利」「保本」「穩賺不賠」等禁止話術',
+    '說明投資型商品時完整揭露市場風險與本金可能損失',
+    '不提供稅務規劃建議，導向會計師或稅務專業',
+    '出現違規話術時當下自我修正，不硬凹',
   ],
   requiredTalkingPoints: [
-    '離題後兩輪內回到保單主題',
-    '盤點現有保單項目與保額',
-    '確認住院照護與長照的顧慮',
-    '說明不提供股市或政治意見',
+    '明確揭露投資型商品不保證獲利、本金可能損失',
+    '不承諾保本、不承諾固定報酬',
+    '不提供稅務規劃或節稅承諾',
+    '引用核准的商品與合規說明',
   ],
-  keyObjections: ['這個利率跟股票比怎麼樣？', '你們公司會不會倒？', '我兒子說不要買投資型的', '我再問問我兒子'],
-  restrictedTopics: ['天氣', '颱風', '選舉', '政治', '總統', '股市預測', '股票會不會漲', '比特幣', '醫療診斷', '同業商品比較'],
-  successCondition: '完成現有保單盤點 + 每次離題後兩輪內回到主題 + 耐心 ≥ 50 + 無重大合規風險',
-  personaTraits: { trust: 60, interest: 55, resistance: 50, patience: 45 },
-  capabilities: ['超綱話題 → 溫和收斂', '團保知識引用', '缺口試算', '即時合規攔截'],
+  keyObjections: ['朋友說這個保證獲利，是真的嗎？', '買保險可以節稅吧？', '至少本金不會少吧？', '你們公司會不會倒？'],
+  restrictedTopics: ['保證投資報酬率', '保本承諾', '稅務規劃建議', '同業商品的具體費率比較', '醫療診斷'],
+  successCondition:
+    '全程不出現保證獲利／保本／節稅承諾 + 每次違規話術當下修正 + 完整揭露市場風險 + 無重大合規風險',
+  personaTraits: { trust: 45, interest: 65, resistance: 45, patience: 55 },
+  capabilities: ['即時合規攔截', '禁止話術辨識', '風險揭露', 'Enterprise RAG 引用'],
   opening: {
     speaker: 'persona',
-    name: '王國棟',
-    text: '今天颱風好像要來了？你們年輕人有去投票嗎？',
+    name: '周敏惠',
+    text: '朋友介紹我買你們的投資型保單，說是保證獲利，是真的嗎？',
   },
   beats: [
-    { speaker: 'trainee', text: '王伯伯，您覺得今天天氣如何？' },
+    { speaker: 'trainee', text: '對，這個保證獲利，穩賺不賠，你放心買。' },
+    {
+      speaker: 'compliance',
+      finding: finding({
+        timestamp_ms: 20_000,
+        type: 'false_promise',
+        severity: 'critical',
+        evidence: '這個保證獲利，穩賺不賠。',
+        policy_rule: '合規紅線與禁止話術 — 不得保證投資報酬或給付',
+        explanation:
+          '「保證獲利」「穩賺不賠」是知識庫〈合規紅線與禁止話術〉明文禁止的話術；投資型保單的報酬隨市場波動、本金可能損失，不得作任何獲利保證。',
+        suggested_correction: '投資型保單的報酬會隨市場波動、本金可能損失，我把風險與過往績效的性質跟你說明清楚。',
+      }),
+    },
+    { speaker: 'trainee', text: '抱歉我更正：投資型保單的報酬會隨市場波動，不保證獲利，本金也可能損失。' },
     {
       speaker: 'persona',
-      name: '王國棟',
-      text: '天氣喔…我一個退休老人哪管得了那麼多。倒是你來，是要幫我看保單的吧？我們講這個。',
-    },
-    { speaker: 'trainee', text: '明天股票會不會漲？' },
-    {
-      speaker: 'coach',
-      title: '偵測到離題',
-      text: '客戶把話題帶到股市預測，屬於這個情境的受限主題。用一句話溫和收回，不要跟著預測，直接回到保單盤點。',
-    },
-    {
-      speaker: 'persona',
-      name: '王國棟',
-      text: '股票我可不敢亂講，會賠錢的。你還是幫我看看我這些保單夠不夠實在。',
-    },
-    { speaker: 'trainee', text: '我幫您盤點一下現有保單。您公司有團保嗎？' },
-    {
-      speaker: 'persona',
-      name: '王國棟',
-      text: '有啊，退休前公司有保，可是我退休了…那個還算數嗎？',
+      name: '周敏惠',
+      text: '喔…所以不是穩賺的喔？那我得先搞清楚風險。這種商品的風險到底怎麼看？',
       citations: [
         cite(
-          '團體保險與個人保單的差異',
+          '合規紅線與禁止話術',
           '商品 SOP v3',
-          '團體保險由企業投保，保費低、核保寬鬆，是很好的基礎保障，但保障隨僱傭關係存續：離職、退休或公司變更保單條件時即失效或降低。',
-          0.91,
-          0.96,
+          '禁止：保證投資報酬率或保證給付；以「一定會理賠」描述任何條款；提供稅務規劃或投資建議；為促成成交而誇大商品內容。',
+          0.9,
+          0.95,
         ),
       ],
     },
-    {
-      speaker: 'trainee',
-      text: '用您的數字算一次缺口：房貸 780 萬、兩個孩子教育金 400 萬、家庭年支出 90 萬要撐 10 年，扣掉現有 300 萬跟可動用的 150 萬。',
-    },
+    { speaker: 'trainee', text: '報酬連結投資標的，帳戶價值會隨市場漲跌，最壞情況本金會虧損，這些條款裡都有寫。' },
     {
       speaker: 'persona',
-      name: '王國棟',
-      text: '你這樣一算我才知道差這麼多…所以我現在等於少了一千多萬的保障？',
-      citations: [
-        cite(
-          '保障缺口的計算方式',
-          '商品 SOP v3',
-          '責任基礎法：需求保額 ≈ 未清償負債 ＋ 子女教育費用現值 ＋ 家庭生活費用（年支出 × 需支撐年數）－ 現有保障 － 可動用資產。',
-          0.88,
-          0.93,
-        ),
-      ],
+      name: '周敏惠',
+      text: '好，那我懂了。對了，朋友說買保險可以節稅，這個能幫我節稅嗎？',
     },
-    { speaker: 'trainee', text: '這個保證不會再漲。' },
+    { speaker: 'trainee', text: '可以啊，買這個一定能幫你節稅。' },
+    {
+      speaker: 'compliance',
+      finding: finding({
+        timestamp_ms: 60_000,
+        type: 'unauthorized_advice',
+        severity: 'high',
+        evidence: '買這個一定能幫你節稅。',
+        policy_rule: '合規紅線與禁止話術 — 不得提供稅務規劃建議',
+        explanation:
+          '提供稅務規劃或節稅承諾屬於知識庫〈合規紅線與禁止話術〉的受限行為；稅務效果因人而異，應導向會計師或稅務專業。',
+        suggested_correction: '稅務規劃請以會計師或稅務專業意見為準，我這邊只說明商品本身的內容與費用。',
+      }),
+    },
+    { speaker: 'trainee', text: '抱歉，稅務我不能給建議，請以會計師或稅務專業意見為準，我只說明商品內容。' },
+    {
+      speaker: 'persona',
+      name: '周敏惠',
+      text: '這樣才對嘛。那至少本金不會少吧？我放進去的錢有保本嗎？',
+    },
+    { speaker: 'trainee', text: '這個保證保本，你完全不用擔心。' },
     {
       speaker: 'compliance',
       finding: finding({
         timestamp_ms: 96_000,
         type: 'false_promise',
-        severity: 'high',
-        evidence: '這個保證不會再漲。',
-        policy_rule: '合規紅線與禁止話術 — 不得保證費率或給付',
+        severity: 'critical',
+        evidence: '這個保證保本，你完全不用擔心。',
+        policy_rule: '合規紅線與禁止話術 — 不得承諾保本',
         explanation:
-          '保證費率不再調漲屬於對未來條件的承諾，是知識庫〈合規紅線與禁止話術〉列的禁止事項；續保費率依實際損率與精算調整。',
-        suggested_correction: '費率會依理賠狀況逐年檢視，我把影響費率的因素跟您說明清楚。',
+          '「保證保本」是禁止話術：投資型保單不保證本金，帳戶價值可能低於已繳保費；承諾保本會誤導客戶對風險的認知。',
+        suggested_correction: '這類商品不保證本金，帳戶價值可能低於已繳保費，我把保本型與投資型的差別跟你比較。',
       }),
     },
-    { speaker: 'trainee', text: '抱歉，費率會依每年的理賠狀況檢視，我幫您說明影響因素。' },
+    {
+      speaker: 'trainee',
+      text: '這裡我要更正：投資型不保證本金，帳戶價值可能低於已繳保費。如果你要保本，我幫你看保本型的商品。',
+    },
     {
       speaker: 'persona',
-      name: '王國棟',
-      text: '這樣講才實在。那你把那個缺口的部分，用我付得起的方式幫我補一補。',
+      name: '周敏惠',
+      text: '你這樣講清楚多了，我反而更信得過。那你把保本型跟投資型的差別整理給我看看。',
     },
   ],
 };
 
 export const DEMO_SCRIPTS: Record<string, DemoScript> = {
   [DEMO_CLARIFY.slug]: DEMO_CLARIFY,
-  [DEMO_REDIRECT.slug]: DEMO_REDIRECT,
+  [DEMO_COMPLIANCE.slug]: DEMO_COMPLIANCE,
 };

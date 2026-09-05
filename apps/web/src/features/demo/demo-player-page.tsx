@@ -1,13 +1,14 @@
 'use client';
 
 /**
- * 展示模式播放頁（螢幕錄影用）——介面與正式模擬頁一模一樣，且**全自動跑完整流程**。
+ * 展示模式播放頁（螢幕錄影用）——介面與正式模擬頁一模一樣，半自動演出。
  *
  * 直接用正式產品的版面元件：SessionHeader ＋ TrainingGrid(stage-left) ＋
  * ConversationPanel（對談、composer、教練卡、合規卡、引用晶片、事件列）＋
  * PersonaColumn(stage-fill)（大虛擬人＋自拍位＋情境資訊卡）。差別只有資料來源：
- * 對話照 `demo-scripts.ts` 的劇本自動播出，不需使用者輸入、不呼叫後端對話、
- * 不呼叫模型，所以錄影逐字一致、不會中斷。
+ * 對話照 `demo-scripts.ts` 的劇本演出：AI（客戶／教練／合規）自動輸出，輪到學員時
+ * 把該說的話自動貼進輸入框、由使用者親自按「送出」，按下後 AI 再自動接續。不呼叫
+ * 後端對話、不呼叫模型，所以錄影逐字一致、不會中斷。
  *
  * 兩個時序保證：
  * 1. 整段流程與第一句 TTS 都**等虛擬人出現後**才開始（onPersonaVisible，含逾時
@@ -38,6 +39,7 @@ const TYPING_MS = 1100; // persona "typing" before a reply
 const READ_MS = 2200; // pause so a viewer can read the previous line
 const AFTER_EVENT_MS = 900; // pause after a coach / compliance card
 const OPENING_MS = 700; // small beat after the avatar appears
+const RETRIEVE_MS = 850; // knowledge-retrieval step before a cited reply
 
 const TTS_ENGINE = 'local' as const;
 const TTS_TUNING = { stability: 0.5, similarity: 0.75, style: 0.3, speed: 1 };
@@ -78,6 +80,8 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   const seqRef = useRef(1);
   const startRef = useRef(Date.now());
   const startedRef = useRef(false); // the auto-run has begun (once per mount)
+  const rootRef = useRef<HTMLDivElement>(null); // scopes DOM control of the real composer
+  const resumeRef = useRef(0); // beat index to resume at after the trainee line is sent
 
   const nextTs = useCallback(() => seqRef.current++ * 1000, []);
   const after = useCallback((ms: number, fn: () => void) => {
@@ -172,6 +176,40 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
     [nextTs, speakLine],
   );
 
+  // Always points at the latest `play`, so the composer-driven trainee send can
+  // resume the walk without a render-cycle dependency loop.
+  const playRef = useRef<(i: number) => void>(() => {});
+
+  // The trainee's turn: paste the scripted line into the REAL composer and
+  // WAIT. The user presses 送出 themselves; onSendTrainee then adds the turn and
+  // resumes the AI output. If the composer DOM is unreachable, the line is kept
+  // as a hint the user can still send.
+  const fillComposer = useCallback((text: string) => {
+    const root = rootRef.current;
+    const ta = root?.querySelector<HTMLTextAreaElement>('textarea');
+    if (!ta) return;
+    const nativeSet = Object.getOwnPropertyDescriptor(
+      window.HTMLTextAreaElement.prototype,
+      'value',
+    )?.set;
+    nativeSet?.call(ta, text);
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    ta.focus();
+  }, []);
+
+  // The user pressed 送出. Add the trainee turn, then auto-play the AI output up
+  // to the next trainee line (which fillComposer pre-fills, then waits again).
+  const onSendTrainee = useCallback(
+    (text: string) => {
+      const clean = text.trim();
+      if (!clean) return;
+      addTrainee(clean);
+      setStatus('processing');
+      after(600, () => playRef.current(resumeRef.current));
+    },
+    [addTrainee, after],
+  );
+
   // The auto-player: walk every beat with human-readable pacing. No input.
   const play = useCallback(
     (i: number) => {
@@ -184,27 +222,42 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
       if (!beat) return;
 
       if (beat.speaker === 'trainee') {
-        // "Your turn" for a moment so a viewer reads the prior line, then the
-        // trainee's scripted line appears on its own.
-        setStatus('listening');
+        // "Your turn": pre-fill the line into the real composer and WAIT — the
+        // user presses 送出 themselves. onSendTrainee resumes from resumeRef.
+        setStatus('ready');
         setActiveAgent(null);
-        after(READ_MS, () => {
-          addTrainee(beat.text);
-          setStatus('processing');
-          after(600, () => play(i + 1));
-        });
+        resumeRef.current = i + 1;
+        after(READ_MS, () => fillComposer(beat.text));
         return;
       }
 
       if (beat.speaker === 'persona') {
         setStatus('persona_speaking');
-        setActiveAgent('customer');
-        setAgentAtMs(Date.now());
-        after(TYPING_MS, () => {
-          addPersona(beat);
-          setActiveAgent(null);
-          after(READ_MS, () => play(i + 1));
-        });
+        // Pretend the answer is being generated. When the reply cites the
+        // knowledge base, show the retrieval step first (查找核准資料) and then
+        // the customer composing — mirroring the real RAG → generate pipeline —
+        // so the wait reads as live AI work, not a canned line.
+        if (beat.citations?.length) {
+          setActiveAgent('knowledge');
+          setAgentAtMs(Date.now());
+          after(RETRIEVE_MS, () => {
+            setActiveAgent('customer');
+            setAgentAtMs(Date.now());
+            after(TYPING_MS, () => {
+              addPersona(beat);
+              setActiveAgent(null);
+              after(READ_MS, () => play(i + 1));
+            });
+          });
+        } else {
+          setActiveAgent('customer');
+          setAgentAtMs(Date.now());
+          after(TYPING_MS, () => {
+            addPersona(beat);
+            setActiveAgent(null);
+            after(READ_MS, () => play(i + 1));
+          });
+        }
         return;
       }
 
@@ -240,8 +293,12 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
         after(AFTER_EVENT_MS, () => play(i + 1));
       });
     },
-    [script, after, addTrainee, addPersona, nextTs],
+    [script, after, addPersona, fillComposer, nextTs],
   );
+
+  useEffect(() => {
+    playRef.current = play;
+  }, [play]);
 
   // Kick the whole run off ONCE, and only after the virtual human is on screen,
   // so no TTS plays before the avatar appears. A timeout is the fallback for a
@@ -301,7 +358,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   return (
     <>
       <SimulationStyles />
-      <div className="flex h-full min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+      <div ref={rootRef} className="flex h-full min-h-0 flex-1 flex-col gap-4 overflow-hidden">
         <SessionHeader
           scenarioName={script.scenarioTitle}
           personaName={script.personaName}
@@ -339,7 +396,6 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
               systemNotices={[]}
               startedAtMs={startRef.current}
               personaName={script.personaName}
-              openingContext={script.opening.speaker === 'persona' ? script.opening.text : undefined}
               activeAgent={activeAgent}
               agentActivityAtMs={agentAtMs}
               turnCount={traineeTurns}
@@ -349,7 +405,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
               muted
               vadActive={false}
               captionsEnabled={false}
-              onSend={noop}
+              onSend={onSendTrainee}
               onPushToTalk={noop}
               onToggleMic={noop}
               onPauseResume={noop}

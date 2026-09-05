@@ -59,7 +59,7 @@ export function RequireSession({ children }: { children: ReactNode }) {
               <Image src="/brand/logo-mark.png" alt="" width={44} height={44} priority />
             </span>
 
-            <h1 className="mt-5 text-section">AI Coach</h1>
+            <h1 className="mt-5 text-section">SkillCoach</h1>
             <p className="mt-1 text-body-sm text-text-secondary">企業訓練工作區</p>
 
             {/* Indeterminate, because the honest answer is that we do not know
