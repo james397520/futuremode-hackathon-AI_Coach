@@ -641,7 +641,20 @@ out: y[N,1,L] float
 ## 18. 30 秒 Demo（情境三）所需的三個機制
 1. **客戶先開口**：`SessionService.speak_opening_line()` 在首次連線 `mark_ready` 後，把 `opening_context` 裡最後一段「…」引句當作客戶第 0 輪送出並持久化；session 已有任何回合就不做（重連不會重複）。四個情境的 opening_context 都寫成「他坐下來第一句話是：「…」」的格式，所以全部受惠。副作用：回合計數會把這一輪算進去（UI 顯示 Turn 1 / 30）。
 2. **低耐心 persona 回覆精簡**：`CustomerTurnRequest` 依 `traits.patience < 35` 加 `reply_length` 指令（兩句、40 字內）。這是角色特性，順便讓對話框不需捲動。
-3. **皺眉 → 提示卡**（`affect-nudge.tsx`）：用瀏覽器端臉部讀數（每 250ms），負向標籤（angry/sad/fearful/disgusted/contempt）信心 ≥ 0.55 **持續 1.5 秒**且輪到學員說話時，在**輸入框正上方**出現「這句不好接？我可以給你一個回應方向，不會替你講。」按「給我方向」走既有 `coach.request_hint`；30 秒內只出現一次、15 秒自動收、評測模式不顯示、**不說出偵測到的情緒**。實測皺眉到出現 2.9 秒。
+3. **皺眉 → 提示卡**（`affect-nudge.tsx`）：瀏覽器端臉部讀數每 250ms 一筆，負向標籤是 angry/sad/fearful/disgusted/contempt。分兩段：**0.8 秒**出現「偵測到你的情緒：苦惱」的小膠囊（不分輪次，讓人看到系統有在看）；**3 秒**且 session 進行中，在**輸入框正上方**出現「這句不好接？我可以給你一個回應方向，不會替你講。」按下走既有 `coach.request_hint`。12 秒內只出現一次、15 秒自動收、評測模式只有膠囊沒有卡片。
+
+   **門檻掛在哪個數字上，比門檻是多少更重要。** 原本比的是「勝出標籤自己的分數 ≥ 0.55/0.42」，那是錯的數字：`neutral` 也在同一個排名裡，分數是 `1 − 1.6 × activation`，所以一個負向規則要先**贏過 neutral** 才會成為勝出標籤——而剛贏過的那一刻它自己的分數只有 0.27 左右。要讓勝出分數爬到 0.42，眉頭得壓到 0.65，那是誇張的怒容不是皺眉。實算（`node` 重跑規則權重）：
+
+   | browDown | angry | neutral | 勝出 | 舊（0.42 比勝出分數） | 新（0.25 比最高負向分數） |
+   |---|---|---|---|---|---|
+   | 0.44 | 0.286 | 0.296 | neutral | 沉默 | 沉默 |
+   | 0.50 | 0.325 | 0.200 | angry | 沉默 | **觸發** |
+   | 0.60 | 0.390 | 0.040 | angry | 沉默 | **觸發** |
+   | 0.65 | 0.423 | 0.000 | angry | 觸發 | 觸發 |
+
+   現在的判斷是「**勝出標籤是負向的**（neutral 已經輸了）**且最高負向規則分數 ≥ 0.25**」——前者做主要判斷，後者只擋雜訊。四處門檻同步：`lib/affect.ts` 送出下限、`affect-nudge.tsx`、API 的 `FACE_MIN_CONFIDENCE` 與 `FACE_REACT_MIN_CONFIDENCE`。
+
+   另外兩個坑：**徽章原本完全不檢查信心值**，所以有一整段區間是「徽章寫苦惱、其他全部沉默」，看起來就是壞掉——`self-view.tsx` 現在套同一個下限。以及**沒有遲滯**：講話會驅動 jawOpen，可能把 `surprised`（不在負向集合裡）推上第一，一格就把 3 秒的計時歸零；現在加了 600ms 寬限。
 
 ## 19. 男性虛擬人改用 Ready Player Me 模型（`public/models/avatar_male_real.glb`）
 使用者提供的 `.glb` **不是 VRM**：沒有 VRM 擴充，是 Ready Player Me 匯出——Mixamo 骨架（`Head`/`Neck`/`LeftEye`/`LeftArm`…）、52 個 ARKit morph targets（`browInnerUp`、`eyeBlinkLeft`…）、1 段動畫、13.7 MB。`vrm-stage.tsx` 新增「一般 glTF」分支：

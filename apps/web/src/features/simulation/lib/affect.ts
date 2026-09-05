@@ -62,8 +62,22 @@ export interface AffectAnalyzer {
  * are 0.42 — this one, `affect-nudge`'s, and the API's `FACE_REACT_MIN_CONFIDENCE`
  * and `FACE_MIN_CONFIDENCE`. They have to agree, or the highest one silently
  * decides and the other three are decoration.
+ *
+ * 0.25, and the number it is compared against changed too — see below.
+ *
+ * `neutral` competes in the same ranking, scoring `1 − 1.6 × activation`, so a
+ * negative rule only becomes the top label once it has *already beaten* neutral.
+ * Solving the crossover: a pure frown outranks neutral at driver 0.455, where
+ * the negative rule's own score is only **0.273**. So the winning label's score
+ * can essentially never reach 0.42 for a real expression — that threshold
+ * required a driver of ~0.70, a theatrical pout rather than the way anyone
+ * frowns at a screen, and 0.42 / 0.32 were both above the band where genuine
+ * frowns live.
+ *
+ * Which is why "the top label is negative" now does the work, and this floor
+ * only rejects noise underneath it.
  */
-export const MIN_CONFIDENCE = 0.42;
+export const MIN_CONFIDENCE = 0.25;
 
 /** Sampling rate. 4 fps is plenty for an emotion trend and costs almost nothing. */
 export const SAMPLE_INTERVAL_MS = 250;

@@ -263,7 +263,7 @@ class CustomerAgent(Agent[CustomerTurnRequest, CustomerReply]):
     #: clear of a resting face: 平穩 and 不明確 are excluded by label regardless of
     #: score, so what this floor actually governs is how *sure* a negative
     #: expression has to be, not whether a neutral one can slip through.
-    FACE_REACT_MIN_CONFIDENCE = 0.42
+    FACE_REACT_MIN_CONFIDENCE = 0.25
 
     @classmethod
     def _face_directive(cls, face: dict[str, Any]) -> str:

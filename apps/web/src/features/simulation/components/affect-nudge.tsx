@@ -21,17 +21,18 @@
  */
 import { useEffect, useRef, useState } from 'react';
 
-import { FACE_TO_AFFECT_LABEL, type AffectReading } from '../lib/affect';
+import { FACE_TO_AFFECT_LABEL, type AffectLabel, type AffectReading } from '../lib/affect';
 import { insetSurface, toneText } from '../lib/tone';
 import { LightbulbIcon } from './icons';
 import { cn } from './kit';
 
-const NEGATIVE = new Set(['angry', 'sad', 'fearful', 'disgusted', 'contempt']);
+const NEGATIVE_LABELS = ['angry', 'sad', 'fearful', 'disgusted', 'contempt'] as const satisfies readonly AffectLabel[];
+const NEGATIVE: ReadonlySet<AffectLabel> = new Set<AffectLabel>(NEGATIVE_LABELS);
 // Kept in step with the API's `FACE_REACT_MIN_CONFIDENCE` and
 // `FACE_MIN_CONFIDENCE` (both 0.42). If this floor were higher the trainee
 // would be offered help for an expression the customer never reacted to; if it
 // were lower, the reverse.
-const MIN_CONFIDENCE = 0.42;
+const MIN_CONFIDENCE = 0.25;
 // How long the expression has to be held before help is offered. Three seconds
 // is a decision, not a flicker: long enough that a glance away or a moment of
 // concentration is not read as being stuck.
@@ -40,6 +41,8 @@ const SUSTAIN_MS = 3000;
 // noticed is worth something on its own — and without it, the three seconds
 // before the offer look like nothing is happening.
 const NOTICE_MS = 800;
+// How long a lost expression is tolerated before the streak is torn down.
+const CLEAR_GRACE_MS = 600;
 // Between cards. 30 s was long enough that a second frown in the same exchange
 // simply produced nothing, which reads as the feature having broken rather than
 // as restraint.
@@ -49,14 +52,27 @@ const AUTO_HIDE_MS = 15_000;
 export interface AffectNudgeProps {
   reading: AffectReading | null;
   cameraLive: boolean;
-  /** Only offer help when it is the trainee's turn to talk. */
+  /**
+   * Whether the floor is available for an offer of help. Both call sites pass
+   * "the session is running", not literally the trainee's turn — a frown during
+   * the customer's answer is the most natural moment to look stuck.
+   */
   traineesTurn: boolean;
+  /** The classifier saw no face. A stale reading must not keep a streak alive. */
+  noFace?: boolean;
   /** Undefined in assessment mode — the control must not exist there (§8.4). */
   onAskHint?: (() => void) | undefined;
   className?: string;
 }
 
-export function AffectNudge({ reading, cameraLive, traineesTurn, onAskHint, className }: AffectNudgeProps) {
+export function AffectNudge({
+  reading,
+  cameraLive,
+  traineesTurn,
+  noFace = false,
+  onAskHint,
+  className,
+}: AffectNudgeProps) {
   const [visible, setVisible] = useState(false);
   // The quiet half: "we can see it", shown while the offer is not (yet) due.
   const [noticed, setNoticed] = useState(false);
@@ -65,17 +81,46 @@ export function AffectNudge({ reading, cameraLive, traineesTurn, onAskHint, clas
   const sinceRef = useRef<number | null>(null);
   const lastShownRef = useRef(0);
   const armedRef = useRef(true);
+  // When the expression was last actually seen, so a one-frame dropout does not
+  // reset a streak that is otherwise healthy.
+  const lastSeenRef = useRef(0);
   const hideTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     // Detection is independent of whose turn it is: the face is the face.
+    //
+    // The score compared against the floor is the best *negative* rule's, not
+    // the winning label's. They differ: `neutral` is in the same ranking, so by
+    // the time a frown wins it has only just crossed neutral and its own score
+    // is around 0.27 — gating on that number meant gating on "has this person
+    // crossed from a frown into a scowl".
+    const negativeScore =
+      reading === null
+        ? 0
+        : Math.max(
+            ...NEGATIVE_LABELS.map(
+              (key) => reading.scores?.[key] ?? (reading.label === key ? reading.confidence : 0),
+            ),
+          );
     const detected =
       cameraLive &&
       reading !== null &&
+      !noFace &&
       NEGATIVE.has(reading.label) &&
-      reading.confidence >= MIN_CONFIDENCE;
+      negativeScore >= MIN_CONFIDENCE;
+
+    if (detected) lastSeenRef.current = Date.now();
 
     if (!detected) {
+      // One frame is not "the frown stopped". Speech drives jawOpen and the
+      // mouth channels, which can promote `surprised` — not a negative label —
+      // for a frame or two, and the streak needs 12 consecutive clean samples
+      // at 250 ms to reach three seconds. Without this grace the clock reset
+      // every time the trainee opened their mouth, which is most of the time.
+      if (sinceRef.current !== null && Date.now() - lastSeenRef.current < CLEAR_GRACE_MS) {
+        const timer = window.setTimeout(() => setRecheck((n) => n + 1), CLEAR_GRACE_MS);
+        return () => window.clearTimeout(timer);
+      }
       // The expression cleared: re-arm. A fresh frown later is a new signal.
       sinceRef.current = null;
       armedRef.current = true;
@@ -111,7 +156,10 @@ export function AffectNudge({ reading, cameraLive, traineesTurn, onAskHint, clas
     lastShownRef.current = Date.now();
     setVisible(true);
     hideTimerRef.current = window.setTimeout(() => setVisible(false), AUTO_HIDE_MS);
-  }, [reading, cameraLive, traineesTurn, visible, recheck]);
+    // `noticed` is deliberately NOT a dependency: adding it would make
+    // `setNoticed(true)` re-run this effect, whose cleanup would then cancel the
+    // very timer that advances to the next threshold.
+  }, [reading, cameraLive, traineesTurn, noFace, visible, recheck]);
 
   useEffect(
     () => () => {

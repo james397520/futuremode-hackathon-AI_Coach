@@ -60,7 +60,7 @@ FACE_TO_LABEL: dict[str, AffectLabel] = {
 #: nudge's own floor. They must agree: a frown strong enough to offer the
 #: trainee help, but not strong enough to reach the customer, produces a hint
 #: card about an expression nobody in the conversation reacted to.
-FACE_MIN_CONFIDENCE = 0.42
+FACE_MIN_CONFIDENCE = 0.25
 
 _INTENSITY_WEIGHT: dict[str, float] = {
     "high": 0.9,

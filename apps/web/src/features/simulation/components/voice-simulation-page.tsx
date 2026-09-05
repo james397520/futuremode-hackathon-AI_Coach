@@ -532,6 +532,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                 <AffectNudge
                   reading={camera.reading}
                   cameraLive={camera.live}
+                  noFace={camera.noFace}
                   // Anything except a session that is not running. Gating this
                   // on the trainee's *turn* meant a frown during the customer's
                   // answer — the most natural moment to look stuck — was

@@ -22,7 +22,7 @@ import type { MutableRefObject } from 'react';
 import type { TraineeAffect } from '@ai-coach/shared';
 
 import type { AffectReading } from '../lib/affect';
-import { FACE_TO_AFFECT_LABEL } from '../lib/affect';
+import { FACE_TO_AFFECT_LABEL, MIN_CONFIDENCE } from '../lib/affect';
 import { AFFECT_LABEL } from '../lib/labels';
 import { onMediaSurface } from '../lib/tone';
 import { AffectFace } from './affect-face';
@@ -67,7 +67,14 @@ export function SelfView({
   // machine happens to see right now. Prefer the former whenever it has one,
   // and say so when the two signals disagreed.
   const fusedLabel = fused && fused.source !== 'none' ? fused.label : null;
-  const liveLabel = reading ? FACE_TO_AFFECT_LABEL[reading.label] : null;
+  // Same floor the rest of the pipeline uses. Without it this badge announced
+  // 苦惱 at a score nothing else would act on, so the one visible signal said
+  // "seen" while the offer of help, the socket and the customer all stayed
+  // silent — which reads as broken, and is worse than showing nothing.
+  const liveLabel =
+    reading && reading.confidence >= MIN_CONFIDENCE
+      ? FACE_TO_AFFECT_LABEL[reading.label]
+      : null;
 
   const status = error
     ? error
