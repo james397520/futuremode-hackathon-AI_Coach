@@ -19,7 +19,9 @@ import type { SessionState } from '@ai-coach/shared';
 import { INPUT_BLOCKED_STATES } from '../lib/session-transitions';
 import { insetSurface, tint, toneText } from '../lib/tone';
 import { LiveDot } from './atoms';
-import { LightbulbIcon, MicIcon, MicOffIcon, SendIcon } from './icons';
+import { SttLocalToggle, TtsLocalToggle, TtsLocalVoiceNote } from './local-mode-toggle';
+import { SttStatus } from './stt-engine-pill';
+import { CameraIcon, CameraOffIcon, LightbulbIcon, MicIcon, MicOffIcon, SendIcon } from './icons';
 import { cn, Textarea } from './kit';
 
 const MAX_CHARS = 1200;
@@ -32,6 +34,13 @@ export interface ComposerProps {
   onRequestHint?: () => void;
   voiceEnabled: boolean;
   micLive: boolean;
+  /**
+   * Webcam channel for facial-affect recognition. Absent = no camera button at
+   * all, which is the correct default: the control must not exist where the
+   * feature is not wired (§47).
+   */
+  cameraLive?: boolean;
+  onToggleCamera?: (() => void) | undefined;
   muted: boolean;
   onToggleMic: () => void;
   vadActive?: boolean;
@@ -57,6 +66,8 @@ export function Composer({
   onRequestHint,
   voiceEnabled,
   micLive,
+  cameraLive = false,
+  onToggleCamera,
   muted,
   onToggleMic,
   vadActive = false,
@@ -131,11 +142,11 @@ export function Composer({
   return (
     <div className={cn('shrink-0', className)}>
       <div
-        className="relative flex items-end gap-2 overflow-hidden rounded-panel border bg-[color:color-mix(in_srgb,var(--glass-card-strong)_94%,transparent)] p-2.5 pt-3.5 shadow-soft"
+        className="relative flex flex-wrap items-end gap-2 overflow-hidden rounded-panel border bg-[color:color-mix(in_srgb,var(--glass-card-strong)_94%,transparent)] p-2.5 pt-3.5 shadow-soft"
         style={{ borderColor: 'color-mix(in srgb, var(--accent-indigo) 18%, var(--border-soft))' }}
       >
         <span className="absolute inset-x-0 top-0 h-1 bg-[color:color-mix(in_srgb,var(--accent-indigo)_16%,transparent)]" aria-hidden />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-48">
           <Textarea
             value={value}
             onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setValue(event.target.value)}
@@ -150,6 +161,18 @@ export function Composer({
           />
         </div>
 
+        {/* One group, so a narrow panel wraps the controls onto their own line
+            instead of shrinking the textarea to zero width — at 409 px the six
+            controls needed 424 px and the field collapsed, leaving the
+            placeholder clipped to a single character per line. */}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+        {voiceEnabled ? (
+          <>
+            <TtsLocalToggle />
+            <SttLocalToggle />
+          </>
+        ) : null}
+
         {voiceEnabled ? (
           <button
             type="button"
@@ -163,6 +186,24 @@ export function Composer({
               <MicIcon size={17} style={{ color: toneText(vadActive ? 'mint' : 'blue') }} />
             ) : (
               <MicOffIcon size={17} className="text-text-tertiary" />
+            )}
+          </button>
+        ) : null}
+
+        {onToggleCamera ? (
+          <button
+            type="button"
+            onClick={onToggleCamera}
+            aria-pressed={cameraLive}
+            aria-label={cameraLive ? '關閉攝影機' : '開啟攝影機'}
+            title={cameraLive ? '關閉攝影機' : '開啟攝影機（分析你的表情，畫面不會離開這台電腦）'}
+            className="sim-focusable flex h-9 w-9 shrink-0 items-center justify-center rounded-input"
+            style={insetSurface(cameraLive ? 'cyan' : 'neutral', 14)}
+          >
+            {cameraLive ? (
+              <CameraIcon size={17} style={{ color: toneText('cyan') }} />
+            ) : (
+              <CameraOffIcon size={17} className="text-text-tertiary" />
             )}
           </button>
         ) : null}
@@ -193,6 +234,7 @@ export function Composer({
           <SendIcon size={16} />
           送出
         </button>
+        </div>
       </div>
 
       <div
@@ -207,6 +249,8 @@ export function Composer({
         ) : (
           <span>{voiceEnabled ? '按住空白鍵說話 · Enter 送出 · Shift + Enter 換行' : 'Enter 送出 · Shift + Enter 換行'}</span>
         )}
+        {voiceEnabled ? <SttStatus /> : null}
+        {voiceEnabled ? <TtsLocalVoiceNote /> : null}
         <span className="tabular-nums">{turnHint}</span>
         <span className={cn('tabular-nums', overLimit && 'font-semibold')} style={overLimit ? { color: toneText('danger') } : undefined}>
           {value.length} / {MAX_CHARS}

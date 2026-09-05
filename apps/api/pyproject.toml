@@ -28,6 +28,9 @@ dependencies = [
   "boto3>=1.34.0",                    # S3/MinIO signed upload URLs (§40.2/§73)
   # --- outbound ------------------------------------------------------------
   "httpx>=0.27.0",
+  # STT vendors return Simplified Chinese for zh-TW speech; the transcript must
+  # not. Pure-Python OpenCC (s2twp: Simplified -> Taiwan Traditional + phrases).
+  "opencc-python-reimplemented>=0.1.7",
   "tenacity>=8.3.0",                  # retry / exponential backoff (§49.4/§70)
   # --- auth / crypto -------------------------------------------------------
   "python-jose[cryptography]>=3.3.0",
@@ -93,6 +96,12 @@ select = [
   "TID",       # tidy imports
 ]
 ignore = [
+  # This product is written in Traditional Chinese: every prompt, every
+  # user-facing string and most comments are zh-TW. RUF001/2/3 flag CJK
+  # punctuation (，：；（）) as "ambiguous" against its ASCII lookalike, which
+  # here is not a typo but the correct character — replacing them would corrupt
+  # the copy. Hundreds of these were burying the real findings.
+  "RUF001", "RUF002", "RUF003",
   "ANN401",   # allow `Any` in narrowly-typed adapter seams
   "B008",     # FastAPI Depends(...) in defaults is the idiom
   "S101",     # asserts are used by the tenancy invariant helpers

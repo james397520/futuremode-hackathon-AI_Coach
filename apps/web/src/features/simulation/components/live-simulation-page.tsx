@@ -20,9 +20,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Citation } from '@ai-coach/shared';
 
+import { useQuery } from '@tanstack/react-query';
+
 import { api, endpoints } from '@/lib/api-client';
 
 import { useSessionBootstrap } from '../hooks/use-session-bootstrap';
+import { useCameraSession } from '../hooks/use-camera-session';
+import { setAffectAnalyzer } from '../lib/affect';
+import { createMediaPipeAffectAnalyzer } from '../lib/mediapipe-affect';
 import { useSessionSocket } from '../hooks/use-session-socket';
 import { useSessionTimer } from '../hooks/use-session-timer';
 import { useTranscriptExport } from '../hooks/use-transcript-export';
@@ -41,6 +46,7 @@ import {
   usePartials,
   usePersonaHistory,
   usePersonaState,
+  useTraineeAffect,
   useRuntimeStatus,
   useSessionActions,
   useSessionError,
@@ -56,7 +62,10 @@ import {
   useCaptionsEnabled,
 } from '../store/session-store';
 import { AudioDevicePicker } from './audio-device-picker';
+import { SpeechEngineToggle } from './speech-engine-toggle';
+import { VoiceTuningPanel } from './voice-tuning-panel';
 import { ConversationPanel } from './conversation-panel';
+import { SelfView } from './self-view';
 import { CloseIcon, RestartIcon } from './icons';
 import { cn, GlassCard, Skeleton } from './kit';
 import { PersonaColumn } from './persona-column';
@@ -88,6 +97,15 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
   const suppressedCoachCount = useSuppressedCoachCount();
   const complianceFindings = useComplianceFindings();
   const personaState = usePersonaState();
+  const traineeAffect = useTraineeAffect();
+  const speechEngine = useSessionStore((st) => st.voice.speechEngine);
+  // Probed once per page: whether this deployment can transcribe on-device.
+  const { data: sttCapability = null } = useQuery({
+    queryKey: ['stt', 'capabilities'],
+    queryFn: () => endpoints.sttCapabilities(),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
   const personaHistory = usePersonaHistory();
   const timeline = useTimeline();
   const liveScores = useLiveScores();
@@ -133,8 +151,16 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
   const socketRef = useRef<ReturnType<typeof useSessionSocket> | null>(null);
   const voiceRef = useRef<ReturnType<typeof useVoiceSession> | null>(null);
 
+  const sttEngine = useSessionStore((st) => st.voice.sttEngine);
+  const sttEngineRef = useRef(sttEngine);
+  sttEngineRef.current = sttEngine;
+
   const voice = useVoiceSession({
     enabled: Boolean(bootstrap?.voiceEnabled) && micWanted,
+    sessionId,
+    personaGender: bootstrap?.persona.gender ?? null,
+    personaAge: bootstrap?.persona.age ?? null,
+    locale: bootstrap?.persona.language ?? 'zh-TW',
     personaSpeaking: status === 'persona_speaking',
     pushToTalk: pushToTalkMode,
     onBargeIn: () => {
@@ -144,10 +170,42 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
       // §44 — the avatar must stop mid-word too: cancel TTS, flush stale frames,
       // close the mouth. The persona stage watches this timestamp.
       setBargeInAtMs(Date.now());
-      pushNotice(`barge-${Date.now()}`, 'You interrupted the customer — the simulation is listening.');
+      pushNotice(`barge-${Date.now()}`, '你打斷了客戶——模擬人物正在聆聽。');
+    },
+    onUtterance: (blob, mime) => {
+      // Server-side STT (§71): the vendor key never reaches the browser. The
+      // text comes back and is sent as an ordinary turn so the transcript,
+      // the optimistic echo and every downstream agent see exactly what a
+      // typed message would have produced.
+      const started = Date.now();
+      actions.setVoice({ sttStatus: { phase: 'transcribing', at: started } });
+      void endpoints
+        .transcribeUtterance(sessionId, blob, mime, sttEngineRef.current)
+        .then((result) => {
+          const text = result.text.trim();
+          const ms = Date.now() - started;
+          if (text) {
+            socketRef.current?.sendMessage(text);
+            actions.setVoice({ sttStatus: { phase: 'done', provider: result.provider, ms, at: Date.now() } });
+          } else {
+            actions.setVoice({ sttStatus: { phase: 'empty', provider: result.provider, ms, at: Date.now() } });
+          }
+        })
+        .catch((err: unknown) => {
+          // The status code is the diagnosis: 401 = session expired, 429 = too
+          // many utterances, 5xx = the recogniser. Hide it and every one of
+          // those looks like "the mic does nothing".
+          const detail =
+            err && typeof err === 'object' && 'status' in err
+              ? `HTTP ${(err as { status: unknown }).status}`
+              : err instanceof Error
+                ? err.message
+                : '未知錯誤';
+          actions.setVoice({ sttStatus: { phase: 'error', detail, at: Date.now() } });
+        });
     },
     onSilenceTimeout: () => {
-      pushNotice('silence', 'It has been quiet for a while. Type or talk whenever you are ready.');
+      pushNotice('silence', '已經安靜一段時間了，準備好時直接輸入或開口即可。');
     },
   });
   voiceRef.current = voice;
@@ -157,10 +215,21 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
     mode,
     enabled: Boolean(bootstrap),
     epoch,
+    onEvent: (event) => {
+      // The training page has always had voice available but never spoke: only
+      // the voice page wired playback. Same path as there — server audio when
+      // there is any, on-device voice when there is not.
+      if (event.type === 'agent.response.final' || event.type === 'speech.final') {
+        const turn = event.turn;
+        if (turn?.speaker === 'persona' && turn.text && bootstrap?.voiceEnabled) {
+          void voiceRef.current?.speakTurn(turn.text, turn.audio_url ?? null);
+        }
+      }
+    },
     onRuntimeFallback: (to, reason) => {
       pushNotice(
         `runtime-${to}`,
-        `Local acceleration changed to ${to === 'wasm' ? 'WASM' : 'server'} mode — ${reason}. Your session continues normally.`,
+        `本機加速已切換為${to === 'wasm' ? ' WASM ' : '伺服器'}模式——${reason}。練習照常進行。`,
       );
     },
     onCompleted: () => {
@@ -170,15 +239,32 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
   });
   socketRef.current = socket;
 
-  // Reconnection notice (§62) — informational, never a modal.
+  // Webcam affect channel. Off until the trainee turns it on, the recogniser is
+  // pluggable (`lib/affect.ts`), and **frames never leave the browser** — only a
+  // label + confidence go over the existing socket.
+  // The recogniser is the team's `emotion_webcam` rule engine over MediaPipe
+  // blendshapes, ported to run in the browser. Registered once, lazily — the
+  // 3.6MB model is only fetched when the camera is actually started.
   useEffect(() => {
-    if (status === 'reconnecting') {
-      pushNotice(
-        `reconnect-${connection.reconnectAttempt}`,
-        `Connection dropped — reconnecting (attempt ${Math.max(1, connection.reconnectAttempt)}).`,
-      );
-    }
-  }, [connection.reconnectAttempt, pushNotice, status]);
+    setAffectAnalyzer(createMediaPipeAffectAnalyzer());
+    return () => setAffectAnalyzer(null);
+  }, []);
+
+  const camera = useCameraSession({
+    enabled: Boolean(bootstrap) && !finished,
+    onReading: (r) => {
+      socketRef.current?.send({
+        type: 'trainee.affect',
+        label: r.label,
+        confidence: r.confidence,
+        at_ms: Date.now(),
+      });
+    },
+  });
+
+  // Reconnects are NOT announced in the transcript. The header status and the
+  // composer placeholder already say 正在重新連線; a system row per attempt
+  // turned every 2s API restart into seven identical lines of noise.
 
   // ---- Evaluation on completion (§29) -------------------------------------
 
@@ -405,6 +491,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
 
         <TrainingGrid
           className="min-h-0 flex-1 overflow-hidden"
+          variant="stage-left"
           left={
             finished ? (
               <SessionCompleteSummary
@@ -451,6 +538,9 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
                 onSend={socket.sendMessage}
                 onPushToTalk={handlePushToTalk}
                 onToggleMic={handleToggleMic}
+                cameraLive={camera.live}
+                onToggleCamera={camera.toggle}
+                affectReading={camera.reading}
                 onRequestHint={isTraining ? () => socket.requestHint() : undefined}
                 training={trainingHandlers}
                 onPauseResume={handlePauseResume}
@@ -468,6 +558,20 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
           right={
             <PersonaColumn
               className="h-full max-h-full"
+              layout="stage-fill"
+              selfView={
+                <SelfView
+                  videoRef={camera.videoRef}
+                  live={camera.live}
+                  reading={camera.reading}
+                  analyzerInstalled={camera.analyzerInstalled}
+                  modelLoading={camera.modelLoading}
+                  noFace={camera.noFace}
+                  lastError={camera.lastError}
+                  fused={traineeAffect}
+                  error={camera.error}
+                />
+              }
               mode={mode}
               sessionId={sessionId}
               bargeInAtMs={bargeInAtMs}
@@ -480,6 +584,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
               restrictedTopics={bootstrap.scenario.restrictedTopics}
               personaName={bootstrap.persona.name}
               personaGender={bootstrap.persona.gender}
+              personaAge={bootstrap.persona.age}
               personaSubtitle={bootstrap.persona.subtitle ?? bootstrap.persona.occupation}
               personaAvatarUrl={bootstrap.persona.avatarUrl}
               speaking={personaSpeaking}
@@ -532,7 +637,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
               })
               .catch(() => undefined);
           }
-          pushNotice(`issue-${Date.now()}`, 'Thanks — your report was attached to this session.');
+          pushNotice(`issue-${Date.now()}`, '已收到——你的回報已附加在本次練習上。');
         }}
       />
 
@@ -551,6 +656,24 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
           setMicWanted(true);
           void voice.start();
         }}
+        speechEngine={
+          <SpeechEngineToggle
+            value={speechEngine}
+            onChange={(next) => actions.setVoice({ speechEngine: next })}
+            systemVoiceCount={voice.systemVoices.length}
+            recognition={voice.recognition}
+            sttValue={sttEngine}
+            onSttChange={(next) => actions.setVoice({ sttEngine: next })}
+            sttCapability={sttCapability}
+          />
+        }
+        voiceTuning={
+          <VoiceTuningPanel
+            onPreview={(engine) =>
+              voice.speakTurn('我比較想先知道這個方案一個月實際會多花多少錢。', null, engine)
+            }
+          />
+        }
       />
 
       {/* Knowledge peek is a Training-only affordance (§8.4). */}

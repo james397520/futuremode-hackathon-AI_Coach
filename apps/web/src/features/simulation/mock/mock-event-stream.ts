@@ -878,6 +878,8 @@ export function createMockEventStream(options: MockEventStreamOptions): MockEven
 
         case 'voice.push_to_talk':
         case 'client.intent_hint':
+        // Advisory only, and the mock has no model behind it either way.
+        case 'trainee.affect':
         case 'ack':
           break;
 

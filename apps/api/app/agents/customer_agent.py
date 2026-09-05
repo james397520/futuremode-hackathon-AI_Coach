@@ -117,6 +117,11 @@ class CustomerTurnRequest(BaseModel):
     locale: str = "zh-TW"
     mode: str = "training"
     turn_index: int = 0
+    #: The trainee's facial reading at the start of this turn (browser-side
+    #: classifier, mapped into the shared six-label space). Empty when the
+    #: camera is off. Untrusted and advisory — it shapes *how* the customer
+    #: reacts, never what facts they know.
+    trainee_face: dict[str, Any] = Field(default_factory=dict)
 
     @property
     def forbidden_knowledge(self) -> list[str]:
@@ -138,8 +143,25 @@ class CustomerAgent(Agent[CustomerTurnRequest, CustomerReply]):
         director = request.director
         state = director.state if director is not None else None
         objection = director.objection_directive if director is not None else None
+        traits = request.persona.get("traits") if isinstance(request.persona, dict) else None
+        patience = None
+        if isinstance(traits, dict):
+            try:
+                raw_patience = traits.get("patience")
+                patience = int(raw_patience) if raw_patience is not None else None
+            except (TypeError, ValueError):
+                patience = None
+        # An impatient customer talks in clipped sentences. This is also what
+        # keeps a low-patience demo persona's replies inside the transcript
+        # panel without scrolling — the rule is character-driven, not a UI hack.
+        reply_length = (
+            "最多兩句、合計 40 字以內。不客套、不重述對方的話、不解釋自己的情緒。"
+            if patience is not None and patience < 35
+            else "1–4 句，口語。"
+        )
         blocks = [
             data_block("persona", request.persona),
+            data_block("reply_length", reply_length),
             data_block(
                 "persona_private",
                 {
@@ -196,10 +218,26 @@ class CustomerAgent(Agent[CustomerTurnRequest, CustomerReply]):
                         "action": str(request.intent.action),
                         "scope": str(request.intent.scope),
                         "directive": self._directive(request.intent),
+                        # Present only on CLARIFY: the concrete things the trainee's
+                        # vague line could have meant. Without these the persona can
+                        # only ask a generic "what do you mean?", which is not the
+                        # §8.1 behaviour — it should offer the options.
+                        "candidate_meanings": list(request.intent.candidate_intents or []),
+                        "suggested_clarifying_question": request.intent.clarifying_question or "",
                     },
                 )
             )
         history = "\n".join(f"{s}: {t}" for s, t in request.recent_turns[-8:])
+        if request.trainee_face:
+            blocks.append(
+                data_block(
+                    "trainee_face_right_now",
+                    {
+                        **request.trainee_face,
+                        "how_to_use": self._face_directive(request.trainee_face),
+                    },
+                )
+            )
         blocks.append(untrusted_block("recent_transcript", history))
         blocks.append(untrusted_block("trainee_said", request.trainee_text))
         blocks.append(
@@ -209,6 +247,41 @@ class CustomerAgent(Agent[CustomerTurnRequest, CustomerReply]):
             "提醒：先輸出客戶要說的話（純文字），換行後輸出 <<<STATE>>>，再輸出上述 schema 的 JSON。"
         )
         return "\n\n".join(blocks)
+
+    #: Face readings below this are ignored: the browser classifier always
+    #: returns its top rule, so a floor is what separates "looks annoyed" from
+    #: "looks like nothing in particular".
+    FACE_REACT_MIN_CONFIDENCE = 0.55
+
+    @classmethod
+    def _face_directive(cls, face: dict[str, Any]) -> str:
+        """How a real customer reacts to the salesperson's expression.
+
+        A customer *notices* the person across the table. When the trainee looks
+        displeased the natural thing is to check, in one sentence, whether the
+        customer said something wrong — not to describe the trainee's emotion
+        back at them, and not to change the facts of the conversation.
+        """
+        try:
+            confidence = float(face.get("confidence") or 0.0)
+        except (TypeError, ValueError):
+            confidence = 0.0
+        label = str(face.get("label") or "")
+        if confidence < cls.FACE_REACT_MIN_CONFIDENCE or label in ("", "不明確", "平穩"):
+            return "表情沒有明顯訊號，照常回應，不要提到對方的表情。"
+        if label == "不耐煩":
+            return (
+                "業務此刻看起來不太認同或不耐煩。像真人一樣先用**一句**確認："
+                "「你好像不太認同我剛講的？」或「我是不是哪裡講錯了？」，"
+                "然後停下來等對方回答。不要分析對方情緒、不要道歉過頭、不要改變你的立場。"
+            )
+        if label == "緊張":
+            return "業務看起來有點緊張。語氣放緩一點、句子短一點，但不要點破。"
+        if label == "挫折":
+            return "業務看起來有點受挫。可以稍微鬆一點口氣，但仍然守住你的顧慮。"
+        if label == "正向":
+            return "業務看起來自在。照常回應即可。"
+        return "照常回應，不要提到對方的表情。"
 
     @staticmethod
     def _directive(intent: IntentDecision) -> str:
@@ -233,9 +306,7 @@ class CustomerAgent(Agent[CustomerTurnRequest, CustomerReply]):
         intent = request.intent
         if intent is None:
             return True
-        if intent.is_blocked or intent.breaks_persona or intent.safety_flags:
-            return False
-        return True
+        return not (intent.is_blocked or intent.breaks_persona or intent.safety_flags)
 
     async def run(self, request: CustomerTurnRequest) -> CustomerReply:
         """Non-streaming turn (used when the guard must run before delivery)."""

@@ -24,9 +24,12 @@ Version pinning (§54): the client cannot choose ``scenario_version`` /
 
 from __future__ import annotations
 
-from typing import Annotated
+import re
+from collections.abc import AsyncIterator
+from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, Query, WebSocket, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, WebSocket, status
+from fastapi.responses import StreamingResponse
 
 from app.core.deps import (
     AuditDep,
@@ -52,12 +55,15 @@ from app.domain.request_response import (
     SessionMessageRequest,
     SessionMessageResponse,
     SessionResponse,
+    SessionSpeakRequest,
+    SessionTranscribeResponse,
     SessionTranscriptResponse,
 )
 from app.domain.session import CoachInsight, TrainingSession
 from app.services.evaluation_service import EvaluationService
 from app.services.session_service import SessionService
 from app.ws.gateway import session_ws_endpoint
+from app.ws.voice import AudioChunk
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -150,6 +156,195 @@ async def post_message(
     audited instead, and the transcript itself is the record of the conversation.
     """
     return await service.post_message(session_id, payload)
+
+
+@router.get(
+    "/stt/capabilities",
+    summary="Which speech-to-text engines this deployment can offer (§22 / §71)",
+)
+async def stt_capabilities(ctx: CanParticipate) -> dict[str, Any]:
+    """Lets the client show an on-device switch only when the machine can honour it.
+    Probing is cheap (one short subprocess) and cached by TCC after the first ask."""
+    from app.core.config import get_settings
+    from app.ws.voice import MacSpeechStt, probe_local_tts
+
+    settings = get_settings()
+    mac = MacSpeechStt()
+    probe = (
+        await mac.probe("zh-TW")
+        if mac.available()
+        else {"available": False, "reason": "helper not built"}
+    )
+    # The local TTS model server is probed here too (one round trip for the
+    # client, and the two switches sit side by side): 1 s cap so a stalled
+    # daemon cannot hold up the page.
+    local_tts = await probe_local_tts(timeout_s=1.0)
+    return {
+        "default": str(getattr(settings, "stt_provider", "elevenlabs")),
+        "cloud": bool(
+            getattr(settings, "elevenlabs_api_key", None)
+            or getattr(settings, "openai_api_key", None)
+        ),
+        "mac": probe,
+        "tts": {
+            "default": str(getattr(settings, "tts_provider", "elevenlabs")),
+            "local": local_tts,
+        },
+    }
+
+
+#: Roughly 60s of Opus at the browser's default bitrate. Anything larger is not
+#: an utterance, it is a file upload on the wrong endpoint.
+_MAX_UTTERANCE_BYTES = 4 * 1024 * 1024
+_NON_SPEECH_TAG = re.compile(r"[\[（(][^\]）)]{0,24}[\]）)]")
+
+
+@router.post(
+    "/{session_id}/transcribe",
+    response_model=SessionTranscribeResponse,
+    summary="Transcribe one spoken utterance (server-side STT, §22 / §71)",
+    dependencies=[Depends(rate_limit("sessions.transcribe", per_minute=120, burst=20, cost=1))],
+)
+async def transcribe_utterance(
+    session_id: str,
+    service: SessionDep,
+    ctx: CanParticipate,
+    file: UploadFile = File(...),
+    engine: Annotated[
+        Literal["auto", "mac", "cloud"],
+        Query(description="auto | mac (on-device, cloud fallback) | cloud"),
+    ] = "auto",
+) -> SessionTranscribeResponse:
+    """The microphone never streams to a vendor from the browser. Audio comes here,
+    the API holds the vendor key, and the text goes back for the client to send
+    as an ordinary turn — so a mis-heard sentence can be fixed before the
+    persona ever sees it.
+    """
+    from app.services.exceptions import ValidationFailedError
+    from app.ws.voice import build_stt
+
+    # Ownership + tenant scoping exactly as a message would be checked.
+    session = await service.get(session_id)
+    locale = str(getattr(session, "locale", None) or "zh-TW")
+
+    data = await file.read(_MAX_UTTERANCE_BYTES + 1)
+    await file.close()
+    if not data:
+        return SessionTranscribeResponse(text="", provider="none", language=locale)
+    if len(data) > _MAX_UTTERANCE_BYTES:
+        raise ValidationFailedError("utterance too large")
+
+    stt = build_stt(engine)
+    mime = file.content_type or "audio/webm"
+
+    async def one() -> AsyncIterator[bytes]:
+        yield data
+
+    text = ""
+    try:
+        async for chunk in stt.stream(one(), language=locale, mime_type=mime):
+            if chunk.is_final and chunk.text:
+                text = chunk.text
+    except Exception:
+        # The client gets an empty string and says "didn't catch that"; the
+        # vendor error is already logged by the adapter.
+        text = ""
+    # Vendors label non-speech in brackets — "[音樂]", "[笑聲]", "(silence)". A
+    # tone or a cough must come back as *nothing*, not be sent to the persona
+    # as a message, which is exactly what happened with a test signal.
+    text = _NON_SPEECH_TAG.sub("", text).strip()
+    return SessionTranscribeResponse(text=text, provider=stt.provider, language=locale)
+
+
+@router.post(
+    "/{session_id}/speak",
+    summary="Synthesise one persona line as audio (cloud or local TTS over HTTP)",
+    dependencies=[Depends(rate_limit("sessions.speak", per_minute=120, burst=20, cost=1))],
+    response_class=StreamingResponse,
+)
+async def speak_line(
+    session_id: str,
+    payload: SessionSpeakRequest,
+    service: SessionDep,
+    ctx: CanParticipate,
+    engine: Annotated[
+        Literal["auto", "cloud", "local"],
+        Query(description="auto (TTS_PROVIDER) | cloud | local (on-device model, cloud fallback)"),
+    ] = "auto",
+) -> StreamingResponse:
+    """The voice reaches the browser over plain HTTP: one persona line in, one
+    clip out, played by the client. Simpler than audio frames on the WebSocket
+    and it retries cleanly. The vendor key never leaves the API.
+
+    `engine=local` routes to the on-device model server (services/local-tts) and
+    falls back to the cloud voice when it is down, so the persona never goes
+    silent because a launchd agent is restarting. The `Content-Type` says which
+    codec actually came back — MP3 from the cloud, MP3 (or WAV) from the model.
+
+    The voice is the persona's (explicit `voice.voice_id`, else the gender/age
+    table); the trainee's tuning sliders override only the expressiveness knobs.
+    """
+    from app.ws.voice import VoiceConfig, build_tts
+    from app.ws.voice_catalog import resolve_voice_id
+
+    replay = await service.replay(session_id)
+    persona = dict(replay.pinned.persona or {})
+    raw_voice = persona.get("voice")
+    persona_voice: dict[str, Any] = raw_voice if isinstance(raw_voice, dict) else {}
+    config = VoiceConfig(
+        provider="elevenlabs",
+        voice_id=payload.voice_id or resolve_voice_id(persona),
+        language=str(persona.get("language") or "zh-TW"),
+        speed=(
+            payload.speed
+            if payload.speed is not None
+            else float(persona_voice.get("speed") or 1.0)
+        ),
+        stability=(
+            payload.stability
+            if payload.stability is not None
+            else persona_voice.get("stability")
+        ),
+        similarity=payload.similarity,
+        style=payload.style,
+        emotion_style=persona_voice.get("emotion_style"),
+        model_id=payload.model_id,
+        gender=persona.get("gender") if isinstance(persona.get("gender"), str) else None,
+    )
+    tts = build_tts(engine)
+
+    # The first chunk decides the Content-Type, so it is awaited before the
+    # response starts; the rest streams. A failure here (both engines down) is a
+    # clean 502 rather than an empty 200 the browser would try to decode.
+    stream = tts.stream(payload.text, config=config)
+    first: AudioChunk | None = None
+    try:
+        async for chunk in stream:
+            if chunk.data or chunk.is_final:
+                first = chunk
+                break
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="speech synthesis failed") from exc
+    if first is None or (not first.data and first.is_final):
+        raise HTTPException(status_code=502, detail="speech synthesis produced no audio")
+    media_type = first.mime_type or "audio/mpeg"
+
+    async def body() -> AsyncIterator[bytes]:
+        if first.data:
+            yield first.data
+        async for chunk in stream:
+            if chunk.data:
+                yield chunk.data
+
+    return StreamingResponse(
+        body(),
+        media_type=media_type,
+        headers={
+            "Cache-Control": "no-store",
+            "X-Voice-Id": str(config.voice_id),
+            "X-Tts-Provider": str(getattr(tts, "provider", engine)),
+        },
+    )
 
 
 @router.post(

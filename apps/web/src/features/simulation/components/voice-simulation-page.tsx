@@ -22,6 +22,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { endpoints } from '@/lib/api-client';
 
 import { useSessionBootstrap } from '../hooks/use-session-bootstrap';
+import { useCameraSession } from '../hooks/use-camera-session';
+import { setAffectAnalyzer } from '../lib/affect';
+import { createMediaPipeAffectAnalyzer } from '../lib/mediapipe-affect';
 import { useSessionSocket } from '../hooks/use-session-socket';
 import { useSessionTimer } from '../hooks/use-session-timer';
 import { useTranscriptExport } from '../hooks/use-transcript-export';
@@ -40,6 +43,7 @@ import {
   useLiveScores,
   usePartials,
   usePersonaState,
+  useTraineeAffect,
   useRuntimeStatus,
   useSessionActions,
   useSessionError,
@@ -64,6 +68,8 @@ import { SessionHeader } from './session-header';
 import { SimulationStyles } from './simulation-styles';
 import { TranscriptFeed, type SystemNotice } from './transcript-feed';
 import { TrainingGrid } from './training-grid';
+import { AffectNudge } from './affect-nudge';
+import { SelfView } from './self-view';
 import { Waveform } from './waveform';
 
 export interface VoiceSimulationPageProps {
@@ -83,6 +89,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
   const suppressedCoachCount = useSuppressedCoachCount();
   const complianceFindings = useComplianceFindings();
   const personaState = usePersonaState();
+  const traineeAffect = useTraineeAffect();
   const liveScores = useLiveScores();
   const activeAgent = useActiveAgent();
   const agentActivityAtMs = useSessionStore((s) => s.agentActivityAtMs);
@@ -119,8 +126,16 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
 
   // ---- Voice pipeline ------------------------------------------------------
 
+  const sttEngine = useSessionStore((st) => st.voice.sttEngine);
+  const sttEngineRef = useRef(sttEngine);
+  sttEngineRef.current = sttEngine;
+
   const voice = useVoiceSession({
     enabled: true,
+    sessionId,
+    personaGender: bootstrap?.persona.gender ?? null,
+    personaAge: bootstrap?.persona.age ?? null,
+    locale: bootstrap?.persona.language ?? 'zh-TW',
     personaSpeaking: status === 'persona_speaking',
     pushToTalk: false,
     onBargeIn: () => {
@@ -134,8 +149,40 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
       // The floor is released; the server decides what happens next.
       socketRef.current?.pushToTalk(false);
     },
+    onUtterance: (blob, mime) => {
+      // Server-side STT (§71): the vendor key never reaches the browser. The
+      // text comes back and is sent as an ordinary turn so the transcript,
+      // the optimistic echo and every downstream agent see exactly what a
+      // typed message would have produced.
+      const started = Date.now();
+      actions.setVoice({ sttStatus: { phase: 'transcribing', at: started } });
+      void endpoints
+        .transcribeUtterance(sessionId, blob, mime, sttEngineRef.current)
+        .then((result) => {
+          const text = result.text.trim();
+          const ms = Date.now() - started;
+          if (text) {
+            socketRef.current?.sendMessage(text);
+            actions.setVoice({ sttStatus: { phase: 'done', provider: result.provider, ms, at: Date.now() } });
+          } else {
+            actions.setVoice({ sttStatus: { phase: 'empty', provider: result.provider, ms, at: Date.now() } });
+          }
+        })
+        .catch((err: unknown) => {
+          // The status code is the diagnosis: 401 = session expired, 429 = too
+          // many utterances, 5xx = the recogniser. Hide it and every one of
+          // those looks like "the mic does nothing".
+          const detail =
+            err && typeof err === 'object' && 'status' in err
+              ? `HTTP ${(err as { status: unknown }).status}`
+              : err instanceof Error
+                ? err.message
+                : '未知錯誤';
+          actions.setVoice({ sttStatus: { phase: 'error', detail, at: Date.now() } });
+        });
+    },
     onSilenceTimeout: () => {
-      pushNotice('silence', 'Still listening — say something whenever you are ready.');
+      pushNotice('silence', '還在聆聽——準備好時直接開口即可。');
     },
   });
   voiceRef.current = voice;
@@ -149,8 +196,12 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
       // Auto-play the persona's synthesised audio in voice mode (§22.1).
       if (event.type === 'agent.response.final' || event.type === 'speech.final') {
         const turn = event.turn;
-        if (turn?.speaker === 'persona' && turn.audio_url) {
-          void voiceRef.current?.playTts(turn.audio_url);
+        if (turn?.speaker === 'persona' && turn.text) {
+          // Not `playTts(audio_url)`: that only spoke when the server had
+          // synthesised audio, so with no key, no network, or the transport
+          // still unbuilt the customer was simply mute. `speakTurn` prefers the
+          // server clip and falls back to the on-device voice.
+          void voiceRef.current?.speakTurn(turn.text, turn.audio_url ?? null);
         }
       }
     },
@@ -167,20 +218,34 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
   });
   socketRef.current = socket;
 
+  // Same webcam affect channel as the training page: frames stay in the
+  // browser, only a label + confidence go over the socket.
+  useEffect(() => {
+    setAffectAnalyzer(createMediaPipeAffectAnalyzer());
+    return () => setAffectAnalyzer(null);
+  }, []);
+
+  const camera = useCameraSession({
+    enabled: Boolean(bootstrap) && !finished,
+    onReading: (r) => {
+      socketRef.current?.send({
+        type: 'trainee.affect',
+        label: r.label,
+        confidence: r.confidence,
+        at_ms: Date.now(),
+      });
+    },
+  });
+
   const voiceStatus = voiceStatusFromSession(status, voice.micLive, interrupted);
 
   useEffect(() => {
     actions.setVoice({ status: voiceStatus, pushToTalkMode: false });
   }, [actions, voiceStatus]);
 
-  useEffect(() => {
-    if (status === 'reconnecting') {
-      pushNotice(
-        `reconnect-${connection.reconnectAttempt}`,
-        `Reconnecting the call (attempt ${Math.max(1, connection.reconnectAttempt)})…`,
-      );
-    }
-  }, [connection.reconnectAttempt, pushNotice, status]);
+  // Reconnects are NOT announced in the transcript. The header status and the
+  // composer placeholder already say 正在重新連線; a system row per attempt
+  // turned every 2s API restart into seven identical lines of noise.
 
   // ---- Evaluation ----------------------------------------------------------
 
@@ -254,7 +319,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
         <div className="flex min-h-0 flex-1 flex-col gap-4" aria-busy="true">
           <Skeleton className="h-20 w-full rounded-card" />
           <TrainingGrid
-            variant="voice"
+            variant="stage-left"
             left={<Skeleton className="h-full min-h-[24rem] w-full rounded-card" />}
             right={<Skeleton className="aspect-[4/3] w-full rounded-card" />}
           />
@@ -353,7 +418,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
           />
         ) : (
           <TrainingGrid
-            variant="voice"
+            variant="stage-left"
             className="min-h-0 flex-1 overflow-hidden"
             left={
               <>
@@ -383,6 +448,13 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                   />
                 </GlassCard>
 
+                <AffectNudge
+                  reading={camera.reading}
+                  cameraLive={camera.live}
+                  traineesTurn={status === 'listening' || status === 'idle' || status === 'ready'}
+                  onAskHint={isTraining ? () => socket.requestHint() : undefined}
+                />
+
                 <Composer
                   status={status}
                   onSend={socket.sendMessage}
@@ -400,23 +472,44 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                   }}
                   turnCount={turns.length}
                   maxTurns={bootstrap.scenario.maxTurns}
+                  cameraLive={camera.live}
+                  onToggleCamera={camera.toggle}
                   className="px-1"
                 />
 
               </>
             }
             right={
-              <div className={cn('sim-scroll grid h-full min-h-0 content-start gap-4 overflow-y-auto pb-4 pr-1')}>
-                {/* §24 — the persona visual is enlarged in voice mode. */}
+              /*
+                §24 enlarged persona, in the stage-fill shape the training page
+                uses: the virtual human owns the panel and the state / coach
+                cards float over its lower-left instead of pushing it into a
+                small card at the top of a scrolling column.
+              */
+              <section className="relative h-full min-h-0 overflow-hidden" aria-label="AI 模擬人物">
+                <SelfView
+                  videoRef={camera.videoRef}
+                  live={camera.live}
+                  reading={camera.reading}
+                  analyzerInstalled={camera.analyzerInstalled}
+                  modelLoading={camera.modelLoading}
+                  noFace={camera.noFace}
+                  lastError={camera.lastError}
+                  fused={traineeAffect}
+                  error={camera.error}
+                />
                 <PersonaStage
+                  fill
+                  className="h-full min-h-0"
                   personaName={bootstrap.persona.name}
                   personaGender={bootstrap.persona.gender}
+                  personaAge={bootstrap.persona.age}
                   subtitle={bootstrap.persona.subtitle ?? bootstrap.persona.occupation}
                   avatarUrl={bootstrap.persona.avatarUrl}
                   personaState={personaState}
                   sessionId={sessionId}
                   bargeInAtMs={bargeInAtMs}
-                  eyebrow="Voice simulation"
+                  eyebrow="語音模擬"
                   speaking={personaSpeaking}
                   listening={personaListening}
                   thinking={status === 'processing'}
@@ -425,24 +518,34 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                       analyser={voice.analyser}
                       active={voice.micLive && !muted}
                       bars={28}
-                      ariaLabel="Microphone level"
+                      ariaLabel="麥克風音量"
                     />
                   }
                 />
 
-                <PersonaStateCard
-                  state={personaState}
-                  updating={status === 'processing' || personaSpeaking}
-                />
+                {/* Full-height wrapper, bottom-aligned: the stack's `max-h` is a
+                    percentage, and against the old auto-height `bottom-0` box it
+                    resolved to nothing — so the cards grew until they covered the
+                    persona's face. */}
+                {/* Same two-column, chest-height glass stack as PersonaColumn's
+                    stage-fill layout — keep the two in step. */}
+                <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3 pb-14">
+                  <div className="sim-scroll sim-stage-overlay pointer-events-auto grid max-h-[36%] w-full grid-cols-1 content-start items-stretch gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                    <PersonaStateCard
+                      state={personaState}
+                      updating={status === 'processing' || personaSpeaking}
+                    />
 
-                <CoachCard
-                  mode={mode}
-                  insights={coachInsights}
-                  suppressedCount={suppressedCoachCount}
-                  startedAtMs={startedAtMs}
-                  onAskCoach={isTraining ? () => socket.requestHint() : undefined}
-                />
-              </div>
+                    <CoachCard
+                      mode={mode}
+                      insights={coachInsights}
+                      suppressedCount={suppressedCoachCount}
+                      startedAtMs={startedAtMs}
+                      onAskCoach={isTraining ? () => socket.requestHint() : undefined}
+                    />
+                  </div>
+                </div>
+              </section>
             }
           />
         )}

@@ -23,11 +23,12 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { VRMLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
+import { VRMLoaderPlugin, VRMMetaLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
 
 import { useAvatarStore } from '../avatar-store';
+import { avatarLook, materialRole, modelUrlFor } from '../lib/avatar-body';
 import type { AvatarBodyGender } from '../lib/persona-gender';
-import { auroraGlow, cn } from '../lib/tone';
+import { cn } from '../lib/tone';
 import {
   ARKIT_NAMES,
   VRM_EXPRESSION_NAMES,
@@ -40,11 +41,14 @@ import {
 } from './expression-to-vrm';
 import { IdleAnimator, prefersReducedMotion } from './idle';
 import { A2EPlayer, ProceduralLipsync } from './lipsync';
+import { createRelaxedArmPose, repairRocketboxMaterials, restoreRocketboxIrises } from './model-repairs';
 
 export type VrmStageStatus = 'loading' | 'ready' | 'failed';
 
 export interface VrmStageProps {
   gender: AvatarBodyGender;
+  /** The persona's age. Picks the young / middle / senior body and its look. */
+  age?: number | null;
   /** For the canvas `aria-label`; pixels are invisible to assistive tech. */
   ariaLabel: string;
   speaking: boolean;
@@ -53,19 +57,77 @@ export interface VrmStageProps {
   className?: string;
 }
 
-/** Same-origin model files (`apps/web/public/models`). */
-export function modelUrlFor(gender: AvatarBodyGender): string {
-  return `/models/avatar_${gender}_suit.vrm`;
-}
+// `modelUrlFor` now lives in `../lib/avatar-body` with the rest of the roster;
+// re-exported so existing importers keep working.
+export { modelUrlFor } from '../lib/avatar-body';
+
+/**
+ * Black → purple ground (see the JSX note). Built from the theme's violet /
+ * indigo accents and the theme-invariant ink so it does not flip in light
+ * mode; `black` is the one literal, because the ink is a charcoal and the
+ * bottom-left corner has to be actually black under the glass cards.
+ */
+const STAGE_GROUND = [
+  'linear-gradient(205deg,',
+  '  color-mix(in srgb, var(--accent-violet) 58%, var(--sim-ink, #303035)) 0%,',
+  '  color-mix(in srgb, var(--accent-indigo) 34%, var(--sim-ink, #303035)) 42%,',
+  '  color-mix(in srgb, var(--sim-ink, #303035) 45%, black) 78%,',
+  '  black 100%)',
+].join('\n');
 
 const IDLE_FPS = 30;
 /** Viewer's emotion smoothing constant (`k1 = 1 - exp(-dt*6)`). */
 const EMOTION_SMOOTHING = 6;
 /** Camera: a narrow lens flattens the face the way a portrait lens does. */
 const CAMERA_FOV = 22;
-/** Height of the head-and-shoulders window we frame, in metres. */
-const FRAME_HEIGHT_M = 0.52;
-const FRAME_WIDTH_M = 0.46;
+/**
+ * Height of the window we frame, in metres. Tuned for the stage-fill layout,
+ * where the character owns the whole left panel and the context cards float
+ * over the lower 40% of it: at the old 0.52 (a tight head-and-shoulders crop
+ * for the small 4/3 card) the cards landed on the chin, because there was no
+ * torso below it to land on. 0.86 puts head, shoulders and chest in frame, so
+ * the cards sit on the chest as intended.
+ */
+const FRAME_HEIGHT_M = 0.86;
+const FRAME_WIDTH_M = 0.52;
+/**
+ * The tight head-and-shoulders crop the small 4/3 card was tuned for. Which of
+ * the two is used is decided by the host's aspect, not by a prop: a portrait
+ * host is the full-height stage and wants the torso, a landscape one is the
+ * little card and would render a distant figure at 0.86.
+ */
+const CLOSE_FRAME_HEIGHT_M = 0.52;
+const CLOSE_FRAME_WIDTH_M = 0.46;
+const CLOSE_TARGET_DROP_M = 0.09;
+/** Below this width/height ratio the host counts as the full-height stage. */
+const PORTRAIT_ASPECT = 0.9;
+/**
+ * ...and so does any host at least this tall, whatever its aspect: with the
+ * persona column at ~two thirds of the screen the stage is close to square, and
+ * by aspect alone it fell back to the head-shot crop.
+ */
+const TALL_HOST_PX = 480;
+/**
+ * How far below the head bone the frame is centred. Keeps the head at roughly
+ * the upper fifth: head centre sits ~0.08 above headBase, and 0.18 below that
+ * centre is 0.30 of the frame height, i.e. 20% down from the top edge.
+ */
+const FRAME_TARGET_DROP_M = 0.18;
+
+interface GenericAvatar {
+  root: THREE.Object3D;
+  morphMeshes: THREE.Mesh[];
+  head: THREE.Object3D | null;
+  headRest: THREE.Quaternion;
+  eyes: { node: THREE.Object3D; rest: THREE.Quaternion }[];
+}
+
+/** Mixamo / Ready Player Me bone names. */
+const RPM_HEAD = /^(Head)$/;
+const RPM_EYE = /^(LeftEye|RightEye)$/;
+/** Body tracks worth keeping from a shipped idle clip; face bones are ours. */
+const RPM_BODY_TRACK =
+  /^(Hips|Spine|Spine1|Spine2|LeftShoulder|RightShoulder|LeftArm|RightArm|LeftForeArm|RightForeArm|LeftHand|RightHand|LeftUpLeg|RightUpLeg|LeftLeg|RightLeg|LeftFoot|RightFoot)(\.|$)/;
 
 interface Rig {
   renderer: THREE.WebGLRenderer;
@@ -73,6 +135,15 @@ interface Rig {
   camera: THREE.PerspectiveCamera;
   gazeTarget: THREE.Object3D;
   vrm: VRM | null;
+  /**
+   * A plain glTF avatar (Ready Player Me / Mixamo rig, ARKit morph targets).
+   * Mutually exclusive with `vrm`. Expressions are written straight to the
+   * ARKit-named morph targets — the emotion layer already produces ARKit
+   * weights, so nothing is lost in translation — and head/eye bones are
+   * rotated relative to their rest pose, because raw bones do not rest at
+   * identity the way VRM's normalized bones do.
+   */
+  generic: GenericAvatar | null;
   head: THREE.Object3D | null;
   /** Expression names this particular model actually has. */
   available: VrmExpressionName[];
@@ -81,21 +152,84 @@ interface Rig {
   headBase: THREE.Vector3;
 }
 
+let webglProbe: boolean | null = null;
+
+/** three r163+ is WebGL2-only, so that is what we probe. Cached: one stray context, ever. */
 function hasWebGL(): boolean {
+  if (webglProbe !== null) return webglProbe;
   if (typeof document === 'undefined') return false;
   try {
-    const probe = document.createElement('canvas');
-    return Boolean(probe.getContext('webgl2') ?? probe.getContext('webgl'));
+    webglProbe = Boolean(document.createElement('canvas').getContext('webgl2'));
   } catch {
-    return false;
+    webglProbe = false;
+  }
+  return webglProbe;
+}
+
+/**
+ * Dev-only inspection handle (`window.__aiCoachVrm`): lets a reviewer or a
+ * browser-automation check read the live expression weights and tick the loop
+ * by hand in a hidden tab, where rAF never fires. Stripped in production.
+ */
+interface VrmDebugHandle {
+  status: VrmStageStatus;
+  gender: AvatarBodyGender;
+  step: (dt: number) => void;
+  weights: () => Readonly<Record<VrmExpressionName, number>> | null;
+  head: () => { yaw: number; pitch: number; roll: number } | null;
+  /** Dial the arms in live, in degrees; see `ARM_POSE`. */
+  setArms: (degrees: Partial<typeof ARM_POSE>) => void;
+  /** The loaded root, so a check can read materials and bones it did not author. */
+  root: () => THREE.Object3D | null;
+}
+declare global {
+  interface Window {
+    __aiCoachVrm?: VrmDebugHandle;
   }
 }
+const DEBUG_HANDLE = process.env.NODE_ENV !== 'production';
+
+const DEG = Math.PI / 180;
+
+/**
+ * Arms-down pose for the VRoid rest T-pose, in degrees on the *normalized*
+ * humanoid bones (which rest at identity, so these are absolute rotations).
+ *
+ * **Measured, not derived.** The reference viewer's author recorded that they
+ * guessed these twice and were wrong both times ("一次太高,一次縮進身體裡") and
+ * replaced the guess with sliders; our own first guess was wrong too — it had
+ * the upper-arm sign inverted (arms went up into a V) and rotated the forearm
+ * about Y instead of X. These numbers came off the slider panel at a standing
+ * rest pose. The slight left/right asymmetry is deliberate: it is what was
+ * measured, and it reads as a person rather than a mannequin.
+ *
+ * `dev` builds expose `window.__aiCoachVrm.setArms({...degrees})` so this can be
+ * re-measured the same way instead of re-guessed.
+ *
+ * Rocketbox uses A-pose: 90° raises its arms, while zero still leaves them
+ * spread diagonally (verified in the rendered stage). The bundled bodies use
+ * createRelaxedArmPose to calibrate their actual rest directions. These values
+ * are only the explicit dev-slider override / legacy model fallback.
+ *
+ * Kept as a table rather than deleted: the mechanism is still needed the moment
+ * a T-posed body is added, and `setArms` is how its numbers get measured.
+ */
+const ARM_POSE = {
+  leftUpperArmZ: 0,
+  leftLowerArmX: 0,
+  rightUpperArmZ: 0,
+  rightLowerArmX: 0,
+};
+
+/** Viewer's `POSTURE_VRM` — the joints the stoop is shared across. */
+const POSTURE_BONES = ['spine', 'chest', 'upperChest', 'neck'] as const;
+const WORLD_X = new THREE.Vector3(1, 0, 0);
 
 /** Viewer's `BODY_POSE_BONE` — trunk/limbs only, never head or eyes. */
 const BODY_POSE_BONE =
   /^(Hips|Spine\d*|(Left|Right)(Shoulder|Arm|ForeArm|Hand(Index|Middle|Pinky|Ring|Thumb)?\d*|UpLeg|Leg|Foot|ToeBase))$/i;
 
-export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: VrmStageProps) {
+export function VrmStage({ gender, age = null, ariaLabel, speaking, onStatus, className }: VrmStageProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const speakingRef = useRef(speaking);
@@ -114,7 +248,15 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
     const canvas = canvasRef.current;
     if (!host || !canvas) return undefined;
 
+    // Re-applied by the dev-only `setArms`, so the pose can be dialled in live.
+    let applyArmPose: (() => void) | null = null;
+    let manualArmPose = false;
+    let applyPosture: (() => void) | null = null;
+    let loadedRoot: THREE.Object3D | null = null;
+    let irisTextures: THREE.Texture[] = [];
+
     const report = (status: VrmStageStatus, reason?: string): void => {
+      if (DEBUG_HANDLE && window.__aiCoachVrm) window.__aiCoachVrm.status = status;
       onStatusRef.current?.(status, reason);
     };
 
@@ -161,6 +303,7 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
         head: null,
         available: [],
         mixer: null,
+        generic: null,
         headBase: new THREE.Vector3(0, 1.4, 0),
       };
     } catch (err) {
@@ -175,14 +318,19 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
     const frameCamera = (): void => {
       const { camera, headBase } = rig;
       const aspect = camera.aspect || 1;
+      const portrait = aspect < PORTRAIT_ASPECT || host.clientHeight >= TALL_HOST_PX;
+      const frameH = portrait ? FRAME_HEIGHT_M : CLOSE_FRAME_HEIGHT_M;
+      const frameW = portrait ? FRAME_WIDTH_M : CLOSE_FRAME_WIDTH_M;
+      const drop = portrait ? FRAME_TARGET_DROP_M : CLOSE_TARGET_DROP_M;
       const halfTan = Math.tan((CAMERA_FOV * Math.PI) / 360);
       // Fit the taller of the two constraints so a narrow card still shows
       // both shoulders and a wide one does not crop the top of the head.
-      const distV = FRAME_HEIGHT_M / 2 / halfTan;
-      const distH = FRAME_WIDTH_M / 2 / (halfTan * aspect);
+      const distV = frameH / 2 / halfTan;
+      const distH = frameW / 2 / (halfTan * aspect);
       const dist = Math.max(distV, distH);
-      // Look a little below the eyes so the head sits in the upper third.
-      const target = new THREE.Vector3(headBase.x, headBase.y - 0.09, headBase.z);
+      // Look below the eyes so the head sits in the upper fifth and the chest
+      // fills the band the floating cards occupy.
+      const target = new THREE.Vector3(headBase.x, headBase.y - drop, headBase.z);
       camera.position.set(target.x, target.y + 0.03, target.z + dist);
       camera.lookAt(target);
       camera.near = Math.max(0.02, dist / 50);
@@ -221,10 +369,12 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
     const emotionCur: ArkitWeights = {};
     const clock = { last: performance.now(), accum: 0 };
     const headEuler = new THREE.Euler();
+    let lastWeights: Record<VrmExpressionName, number> | null = null;
+    let lastHead: { yaw: number; pitch: number; roll: number } | null = null;
 
     const step = (dt: number): void => {
-      const { vrm, head, camera, gazeTarget, available, mixer } = rig;
-      if (!vrm) return;
+      const { vrm, head, camera, gazeTarget, available, mixer, generic } = rig;
+      if (!vrm && !generic) return;
       const state = useAvatarStore.getState();
       const expression = state.expression;
       const isSpeaking = speakingRef.current;
@@ -247,17 +397,50 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
         speaking: isSpeaking,
       });
       const speech = a2e.sample(dt, isSpeaking) ?? lipsync.sample(dt, isSpeaking);
-      const weights = arkitToVrm(composeArkit(emotionCur, speech, isSpeaking), pose.blink);
+      const arkit = composeArkit(emotionCur, speech, isSpeaking);
+      const weights = arkitToVrm(arkit, pose.blink);
 
-      const em = vrm.expressionManager;
-      if (em) {
-        for (const name of available) em.setValue(name, weights[name]);
+      if (vrm) {
+        const em = vrm.expressionManager;
+        if (em) {
+          for (const name of available) em.setValue(name, weights[name]);
+        }
+      } else if (generic) {
+        // ARKit weights land on ARKit-named morph targets directly. Blink is
+        // an ARKit pair too; RPM also ships a combined `eyesClosed`.
+        for (const mesh of generic.morphMeshes) {
+          const dict = mesh.morphTargetDictionary;
+          const infl = mesh.morphTargetInfluences;
+          if (!dict || !infl) continue;
+          for (const name of ARKIT_NAMES) {
+            const idx = dict[name];
+            if (idx === undefined) continue;
+            let v = arkit[name] ?? 0;
+            if (name === 'eyeBlinkLeft' || name === 'eyeBlinkRight') v = Math.max(v, pose.blink);
+            infl[idx] = v;
+          }
+          const closed = dict.eyesClosed;
+          if (closed !== undefined && dict.eyeBlinkLeft === undefined) infl[closed] = pose.blink;
+        }
       }
+      lastWeights = weights;
 
-      if (head) {
+      if (vrm && head) {
         // Normalized bones rest at identity, so the pose is absolute.
         headEuler.set(pose.headPitch, pose.headYaw, pose.headRoll, 'YXZ');
         head.quaternion.setFromEuler(headEuler);
+        lastHead = { yaw: pose.headYaw, pitch: pose.headPitch, roll: pose.headRoll };
+      } else if (generic?.head) {
+        // Raw bones: rest × delta, or the neck snaps to world axes.
+        headEuler.set(pose.headPitch, pose.headYaw, pose.headRoll, 'YXZ');
+        generic.head.quaternion.copy(generic.headRest).multiply(
+          new THREE.Quaternion().setFromEuler(headEuler),
+        );
+        const eyeYaw = THREE.MathUtils.clamp(pose.gazeX * 0.6, -0.3, 0.3);
+        const eyePitch = THREE.MathUtils.clamp(pose.gazeY * 0.4, -0.2, 0.2);
+        const eyeDelta = new THREE.Quaternion().setFromEuler(new THREE.Euler(eyePitch, eyeYaw, 0, 'YXZ'));
+        for (const eye of generic.eyes) eye.node.quaternion.copy(eye.rest).multiply(eyeDelta);
+        lastHead = { yaw: pose.headYaw, pitch: pose.headPitch, roll: pose.headRoll };
       }
 
       // Eye contact with a drift: the lookAt target hovers around the lens.
@@ -266,7 +449,13 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
       gazeTarget.position.y += pose.gazeY * 3;
 
       mixer?.update(dt);
-      vrm.update(dt);
+      // Both after the mixer (which would overwrite these bones) and before
+      // `vrm.update` (which writes the normalized rig into the real bones).
+      // The arms are re-applied every frame rather than once at load, as the
+      // reference viewer does, so nothing downstream can quietly reset them.
+      if (!mixer) applyArmPose?.();
+      applyPosture?.();
+      vrm?.update(dt);
       rig.renderer.render(rig.scene, camera);
     };
 
@@ -291,16 +480,105 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
     };
     document.addEventListener('visibilitychange', onVisibility);
 
+    if (DEBUG_HANDLE) {
+      window.__aiCoachVrm = {
+        status: 'loading',
+        gender,
+        step,
+        weights: () => lastWeights,
+        head: () => lastHead,
+        setArms: (degrees) => {
+          manualArmPose = true;
+          Object.assign(ARM_POSE, degrees);
+          applyArmPose?.();
+        },
+        root: () => loadedRoot,
+      };
+    }
+
     // --- model -------------------------------------------------------------
     report('loading');
     const loader = new GLTFLoader();
-    loader.register((parser) => new VRMLoaderPlugin(parser));
+    loader.register(
+      (parser) =>
+        new VRMLoaderPlugin(parser, {
+          // three-vrm refuses any VRM 1.0 whose meta.licenseUrl is not the
+          // official VRM licence — the whole model fails to load, silently
+          // becoming the portrait fallback. The Rocketbox body carries its own
+          // licence URL, accepted here explicitly (its terms are in that file;
+          // see HANDOFF §19.1), not by disabling the check.
+          metaPlugin: new VRMMetaLoaderPlugin(parser, {
+            acceptLicenseUrls: [
+              'https://vrm.dev/licenses/1.0/',
+              'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+            ],
+            needThumbnailImage: false,
+          }),
+        }),
+    );
 
     loader
-      .loadAsync(modelUrlFor(gender))
-      .then((gltf) => {
+      .loadAsync(modelUrlFor(gender, age))
+      .then(async (gltf) => {
         const vrm = (gltf.userData as { vrm?: VRM }).vrm;
-        if (!vrm) throw new Error('file is not a VRM');
+        if (!vrm) {
+          // Plain glTF (Ready Player Me). No VRM extension, so no expression
+          // manager and no normalized humanoid — drive morphs and bones directly.
+          if (disposed) {
+            VRMUtils.deepDispose(gltf.scene);
+            return;
+          }
+          const root = gltf.scene;
+          loadedRoot = root;
+          const morphMeshes: THREE.Mesh[] = [];
+          let head: THREE.Object3D | null = null;
+          const eyes: { node: THREE.Object3D; rest: THREE.Quaternion }[] = [];
+          root.traverse((o) => {
+            const mesh = o as THREE.Mesh;
+            if (mesh.isMesh) {
+              mesh.frustumCulled = false;
+              if (mesh.morphTargetDictionary && mesh.morphTargetInfluences) morphMeshes.push(mesh);
+            }
+            if (RPM_HEAD.test(o.name)) head = o;
+            if (RPM_EYE.test(o.name)) eyes.push({ node: o, rest: o.quaternion.clone() });
+          });
+
+          // Keep the file's body idle (if any) but never its face — the face is ours.
+          let mixer: THREE.AnimationMixer | null = null;
+          const bodyTracks: THREE.KeyframeTrack[] = [];
+          for (const clip of gltf.animations ?? []) {
+            for (const track of clip.tracks) {
+              const bone = track.name.split('.')[0] ?? '';
+              if (RPM_BODY_TRACK.test(bone)) bodyTracks.push(track);
+            }
+          }
+          if (bodyTracks.length > 0) {
+            mixer = new THREE.AnimationMixer(root);
+            mixer.clipAction(new THREE.AnimationClip('rpm-idle', -1, bodyTracks)).play();
+          }
+
+          rig.scene.add(root);
+          rig.generic = {
+            root,
+            morphMeshes,
+            head,
+            headRest: head ? (head as THREE.Object3D).quaternion.clone() : new THREE.Quaternion(),
+            eyes,
+          };
+          rig.mixer = mixer;
+          rig.available = [];
+
+          root.updateMatrixWorld(true);
+          if (head) (head as THREE.Object3D).getWorldPosition(rig.headBase);
+          rig.headBase.y += 0.09;
+          frameCamera();
+
+          step(0.016);
+          report('ready');
+          clock.last = performance.now();
+          rafId = requestAnimationFrame(frame);
+          return;
+        }
         if (disposed) {
           VRMUtils.deepDispose(vrm.scene);
           return;
@@ -308,6 +586,21 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
 
         // Standard three-vrm hygiene: fewer draw calls, one skeleton, no
         // backface culling on skinned meshes that flicker at the edge.
+        loadedRoot = vrm.scene;
+        const isRocketbox = repairRocketboxMaterials(vrm.scene);
+        if (isRocketbox && (age == null || age >= 35)) {
+          try {
+            irisTextures = await restoreRocketboxIrises(vrm.scene);
+          } catch (error) {
+            // Missing optional atlas must not hide an otherwise usable avatar.
+            if (DEBUG_HANDLE) console.warn('[vrm-stage] original iris texture unavailable', error);
+          }
+          if (disposed) {
+            for (const texture of irisTextures) texture.dispose();
+            VRMUtils.deepDispose(vrm.scene);
+            return;
+          }
+        }
         VRMUtils.removeUnnecessaryVertices(gltf.scene);
         VRMUtils.combineSkeletons(gltf.scene);
         VRMUtils.rotateVRM0(vrm); // VRM 0.x faces −Z; turn it to the camera.
@@ -317,18 +610,82 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
           if ((o as THREE.Mesh).isMesh) o.frustumCulled = false;
         });
 
-        // VRoid exports rest in T-pose. Drop the arms so the shoulders read as
-        // a seated customer rather than a scarecrow — normalized bones rest at
-        // identity, so this is an absolute rotation.
+        // Calibrate A-pose from the actual rig, preserving facial bones.
         const humanoid = vrm.humanoid;
         const leftArm = humanoid.getNormalizedBoneNode('leftUpperArm');
         const rightArm = humanoid.getNormalizedBoneNode('rightUpperArm');
         const leftFore = humanoid.getNormalizedBoneNode('leftLowerArm');
         const rightFore = humanoid.getNormalizedBoneNode('rightLowerArm');
-        if (leftArm) leftArm.rotation.z = -1.2;
-        if (rightArm) rightArm.rotation.z = 1.2;
-        if (leftFore) leftFore.rotation.y = -0.35;
-        if (rightFore) rightFore.rotation.y = 0.35;
+        const relaxedArms = isRocketbox ? createRelaxedArmPose(humanoid) : null;
+        applyArmPose = () => {
+          if (relaxedArms && !manualArmPose) {
+            relaxedArms();
+            return;
+          }
+          if (leftArm) leftArm.rotation.set(0, 0, ARM_POSE.leftUpperArmZ * DEG);
+          if (rightArm) rightArm.rotation.set(0, 0, ARM_POSE.rightUpperArmZ * DEG);
+          if (leftFore) leftFore.rotation.set(ARM_POSE.leftLowerArmX * DEG, 0, 0);
+          if (rightFore) rightFore.rotation.set(ARM_POSE.rightLowerArmX * DEG, 0, 0);
+        };
+        applyArmPose();
+
+        // --- age look ------------------------------------------------------
+        // The aged textures carry the wrinkles and the grey hair; posture and
+        // skin tone are the half of the roster's `look` that has to happen at
+        // runtime. Both numbers come from `avatarLook` (the viewer's table).
+        const look = avatarLook(gender, age);
+
+        if (look.skin !== 0) {
+          const tinted = new Set<string>();
+          vrm.scene.traverse((o) => {
+            const mesh = o as THREE.Mesh;
+            if (!mesh.isMesh) return;
+            const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+            for (const mat of mats) {
+              const m = mat as THREE.MeshStandardMaterial;
+              if (!m || tinted.has(m.uuid) || materialRole(m.name ?? '') !== 'skin') continue;
+              tinted.add(m.uuid);
+              // Multiplying `color` can only darken, which is all the roster
+              // asks for here (every skin offset is negative).
+              m.color?.offsetHSL(0, 0, look.skin);
+            }
+          });
+        }
+
+        if (look.stoop !== 0) {
+          // Stoop is the strongest age signal in the body. Each joint's local
+          // axes point somewhere different, so the bend is applied about the
+          // *world* X axis, and the bones are reset to their rest rotation first
+          // or the rotation compounds every frame until the model folds over.
+          const postureBones = POSTURE_BONES.map((name) =>
+            humanoid.getNormalizedBoneNode(name),
+          ).filter((b): b is THREE.Object3D => b !== null);
+          const rests = postureBones.map((b) => b.quaternion.clone());
+          const per = look.stoop / Math.max(postureBones.length, 1);
+          const axisQ = new THREE.Quaternion();
+          const parentQ = new THREE.Quaternion();
+          const worldQ = new THREE.Quaternion();
+          const bendAboutWorldX = (bone: THREE.Object3D, radians: number): void => {
+            if (!bone.parent) return;
+            axisQ.setFromAxisAngle(WORLD_X, radians);
+            bone.parent.getWorldQuaternion(parentQ);
+            worldQ.copy(parentQ).invert().multiply(axisQ).multiply(parentQ);
+            bone.quaternion.premultiply(worldQ);
+          };
+          applyPosture = () => {
+            postureBones.forEach((bone, i) => {
+              const rest = rests[i];
+              if (rest) bone.quaternion.copy(rest);
+              bendAboutWorldX(bone, per);
+            });
+            // A real stoop bends the back but the person still lifts their head
+            // to keep their eyes level; without this the 65-year-old looks at
+            // the floor. 15% of the bend is left in, which reads as age rather
+            // than as a correction.
+            const headBone = rig.head;
+            if (headBone) bendAboutWorldX(headBone, -look.stoop * 0.85);
+          };
+        }
 
         // Body idle from the file, if any (the viewer's Avaturn A/T-pose fix).
         let mixer: THREE.AnimationMixer | null = null;
@@ -375,6 +732,9 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
       })
       .catch((err: unknown) => {
         if (disposed) return;
+        // A failed body silently becomes the portrait fallback, which is the
+        // right UX and the wrong debugging experience: log the cause in dev.
+        if (DEBUG_HANDLE) console.error('[vrm-stage] model load failed:', modelUrlFor(gender, age), err);
         report('failed', err instanceof Error ? err.message : 'model load failed');
       });
 
@@ -386,21 +746,31 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
       motionQuery?.removeEventListener?.('change', onMotionChange);
       document.removeEventListener('visibilitychange', onVisibility);
       rig.mixer?.stopAllAction();
+      for (const texture of irisTextures) texture.dispose();
       if (rig.vrm) {
         rig.scene.remove(rig.vrm.scene);
         VRMUtils.deepDispose(rig.vrm.scene);
         rig.vrm = null;
       }
+      // No `forceContextLoss()`: React StrictMode re-runs this effect on the
+      // same canvas in dev, and a deliberately lost context cannot be reused.
+      // `dispose()` frees the GPU resources; the context goes with the canvas.
+      if (rig.generic) VRMUtils.deepDispose(rig.generic.root);
       rig.renderer.dispose();
-      rig.renderer.forceContextLoss();
+      if (DEBUG_HANDLE && window.__aiCoachVrm?.step === step) delete window.__aiCoachVrm;
     };
-    // `gender` swaps the model, which means a new rig; everything else is a ref.
-  }, [gender]);
+    // `gender` and `age` swap the model, which means a new rig; everything else
+    // is a ref.
+  }, [gender, age]);
 
   return (
     <div ref={hostRef} className={cn('relative h-full w-full overflow-hidden', className)}>
-      {/* Same ground as the portrait, so the swap between them is invisible. */}
-      <div aria-hidden="true" className="absolute inset-0" style={{ background: auroraGlow(1) }} />
+      {/* Ground behind the character: violet at the top-right falling to black
+          at the bottom-left. The glass cards float over that corner, and glass
+          only reads as glass on a ground that is dark and *even* — over the
+          old pale aurora the same card was half white and half black depending
+          on whether the suit or the wall was behind it. */}
+      <div aria-hidden="true" className="absolute inset-0" style={{ background: STAGE_GROUND }} />
       <canvas
         ref={canvasRef}
         role="img"

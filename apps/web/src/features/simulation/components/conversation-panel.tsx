@@ -30,6 +30,8 @@ import { ComplianceAlert } from './compliance-alert';
 import { AlertIcon, CloseIcon, LightbulbIcon, SparkleIcon } from './icons';
 import { cn, GradientPill } from './kit';
 import { QuickActions, type TrainingActionHandlers } from './quick-actions';
+import { AffectNudge } from './affect-nudge';
+import type { AffectReading } from '../lib/affect';
 import { TranscriptFeed, type SystemNotice } from './transcript-feed';
 
 export interface ConversationPanelProps {
@@ -59,6 +61,11 @@ export interface ConversationPanelProps {
 
   voiceEnabled: boolean;
   micLive: boolean;
+  /** Webcam affect channel — omit `onToggleCamera` to hide the control entirely. */
+  cameraLive?: boolean;
+  onToggleCamera?: (() => void) | undefined;
+  /** Live browser-side face reading, for the frown → hint nudge. */
+  affectReading?: AffectReading | null;
   muted: boolean;
   vadActive: boolean;
   captionsEnabled: boolean;
@@ -242,6 +249,9 @@ export function ConversationPanel(props: ConversationPanelProps) {
     maxTurns,
     voiceEnabled,
     micLive,
+  cameraLive = false,
+  onToggleCamera,
+  affectReading = null,
     muted,
     vadActive,
     captionsEnabled,
@@ -297,7 +307,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
           {status === 'listening' ? (
             <span className="flex items-center gap-1.5 text-tiny text-text-tertiary">
               <LiveDot tone="cyan" pulsing />
-              Your turn
+              換你了
             </span>
           ) : null}
         </div>
@@ -317,6 +327,13 @@ export function ConversationPanel(props: ConversationPanelProps) {
           onOpenAudioDevice={onOpenAudioDevice}
         />
 
+        <AffectNudge
+          reading={affectReading}
+          cameraLive={cameraLive}
+          traineesTurn={status === 'listening' || status === 'idle' || status === 'ready'}
+          onAskHint={onRequestHint}
+        />
+
         <Composer
           status={status}
           onSend={onSend}
@@ -326,6 +343,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
           micLive={micLive}
           muted={muted}
           onToggleMic={onToggleMic}
+          cameraLive={cameraLive}
+          onToggleCamera={onToggleCamera}
           vadActive={vadActive}
           turnCount={turnCount}
           maxTurns={maxTurns}

@@ -18,6 +18,7 @@ from typing import Any
 
 import structlog
 
+from app.agents.affect_agent import AffectAgent
 from app.agents.coach_agent import CoachAgent
 from app.agents.compliance_agent import ComplianceAgent
 from app.agents.customer_agent import CustomerAgent
@@ -169,6 +170,7 @@ def build_orchestrator(
         customer=CustomerAgent(client, locale=locale),
         knowledge=KnowledgeAgent(client, locale=locale, retrieval=pipeline),
         coach=CoachAgent(client, locale=locale),
+        affect=AffectAgent(client, locale=locale),
         evaluator=EvaluatorAgent(client, locale=locale),
         compliance=ComplianceAgent(client, locale=locale),
         director=ScenarioDirector(locale=locale),

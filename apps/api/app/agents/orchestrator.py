@@ -44,6 +44,7 @@ from typing import Any
 import structlog
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.agents.affect_agent import AffectAgent, AffectRequest
 from app.agents.base import CollectingTelemetrySink, gather_degrading
 from app.agents.coach_agent import CoachAgent, CoachRequest, to_domain_insight
 from app.agents.compliance_agent import (
@@ -76,6 +77,7 @@ from app.agents.scenario_director import (
     DirectorState,
     ScenarioDirector,
 )
+from app.domain.affect import FaceAffect, TextAffect, TraineeAffect, fuse_affect
 from app.ws.events import EventEmitter, now_ms
 
 log = structlog.get_logger(__name__)
@@ -109,6 +111,8 @@ class TurnInput(BaseModel):
     score_live_enabled: bool = False
     voice_enabled: bool = False
     client_intent_hint: ClientIntentHint | None = None
+    #: Browser-side facial reading for this turn. Untrusted, advisory, optional.
+    face_affect: FaceAffect | None = None
     #: has a required disclosure already been made earlier in this session?
     disclosure_made_earlier: bool = False
 
@@ -142,6 +146,7 @@ class ConversationOrchestrator:
         customer: CustomerAgent,
         knowledge: KnowledgeAgent | None = None,
         coach: CoachAgent | None = None,
+        affect: AffectAgent | None = None,
         evaluator: EvaluatorAgent | None = None,
         compliance: ComplianceAgent | None = None,
         director: ScenarioDirector | None = None,
@@ -154,6 +159,7 @@ class ConversationOrchestrator:
         self.customer = customer
         self.knowledge = knowledge
         self.coach = coach
+        self.affect = affect
         self.evaluator = evaluator
         self.compliance = compliance
         self.director = director or ScenarioDirector(locale=locale)
@@ -209,8 +215,13 @@ class ConversationOrchestrator:
                 key_objections=list(payload.scenario.get("key_objections") or []),
             )
         )
-        # persona.state.updated is emitted here — after the director ran (§20/§68)
-        await self.emitter.persona_state_updated(decision.state)
+        # persona.state.updated is deliberately NOT emitted here. The director has
+        # decided the new state, but the customer has not spoken yet — publishing
+        # it at this point filled the right-hand meters (trust / interest /
+        # resistance / patience, goal, budget) several seconds before the persona
+        # said a word, which reads as fabricated, and it leaks the director's
+        # decision to the client ahead of the reply. It is emitted once, below,
+        # after `agent.response.final` (§20/§68).
 
         # --- 3. knowledge (concurrent with the compliance model tier) ---
         await self.emitter.agent_thinking("knowledge")
@@ -246,13 +257,18 @@ class ConversationOrchestrator:
             locale=payload.locale,
             mode=payload.mode,
             turn_index=payload.turn_index,
+            # Known at turn start (the browser sends it before the message), so
+            # the persona can react to it in *this* reply — unlike the text
+            # reading, which needs the reply to exist first.
+            trainee_face=(
+                payload.face_affect.model_dump() if payload.face_affect is not None else {}
+            ),
         )
         reply = await self._customer_leg(customer_request, persona_turn_id, degraded)
 
         state = decision.state
         if reply.reveals_hidden_need and decision.allow_hidden_need_reveal:
             state = self.director.apply_hidden_need_reveal(state)
-            await self.emitter.persona_state_updated(state)
 
         persona_turn = self._turn_dict(
             payload,
@@ -263,8 +279,33 @@ class ConversationOrchestrator:
             state_delta=decision.state_delta,
         )
         await self.emitter.agent_response_final(persona_turn)
+        # One state update per turn, after the persona has spoken, carrying the
+        # hidden-need reveal when the reply triggered it.
+        await self.emitter.persona_state_updated(state)
 
-        # --- 5/6/7. post-checks, coach, evaluator (concurrent) ---------
+        # --- 5. trainee affect (before the coach, which consumes it) ----
+        # Two signals watch the trainee: what they said — auditable, because the
+        # agent must quote this turn verbatim — and what their face did, which
+        # arrives from an untrusted client and is uncalibrated. Fusion is plain
+        # arithmetic in `app.domain.affect`; a model asked to reconcile two
+        # labels invents a third. This is one short temperature-0 call, so it
+        # runs on its own rather than racing the coach that depends on it.
+        fused: TraineeAffect | None = None
+        if self.affect is not None or payload.face_affect is not None:
+            text_affect: TextAffect | None = None
+            if self.affect is not None:
+                text_affect = await self.affect.read(
+                    AffectRequest(
+                        session_id=payload.session_id,
+                        locale=payload.locale,
+                        trainee_text=payload.text,
+                        recent_turns=list(payload.recent_turns),
+                    )
+                )
+            fused = fuse_affect(text_affect, payload.face_affect)
+            await self.emitter.trainee_affect_updated(fused)
+
+        # --- 6/7/8. post-checks, coach, evaluator (concurrent) ---------
         await self.emitter.agent_thinking("compliance")
         post_request = self._compliance_request(payload, turn_id, persona_text=reply.text)
         legs: list[Any] = [self._persona_audit_leg(post_request)]
@@ -272,12 +313,13 @@ class ConversationOrchestrator:
         if self.coach is not None and payload.mode == "training":
             await self.emitter.agent_thinking("coach")
             coach_index = 1
-            legs.append(self._coach_leg(payload, reply, decision))
+            legs.append(self._coach_leg(payload, reply, decision, affect=fused))
         results = await gather_degrading(*legs)
         persona_findings: list[ComplianceFindingDraft] = results[0] or []
         coach_output = results[coach_index] if coach_index > 0 else None
         if coach_index > 0 and coach_output is None:
             degraded.append("coach")
+
 
         all_findings: list[ComplianceFindingDraft] = [
             *(trainee_model_findings or []),
@@ -406,7 +448,7 @@ class ConversationOrchestrator:
         return [
             f
             for f in result.findings
-            if ComplianceAgent._evidence_is_real(f, request)  # noqa: SLF001 - same package
+            if ComplianceAgent._evidence_is_real(f, request)
         ]
 
     async def _persona_audit_leg(
@@ -417,7 +459,12 @@ class ConversationOrchestrator:
         return self.compliance.audit_persona_output(request).findings
 
     async def _coach_leg(
-        self, payload: TurnInput, reply: CustomerReply, decision: DirectorDecision
+        self,
+        payload: TurnInput,
+        reply: CustomerReply,
+        decision: DirectorDecision,
+        *,
+        affect: TraineeAffect | None = None,
     ) -> Any:
         if self.coach is None:
             return None
@@ -436,6 +483,7 @@ class ConversationOrchestrator:
                     payload.scenario.get("required_talking_points") or []
                 ),
                 recent_turns=payload.recent_turns,
+                trainee_affect=affect.model_dump() if affect is not None else {},
             )
         )
 

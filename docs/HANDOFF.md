@@ -61,6 +61,7 @@ bash scripts/check-contracts.sh                      # TS/Python 事件契約同
 
 ---
 
+
 ## 2. 目錄與歸屬（詳見 `docs/PROJECT_STRUCTURE.md`）
 
 | 路徑 | 是什麼 |
@@ -376,4 +377,299 @@ API 與 avatar runtime 三次在沒有任何關閉紀錄的情況下消失，log
 ### 14.6 API 再次無故退出 → 監督迴圈
 即使以 tracked 背景模式啟動，API 仍在 06:14Z 於一連串正常請求後 `exit 1`、無 traceback；同為 uvicorn 的 avatar runtime（13:25 同樣方式啟動）活著，排除整批 `pkill`。根因未定。
 新增 `scripts/dev/run-api.sh`：從根 `.env` 載入設定、`while` 迴圈啟動 uvicorn、每次啟動與退出（含 exit code、UTC 時間）記到 `/tmp/ai-coach-api-exits.log`。下次死掉會留下證據，且 2 秒內自動復活。用 `run_in_background: true` 執行它。
+
+## 15. 主題：淺紫（此決定取代先前的「純黑」）
+
+先前 §9.5 記錄的「深色畫布改純黑 + 鎖定深色」**已作廢**。中途 agent 覆蓋 tokens 時把它換成 Soft Lavender палет（`--bg-canvas: #ccc8fe` 淺 / `#17151f` 深），主題鎖定也一併消失；把這個回歸回報給產品負責人後，裁定是 **維持紫色**。
+
+所以現況即是正確狀態，**不要再把它「修回」純黑**：
+- `tokens.css` 淺色 `--bg-canvas: #ccc8fe`、深色 `#17151f`
+- `theme-script.ts` / `theme-provider.tsx` 恢復正常的 light/dark/system 解析，沒有強制 dark
+- `layout.tsx` 的 `themeColor` 兩個值需與上面兩個畫布色一致
+
+### 15.1 API segfault — 已解（降到 Python 3.12）
+`scripts/dev/run-api.sh` 的退出紀錄證明 API 不是被外部砍掉，是自己崩潰：
+```
+exit code=134   # SIGABRT
+exit code=139   # SIGSEGV  (兩次)
+```
+約 8–50 分鐘一次，監督迴圈 2 秒內拉回，所以只表現為前端偶發「Could not reach the AI service」。
+
+**處置**：`apps/api/.venv` 已從 Homebrew Python **3.14** 換成 uv 管理的 **CPython 3.12.12**（`uv python install 3.12` + `uv venv --python 3.12`，不需 brew 也不需密碼）。原生擴充確認都是 3.12 的輪子（`asyncpg…cpython-312-darwin.so`、`pydantic_core…cpython-312-darwin.so`、`bcrypt`、`cryptography`），242 個測試全過。舊環境保留在 `apps/api/.venv-py314-backup/`，確認穩定數日後可刪。`apps/api/.python-version` 釘 3.12——**不要在 3.14 上重建這個 venv**。
+
+### 15.2 兩層 supervisor（保留）
+即使根因已處理，兩層自動重啟仍保留，因為它同時負責「開機自動起 API」：
+
+| 層 | 負責 | 實測 |
+|---|---|---|
+| `scripts/dev/run-api.sh` | uvicorn 崩了拉回、記錄每次退出碼 | `kill -SEGV` → 3.4s 復活 |
+| launchd agent `com.aicoach.api` | wrapper 本身死了拉回、登入時啟動 | `kill -KILL` wrapper → 立刻重生 |
+
+安裝 `bash scripts/dev/install-api-service.sh`（`--status` / `--uninstall`）。三個曾經踩過的坑：wrapper 沒有 `trap` 會留下孤兒 uvicorn 佔住 8000；沒有退避時壞設定會空轉；macOS 內建 bash 3.2 在 `set -u` 下**空陣列算 unbound**，所以 `reload_flag` 必須是字串不能是陣列。
+
+## 16. 語音（ElevenLabs）
+
+### 16.1 現況
+| 方向 | 路徑 | 狀態 |
+|---|---|---|
+| TTS | `speakTurn()`：伺服器有 `turn.audio_url` 就播雲端音檔，否則瀏覽器 `speechSynthesis`（macOS 系統中文語音，離線） | **會出聲**（目前實際走系統語音，因為雲端音檔傳輸尚未接） |
+| STT | 麥克風 → `MediaRecorder`(Opus/WebM) → `POST /api/v1/sessions/{id}/transcribe` → ElevenLabs Scribe → 繁體轉換 → 前端以 `message.send` 送出 | **已通**，實測 1.7s |
+| Voice 選角 | `apps/api/app/ws/voice_catalog.py`：依 persona `gender` + `age` 查表，persona 自訂 `voice_id` 優先 | 完成 |
+
+### 16.2 設計決定
+- **STT 走 HTTP 不走 WebSocket 二進位幀**：一句話一個請求，簡單、可重試、不需要改 gateway 的文字協定；文字回到前端後再以一般 `message.send` 送出，所以可在送出前修正誤聽。`VoiceSession`（WS 串流版）保留但未接。
+- **麥克風音訊永遠不直接送 vendor**：key 只在 API 行程內；瀏覽器內建 `SpeechRecognition` 在 Chromium 會送 Google，設定畫面有揭露。
+- **Scribe 回簡體**：zh-TW 一律用 OpenCC `s2twp` 轉繁體＋台灣用語，`zh-CN` 保留原樣。
+- gateway 收到 `voice.push_to_talk` 而沒有伺服器端 voice session 時只記 log，不再回 `voice_unavailable` 錯誤（那會在每次放開按鍵時跳紅色橫幅）。
+
+### 16.3 尚未完成
+- ElevenLabs TTS 音檔傳輸（`audio_sink` → 瀏覽器）尚未接；目前雲端 TTS 只在 `/tmp` 實測過，產品內實際出聲的是系統語音。
+- API key 權限受限（缺 `voices_read`/`user_read`），所以 voice 清單寫死在 catalog。**key 曾以純文字出現在聊天室，demo 後請 revoke。**
+
+## 17. 三個能力展示情境（`database/seeds/seed.py` → `EXTRA_SCENARIOS`）
+
+每個情境都設計成**在觀眾面前必然觸發**一種能力，觸發方式寫在情境 description 的【示範觸發】裡，任何主持人照做即可。
+
+| 情境 | 人物 | 觸發機制 | 學員要輸入／做的事 |
+|---|---|---|---|
+| 模糊提問的釐清對談 | 林佳穎 29♀ | `intent` 判 `AMBIGUOUS/INCOMPLETE → CLARIFY`；候選意思與建議反問句進客戶 prompt（`server_intent_verdict.candidate_meanings`） | 輸入「這個划算嗎？」「那這樣呢？」「要多少？」 |
+| 超綱話題的溫和收斂 | 王國棟 67♂ | `OFF_TOPIC_SIGNALS` 或情境 `restricted_topics` → `REDIRECT`；客戶 prompt 規則 6 禁止「我無法回答」；導演扣 patience；教練標記離題 | 輸入「你覺得今天天氣如何？」「總統選舉你怎麼看？」 |
+| 續保費率調漲告知 | 張若瑄 45♀ | 鏡頭 `angry → 不耐煩`，`CustomerTurnRequest.trainee_face` 進客戶 prompt，`_face_directive` 要求先用一句確認再繼續 | 開鏡頭皺眉；或輸入「這太離譜了」 |
+
+### 17.1 這輪為此補的機制
+- `intent.py`：新增五組無指涉評價句型（「這個怎麼樣」「那這樣呢」「要多少」「有差嗎」「這樣夠嗎」）。
+- `customer_agent.py`：`server_intent_verdict` 多帶 `candidate_meanings` / `suggested_clarifying_question`，客戶反問時才會**列出選項**而不是只問「你指什麼」；新增 `trainee_face` 與 `_face_directive()`（信心 < 0.55 或 不明確/平穩 → 不提表情）。
+- `orchestrator.py`：臉部讀數在**回合開始**就傳給客戶（文字情緒要等回覆存在才算得出，所以客戶只用臉部）。
+
+### 17.2 注意
+- 三個新 persona 沒填 `voice_id`，由 `voice_catalog.py` 依性別年齡選；王伯伯 67 歲用中年男聲（ElevenLabs 沒有老年聲），系統語音 fallback 則有 Grandpa。
+- seed 是**增量**的：既有列不動、新 id 插入；重跑不會覆蓋（除非 `--force`）。
+
+### 16.4 macOS 原生 STT（`tools/mac-stt`，Speech.framework）
+本機、離線、不經任何 vendor。`STT_PROVIDER=mac` 或前端選「Mac 本機」時使用，本機失敗自動落到雲端（`FallbackStt`），回應的 `provider` 欄位會說是誰答的。
+
+**架構：常駐 launchd agent + 本機 TCP，不是 API 的子行程。** 這不是偏好，是 TCC 的硬限制：
+- TCC 把權限請求算在**負責的父程式**頭上。從 shell 或 API 直接 exec 的 helper，會被用 Terminal／Claude／Python 的 Info.plist 來審，那些沒有 `NSSpeechRecognitionUsageDescription` → 直接 SIGABRT（crash report 寫的是誤導性的「app 缺少用途說明」）。
+- 把 Info.plist 用 `-sectcreate __TEXT __info_plist` 嵌進裸二進位**沒用**，TCC 只讀 bundle 的 `Contents/Info.plist`。
+- 這台 CLT 的 swiftc 預設 target 是 macOS **28.0**（系統是 27.0），LaunchServices 會以 -10825 拒絕註冊 bundle；必須 `-target arm64-apple-macos13.0` 並設 `LSMinimumSystemVersion`。
+- 以 launchd agent 啟動（`launchctl submit` 驗證過）就是自己的責任方 → 授權提示只彈一次，之後記在 bundle id `com.aicoach.mac-stt` 上。
+
+| 元件 | 位置 |
+|---|---|
+| Swift CLI／daemon | `tools/mac-stt/Sources/main.swift`（`--probe`、`--file`、`--serve --port 8790`） |
+| 建置成 .app bundle | `tools/mac-stt/build.sh`（ad-hoc codesign + lsregister） |
+| launchd 安裝 | `scripts/dev/install-mac-stt-service.sh`（`--status` / `--uninstall`） |
+| 隨網頁伺服器帶起 | `pnpm dev` 的 `predev` → `scripts/dev/ensure-services.sh` 會確保 API 與 mac-stt 兩個 agent 都在跑 |
+| API 端 | `MacSpeechStt`（daemon 優先，TCP 127.0.0.1:`MAC_STT_PORT`；不通才 exec，但 exec 路徑在 API 下一定被 TCC 擋） |
+| 能力探測 | `GET /api/v1/sessions/stt/capabilities` → 前端只在 `mac.available` 時開放「Mac 本機」選項 |
+
+音訊格式：瀏覽器送 Opus/WebM，AVFoundation 讀不了，API 先用 **ffmpeg** 轉 16kHz 單聲道 wav 再交給 daemon（ffmpeg 的 "Error parsing Opus packet header" 是警告，輸出正常）。
+
+### 16.5 辨識引擎 pill 與狀態列（輸入框下方，兩頁皆有）
+「講了話卻沒有任何反應」有四種完全不同的原因——麥克風靜音、授權過期（401）、限流（429）、辨識器失敗——先前全都長得一樣。現在每一句話的下場都寫在輸入框下：`正在轉寫…` → `已送出 · Mac 本機 510ms` / `沒有聽到內容` / `轉寫失敗：HTTP 429`。同一列的「辨識」pill 點擊循環 自動 → Mac 本機 → 雲端（API 回報本機不可用時跳過）。
+- 非語音標籤（`[音樂]`、`(silence)`、`（咳嗽）`）在 API 端剝掉，剝完為空就不送出——純音調曾被原樣送成一則訊息。
+- `sessions.transcribe` 限流放寬到 120/min、burst 20、cost 1；原本 burst 10 × cost 2 = 連講五句就 429。
+
+### 16.6 「本地」開關（麥克風旁，兩頁皆有）
+一顆按鈕把兩件事一起切：**開 = 系統語音 TTS + Mac 本機 STT**，關 = 回到伺服器預設。存在 `localStorage['aicoach.voice.local-mode']`，重新載入後保留——這是隱私／成本立場，不是單場設定。API 回報本機辨識不可用時，開關仍會切 TTS 為系統語音、STT 留在自動，tooltip 會說明「部分」。三段式的細部選擇仍在「音訊與語音」對話框。
+
+### 16.7 斷句（端點偵測）
+VAD 幾十毫秒就反應，這對音量表和插話是對的，對**斷句**是錯的：先前一偵測到靜音就收句送出，講話中每個自然停頓都變成一則訊息（本地辨識快，所以特別明顯）。現在 `useVoiceSession` 有 `utteranceEndSilenceMs`（預設 900ms）：靜音要持續這麼久才算一句結束，中途接著講就併回同一句、同一段錄音。放開空白鍵或按靜音則**立刻**收句——那是使用者明確表示講完了。合成麥克風驗證：700ms 語音＋450ms 停頓＋700ms 語音 → 一次 `/transcribe`。
+
+### 16.8 線上 TTS 延遲實測（ElevenLabs streaming，zh-TW，3 次中位數）
+| 模型 | 24 字 TTFB | 24 字總長 | 2 字總長 |
+|---|---|---|---|
+| eleven_multilingual_v2 | 1040ms | 1103ms | 957ms |
+| **eleven_flash_v2_5**（預設） | **226ms** | **313ms** | 210ms |
+| eleven_turbo_v2_5 | 286ms | 389ms | 247ms |
+
+multilingual_v2 的 ~1 秒幾乎全在首位元組——客戶每句都要「想」一秒才開口。預設改 flash；要音質用 `ELEVENLABS_TTS_MODEL=eleven_multilingual_v2`。
+
+### 16.9 兩個獨立開關（麥克風旁）
+「說：本地」＝客戶語音用系統語音；「聽：本地」＝辨識用 Mac 本機（本機不可用時停用並說明原因）。各自存 `localStorage`（`aicoach.voice.tts-local` / `aicoach.voice.stt-local`）。拆成兩個是因為取捨不同：雲端 TTS 音質好，本地 STT 快且音訊不外傳，兩者可以各選。
+
+### 16.10 TTS 播放時 STT 關閉
+客戶語音播放中，麥克風聽到的是喇叭，錄下來會把客戶自己的話轉成學員的訊息。`useVoiceSession` 以 `ttsPlayingRef` 閘門：TTS 可聽見期間 VAD 能量**只算插話**（立刻 `cancelTts`），不錄音；TTS 停止後的下一個 VAD tick 才開始擷取，只損失插話最前面幾十毫秒。客戶開口前也會先 `finalizeUtterance()`，確保學員那句與客戶的語音永不共用同一段錄音。合成麥克風驗證：TTS 中的語音 → 0 次轉寫且 TTS 中止；之後的語音 → 1 次。
+
+### 16.11 線上聲音候選
+key 缺 `voices_read`，列不出 voice 清單；改用 ElevenLabs 內建（premade）voice 的公開 id 各合成同一句中文交付試聽（男 9、女 9，另加同事給的 4 支對照）。選定後把 id 填進 `apps/api/app/ws/voice_catalog.py` 的對應格即可，程式不用改。
+
+### 16.12 雲端 TTS 傳輸（已接）與「上飄」調整
+- **傳輸走 HTTP**：`POST /api/v1/sessions/{id}/speak {text, stability?, similarity?, style?, speed?, voice_id?, model_id?}` → `audio/mpeg`。前端 `speakTurn()` 在雲端模式下每句客戶回覆呼叫一次，`URL.createObjectURL` 後用既有 `playTts` 播放；失敗時 `auto` 落到系統語音、`cloud` 保持靜音。WebSocket 音訊幀那條路徑不再需要。
+- **上飄根因**：英文母語 voice 唸中文時 `stability` 太低（原 0.5）加上 persona `emotion_style` 把 `style` 推到 0.4。ElevenLabs 預設改為 **stability 0.75、style 0（有 emotion_style 時 0.15）、speaker_boost on**，並限制 speed 0.7–1.2。
+- **設定條**（音訊與語音對話框）：雲端 穩定度／風格／相似度／速度，系統 速度／音高，各有「試聽」；存在 `localStorage['aicoach.voice.tuning']`。
+- **中文 voice**：Voice Library 的 8 支中文聲音（Anna Su、Yui、LeeTingTing、Stacy、Ian、Devon、Kevin Tu、Chen）**不需 voices_write 就能直接用 id 合成**（實測 16/16 成功）。選定後填進 `voice_catalog.py`。
+
+### 16.13 選定的線上聲音與 macOS 原生評估
+- 線上：**Yui**（女，`kGjJqO6wdwRN9iJsoeIC`）、**Ian**（男，`tSv4yoTPFFmCMaJpNf0A`），模型 `eleven_flash_v2_5`。`voice_catalog.py` 各年齡格暫時同一支；老年沿用中年。
+- macOS 原生（`say -v '?'` 的 zh_TW）：**美佳**是唯一進階引擎，其餘 Eddy/Flo/Grandma/Grandpa/Reed/Rocko/Sandy/Shelley 是同一顆精簡引擎（同句輸出 byte 數完全相同、md5 不同）。要提升本地品質：系統設定 → 輔助使用 → 朗讀內容 → 系統語音 → 管理語音，下載「美佳（進階／高級）」等；下載後 `say` 與瀏覽器 `speechSynthesis` 都會多出這些聲音，前端 `pickVoice` 以名稱包含比對會自動吃到。
+- 注意：`say -v <不存在的名稱>` 會**靜默退回預設聲音且 exit 0**，驗證聲音是否正確要比 md5，不能看退出碼。
+
+### 16.14 為什麼本地聲音比手機差（已查明）
+用 `AVSpeechSynthesisVoice.speechVoices()` 直接問系統：這台 Mac **180 支語音全是 `default`（精簡）品質，enhanced 0、premium 0**。美佳是 `com.apple.voice.compact.zh-TW.Meijia`；Eddy/Flo/Grandma/Grandpa/Reed/Rocko/Sandy/Shelley 是 `com.apple.eloquence.*`——舊 Eloquence 引擎。iPhone 出廠就帶進階版美佳，所以聽感差一個等級。
+- 下載：系統設定 → 輔助使用 → 朗讀內容 → 系統語音 → 管理語音 → 中文（台灣）→ 下載「美佳（進階）」／「美佳（高級）」（Apple 只提供部分聲音的進階版；沒有中文男聲的進階版時，只能用美佳或雲端）。無 CLI 可下載。
+- 下載後 `say`、`speechSynthesis`、`AVSpeechSynthesizer` 都會多出該聲音；前端 `pickVoice` 已改成**依名稱中的 進階／高級／Enhanced／Premium 排序優先**，Eloquence 聲音排最後，不用再改設定。
+
+### 16.15 本地 TTS 模型（`services/local-tts`）
+「說：本地」現在有真正的**本地模型**可用，不只是 macOS 系統語音。
+
+**選了什麼：`hexgrad/Kokoro-82M-v1.1-zh`**（Apache-2.0，8,200 萬參數，24 kHz），跑在 CPU `onnxruntime`（不裝 torch）。
+- 為什麼：這台 M3 只有 8 GB RAM、裝之前 5.2 GB 可用磁碟。整套 venv 239 MB + 權重 380 MB（onnx 325 MB、聲音包 54 MB、vocab）= **約 620 MB**；常駐 RSS 545–615 MB，峰值 666 MB。25 字一句 **RTF ≈ 0.22**（4 執行緒），一句 1.3–1.7 秒出完整音檔。
+- 品質驗證：三句樣本（女 `zf_001`、男 `zm_010`）丟回 Mac 本機辨識（`tools/mac-stt`）**6/6 逐字正確**。口音偏大陸標準普通話（訓練集是 100 位大陸專業配音），但台灣用語（保單、方案、啦、好不好）都唸得對。
+- 聲音：聲音包 103 支，其中中文 100 支（`zf_001`–`zf_099`、`zm_009`–`zm_100`），另 3 支英文聲音因沒載英文 G2P 不列出。預設女 `zf_001`、男 `zm_010`（模型卡自己的示範聲音）；`voice` 指定名稱優先於 `gender`。
+
+**被拒絕的：`MediaTek-Research/BreezyVoice`**（Apache-2.0，台灣口音，本來是第一順位）。查 Hugging Face 檔案清單：`llm.pt` 1.24 GB + `speech_tokenizer_v1.onnx` 523 MB + `flow.pt` 420 MB + `hift.pt` 82 MB + `campplus.onnx` 28 MB = **2.3 GB 權重**（加 ttsfrd 資源 3.2 GB），再加 torch/torchaudio/whisper 的 venv 約 1 GB，總計 3.3 GB 超過 3 GB 預算、會把可用磁碟壓到 1.9 GB；且它是 CosyVoice-300M 架構（自迴歸 LLM + flow matching），CPU 上 RTF 公認 > 1，8 GB 記憶體同時載 LLM+flow+tokenizer 也不保險。**沒有下載實測**，是按公開檔案大小與架構拒絕的——若日後換 16 GB 以上的機器，它仍是台灣口音的首選。XTTS（CPML 非商用）與 CC-BY-NC 類模型不考慮。
+
+**實測（`POST /speak`，format=mp3，經 ffmpeg 轉檔，服務暖機後）**
+
+| 句子 | 字數 | 音長 | 女聲 首位元組=總長 | 男聲 首位元組=總長 | RTF |
+|---|---|---|---|---|---|
+| 這個我不太清楚啦，我們還是講回我這個保單好不好？ | 24 | 5.55 s | 1.68 s* | 1.68 s | 0.22–0.28 |
+| 我比較想先知道這個方案一個月實際會多花多少錢。 | 23 | 5.9 s | 1.62 s | 1.41 s | 0.22–0.23 |
+| 好，那我們先看保障的部分。 | 13 | 3.4 s | 0.87 s | 0.86 s | 0.22 |
+
+\* 冷啟動第一句曾量到 6.5 s，所以載入時改用一句 25 字的句子暖機，`/healthz` 在暖機完成前回 503。回應不是串流，首位元組＝整句完成；比 ElevenLabs flash 的 0.3 s 慢約 1.3 s，但零成本、離線、文字不出機器。長段落 130 字 → 28.5 s 音檔 6.7 s 合成（RTF 0.235）。執行緒 2/4/8 = 6.9 s / 2.2 s / 2.0 s（同機有其他負載時量的），8 執行緒只快 10% 還吃到效率核，維持 4。
+
+**誠實的壞消息：這台機器的數字很不穩。** 量測當下 swap 用了 15/16 GB（一個 node 行程 4.3 GB、Chrome 數個分頁各 1 GB），服務閒置 150 秒後同一句 13 字從 1.1 s 變 4.9 s（權重被換出去），接著一句還要 3.9 s；模型載入也從 3 s 變 24 s。所以服務加了 `LOCAL_TTS_KEEP_WARM_S=45`：閒置超過 45 秒就自己合成「好的。」把權重留在記憶體（每次約 0.3 s CPU）。有 keep-warm 時同樣閒置 150 秒後是 2.7 s、下一句 1.2 s——有改善但不是零；記憶體不吃緊時穩定在 0.8–1.7 s。要穩定的低延遲，關掉那個 4 GB 的 node 或換 16 GB 機器比調任何參數都有效。
+
+樣本：`/tmp/local-tts-samples/{female,male}_{1,2,3}.mp3`（`*.hdr` 是回應標頭，含 `X-Rtf` / `X-Synth-Ms`）。
+
+**安裝／啟動**
+```bash
+pnpm tts:install        # = scripts/dev/install-local-tts-service.sh：建 .venv、抓權重、註冊 launchd
+scripts/dev/install-local-tts-service.sh --status | --uninstall
+curl -s 127.0.0.1:8795/healthz
+```
+launchd label `com.aicoach.local-tts`，KeepAlive，log `/tmp/ai-coach-local-tts.log`（structlog JSON，只記字數與時間，不記文字）。`ensure-services.sh`（`pnpm dev` 的 predev）會一起帶起來。venv 與 `models/` 都在 `.gitignore`。權重下載 `services/local-tts/scripts/fetch_model.sh` 有 sha256 鎖定。注意：這台機器對 PyPI 官方 CDN 只有 ~30 KB/s（GitHub 5 MB/s），首次建 venv 若卡住，加 `--index-url https://mirrors.aliyun.com/pypi/simple`。
+
+**接線**
+- API：`LOCAL_TTS_URL`（預設 `http://127.0.0.1:8795`）、`TTS_PROVIDER` 多了 `local`。`app/ws/voice.py` 新增 `LocalHttpTts`（同 `ElevenLabsTts` 介面，persona `gender` → 服務的 `gender`，`speed` 夾在 0.7–1.2）、`FallbackTts`、`probe_local_tts`、`build_tts(engine)`。
+- `POST /sessions/{id}/speak?engine=auto|cloud|local`：`local` 先打本地模型，服務不在時退回 ElevenLabs；`Content-Type` 照實際回來的編碼（本地 mp3，雲端 mp3），`X-Tts-Provider` 說誰講的。兩邊都掛時回 502，而不是空的 200。
+- `GET /sessions/stt/capabilities` 多了 `tts: {default, local: {available, model, voices}}`（探測 1 秒上限）。
+- 前端：`speakTurn` 在引擎 `system` 時，若能力回報本地模型可用就先 `synthesizeSpeech(..., 'local')`，失敗才落到 `speechSynthesis`；「說：本地」pill 的 tooltip 依可用性顯示「本地模型」或「系統語音」。
+- 測試：`apps/api/tests/test_local_tts.py`（stub HTTP client，10 條）、`services/local-tts/tests/test_engine.py`。
+
+**已知限制**
+- 口音偏大陸；少數字的讀音跟台灣習慣不同（pypinyin 詞典，如「和」「垃圾」）。
+- 數字：`1,200` 千分位會被唸成「一，二百」，服務先把千分位逗號去掉、`NT$`/`NTD`/`TWD` 換成「新台幣」再送 G2P；其他數字、％、日期交給 misaki 內的 cn2an，混合格式偶有唸錯，重要金額請在 persona 文案裡寫成中文。
+- 中文句子裡的英文單字會被略過（未載英文 G2P；載了要多 espeak-ng）。
+- 模型在 ~100 音素以上會趕拍、吞字（模型卡自己承認），服務按句號切句、超過 120 音素再按逗號切，並套用模型卡的長度→速度曲線；每段之間補 0.18 s 靜音。沒有標點的長句會變成一口氣。
+- 沒有串流：一句要等合成完才開始播。
+
+### 16.16 台灣口音本地 TTS：Breeze2-VITS（現為 `services/local-tts` 的預設引擎）
+
+Kokoro 的口音是大陸的，而且烤在權重裡改不動。BreezyVoice（台灣口音、Apache-2.0）當初因體積被否決——實查 Hugging Face：最小權重集 `llm.pt` 1.24 GB + `speech_tokenizer_v1.onnx` 523 MB + `flow.pt` 420 MB + `hift.pt` 82 MB + `campplus.onnx` 28 MB = **2.3 GB**，整包 repo 3.17 GB（207 檔），加 torch venv 約 1 GB；架構是 CosyVoice-300M 那系的自迴歸 LLM + flow matching，CPU RTF > 1。磁碟現在夠了（剩 7.5 GB），但 RTF 仍然出局。
+
+改用 **[`MediaTek-Research/Breeze2-VITS-onnx`](https://huggingface.co/MediaTek-Research/Breeze2-VITS-onnx)**：官方說明是「把 BreezyVoice 蒸餾成輕量 VITS」，繁體中文、目標是 Android。整包 **124 MB**（`breeze2-vits.onnx` 121,082,293 B + `lexicon.txt` 2.5 MB + `tokens.txt` 331 B；`du` 顯示 118 MiB），比 Kokoro 的 380 MB 小三分之二，而且 VITS 非自迴歸。
+
+**先把模型問清楚再動手**（`InferenceSession.get_modelmeta()`，這些是可重現的事實）：
+
+```
+model_type=vits  comment=vits-mr-run6  language=Chinese  jieba=1
+sample_rate=22050  add_blank=1  n_speakers=1
+punctuation=", . : ; ! ? ， 。 ： ； ！ ？ 、"
+in : x[N,L] int64 · x_length[N] int64 · noise_scale[1] · length_scale[1] · noise_scale_w[1] · sid[1] int64
+out: y[N,1,L] float
+```
+
+`tokens.txt` 50 個 token：blank `_`、六個標點 `，。！？—…`、21 聲母 + 16 韻母（ㄅ…ㄩ）、五個聲調符號 `ˉˊˇˋ˙`、一個空白。**是注音符號不是拼音**——這是台灣模型的第一個證據（大陸模型會用拼音）。`lexicon.txt` 67,999 條 `<詞> <注音…>`，詞長 1–10 字。
+
+**沒有用 sherpa-onnx。** cp312 的 macOS arm64 wheel 是有的（`sherpa-onnx` 2.1 MB + `sherpa-onnx-core` 9.5 MB），但：(a) 這個 graph 完全自述，六個輸入一個輸出，sherpa 在推論這端沒東西可加；(b) 它會再夾帶一份自己的 onnxruntime dylib，這台 swap 已吃掉 14 GB 的機器不需要第二份；(c) 它自己的 G2P 會**繞過**本服務既有的 `normalize()`（千分位、NT$）與斷句，而那是 Kokoro 這條路已經在用的。所以推論就是一次 `session.run`，G2P 自己寫。
+
+**Breeze 的 G2P**：`normalize()` → `cn2an` 把阿拉伯數字轉中文（token 表沒有數字也沒有拉丁字母，不轉就整段消失）→ 對詞典**最長詞優先比對**（10 字往下試到 1 字；單字 fallback 就是這迴圈的尾巴，因為常用字本身也是單字條目）→ 詞典與標點表都查不到的字**直接丟掉**（表情符號、英文單字不能讓整句啞掉）→ 其他標點映射到那六個裡最近的（`、；：` 和半形 `-` → `，`，`–―─～` → `—`，連續標點只留一個）→ 依 `add_blank=1` 交錯 blank：`[0, t₀, 0, t₁, …, 0]`。`sid` 固定 0，`speed` 變成 VITS 的倒數 `length_scale`。
+
+**實測（同一台 8 GB M3，單引擎單行程、暖機後，每句量 5 次）**
+
+| 句子 | 字 | breeze 音長 | breeze 合成 | breeze RTF | kokoro 音長 | kokoro 合成 | kokoro RTF |
+|---|---|---|---|---|---|---|---|
+| 這個我不太清楚啦…好不好？ | 24 | 4.4 s | 0.79 / 1.11 s | **0.18 / 0.25** | 5.55 s | 1.62 / 2.27 s | 0.29 / 0.41 |
+| 我比較想先知道…多少錢。 | 23 | 4.7 s | 0.99 / 1.21 s | **0.21 / 0.25** | 5.88 s | 3.52 / 18.1 s | 0.60 / 3.08 |
+| 好，那我們先看保障的部分。 | 13 | 2.1–2.4 s | 0.44 / 0.59 s | **0.21 / 0.24** | 3.40 s | 1.28 / 6.66 s | 0.38 / 1.96 |
+
+兩個數字＝「機器還算安靜時的最佳值 / 負載 17、swap 14.9 GB 時的中位數」。**Breeze 比 Kokoro 快，不是慢**（早先寫的「RTF 略高」是把 §16.15 在安靜機器上量的 Kokoro 數字拿來對比新量的 Breeze，不是同時量的）。而右邊三個中位數才是重點：Kokoro 的工作集被換出去之後就崩了（3.08 RTF＝合成比講還慢三倍），Breeze 的 0.25 幾乎沒動。差別就是常駐大小。
+
+| | breeze | kokoro |
+|---|---|---|
+| 權重 | 124 MB | 380 MB |
+| 載入 | 0.7 s | 2.7 s |
+| 服務 peak RSS（`ru_maxrss`） | **266 MB**（只載它） | 446 MB（兩顆都載） |
+| 取樣率 | 22.05 kHz | 24 kHz |
+| 聲音 | 1（女聲，不能選） | 100（男女可選） |
+| 語速 | 24 字唸 4.4 s | 同句 5.55 s（慢 20–35%） |
+
+（§16.15 量 Kokoro 單獨常駐是 545–615 MB；上面 446 MB 是**兩顆都載**時量的，比它還小只代表這種 swap 壓力下能同時常駐的頁本來就更少。這些是地板不是天花板，別拿來說「兩顆比一顆省」。）
+
+**可懂度**：服務吐出的 MP3 丟回 `tools/mac-stt`（zh-TW、on-device）逐字比對——breeze 0–1 / 55 字、kokoro 0–1 / 55 字，**CER 0–1.8%，差異在雜訊裡，不要拿來排名**。Breeze 每次跑不一樣（VITS 取樣隨機），同一批檔案量兩次一次 0/55 一次 1/55；再拿 Breeze 同三句連跑 4 次（直接吃引擎）是 4/220＝1.8%，錯的都是「講回→想回」「啦→啊」這種辨識端混淆，不是吞字。
+
+**架構：`app/engine.py` 拆成 `app/engines/`**，`main.py` 從此不認識任何一顆模型的名字——`base.py`（`TtsEngine` Protocol、共用的 `normalize()`/斷句/0.18 s 段間靜音）、`kokoro.py`、`breeze.py`、`taiwan_readings.py`，`__init__.py` 是一張 `{名字 → (權重在不在, 不載入也能列出的聲音, 怎麼建)}` 的表。**權重 lazy 載**：開機只載預設引擎，另一顆等第一個指名它的請求才載；Kokoro 的 100 支聲音靠讀 `.npz` 的 zip 目錄列出來，不必為了 `/healthz` 載 325 MB。
+
+**兩件量了才知道的事**：(a) **Breeze 很小聲**——同句 peak 0.075 / RMS 0.011，Kokoro 是 0.44 / 0.06，差約 14 dB，不補增益在雲端聲音旁邊等於聽不到；引擎固定乘 5.0（`LOCAL_TTS_BREEZE_GAIN`），撞到 0.95 會自己收手。(b) **它是隨機的**，同句兩次不會一樣，Kokoro 則是決定性的。
+
+**它是台灣的「聲音」，配的卻是大陸的「讀音」。** 這是實查 `lexicon.txt` 得到的結論，不是聽感：詞表 68,000 條裡 47,098 條是詞，而**詞條是簡體**（`一丁点儿`、`一个`、`一丝不挂`），讀音照大陸標準——研究 ㄐㄧㄡˉ、星期 ㄑㄧˉ、質 ㄓˋ、髮 ㄈㄚˋ、危 ㄨㄟˉ、企 ㄑㄧˇ、液 ㄧㄝˋ、崖 ㄧㄚˊ。而且因為詞條是簡體，繁體的多字詞大多查不到（垃圾、法國、企業、品質、說服 都沒有詞條），退回逐字讀音，連破音字判斷都放棄了——`長期` 因此被讀成 ㄓㄤˇ ㄑㄧˉ（生長的長）。
+
+**修法是資料不是程式**：`app/engines/taiwan_readings.py` 是 61 條台灣讀音（教育部《國語一字多音審訂表》），在 `read_lexicon()` 裡 `dict.update()` 疊上去，longest-match 自然就先撞到修正過的詞。開關 `LOCAL_TTS_TAIWAN_LEXICON`（預設開）。注音是用「拼音→注音」腳本產生的，該腳本先拿這份 lexicon 自己的 18 個字（圍/有/崖/月/雲/中/說/學/對/六/永/文/王/用/一/五/女/外）驗過，18/18 相符，所以符號拆法是這個檔自己的寫法。
+
+**刻意沒收的：`和` 讀 ㄏㄢˋ。** 它是最有辨識度的台灣讀音，但只適用於連接詞；單字覆寫會連 和平、溫和、和諧、和尚 一起改掉。唸錯「和平」比唸得文一點糟。
+
+**效果用獨立的台灣辨識器驗證**（`tools/mac-stt`，Apple 的 zh-TW 模型，跟 TTS 無關）：
+
+| 合成的句子 | 用原詞典 | 用台灣讀音表 |
+|---|---|---|
+| 垃圾郵件裡那個法國方案… | **浪費**郵件你那個**髮箍**方案… | **垃圾**郵件裡那個**法國**方案… |
+| …這份企業保單的期限和給付… | …期限和**抵付**… | …期限和**給付**… |
+
+原詞典的讀音，台灣的辨識器根本聽不懂——這比任何聽感描述都硬。
+
+**一個必須知道的限制：這個 checkpoint 只有一個 speaker，而且是女聲**（實測中位基頻 248–251 Hz，兩次獨立量測，對照 Kokoro 女聲 zf_001 的 264 Hz；男聲一般 85–155 Hz）。所以「說：本地」現在不分男女都是同一個女聲，67 歲的王國棟也是。`/speak` 不會默默吃掉 `gender`/`voice`，而是在 `X-Voice-Ignored` 標頭講清楚。要有男女之分，目前只能：(a) demo 用雲端 ElevenLabs 的 Yui/Ian，(b) 男性 persona 退回 Kokoro `zm_010`（男聲，但口音是大陸的）。這是產品取捨，還沒決定。
+
+**授權：查遍了，是「沒寫」，不是「限制商用」。**（商用**開放風險**）
+- `huggingface.co/MediaTek-Research/Breeze2-VITS-onnx`：API metadata 只有 `"tags":["onnx","region:us"]`，**沒有 `license` 欄位、沒有 `cardData`**；模型卡 8 行（Overview / Features），**沒有 License 段落**；5 個 commit 從頭到尾沒出現過授權檔（不是加了又刪）。
+- `Breeze2-android-demo`（已轉向 `mtkresearch/BreezeApp`）：README 白紙黑字寫 "The license for this project is pending determination"、掛 `License: Pending` 徽章，但 repo 裡又躺著一份完整 Apache-2.0 `LICENSE`，GitHub API 也報 `Apache-2.0`——**自相矛盾，而且它講的是 App，完全沒提內附的 TTS 權重**。
+- `github.com/mtkresearch/BreezyVoice`：`LICENSE` 是 Apache-2.0 原文（copyright 行還是 `[yyyy] [name of copyright owner]` 樣板），README 對授權隻字未提，只說 "partially derived from CosyVoice"；`huggingface.co/MediaTek-Research/BreezyVoice` front-matter 是 `license: apache-2.0`，上游 CosyVoice-300M 也是 apache-2.0。
+
+**結論：這顆權重本身沒有任何可引用的授權條款。** 上游 BreezyVoice 的 Apache-2.0 是**另一個 repo** 的授權，套到蒸餾出來的 onnx 上是推論不是事實，不要寫成事實。出貨前二選一：(a) 到該 HF repo 開 Community discussion 請 MediaTek 補 license tag，留下可引用的公開紀錄；(b) `LOCAL_TTS_ENGINE=kokoro` 退回授權明確的 Apache-2.0（Kokoro 完全沒動，100 支聲音、男女可選都在）。Demo／內部評估先用沒問題。
+
+**接線**：`apps/api/app/ws/voice.py` **一個字都沒改**——實際用 `LocalHttpTts` 打過，它送的 `{text, speed, format, gender, voice}` 新服務照收，回 22.05 kHz 單聲道 64 kb/s MP3（`ffprobe` 驗過可解碼），`apps/api/tests/test_local_tts.py` 10 條照過。`/healthz` 頂層 key（`status/model/voices/device/rtf_last`）維持原樣描述**預設**引擎，所以 `probe_local_tts` 不用改；另外多了 `engine`、`single_speaker`、`sample_rate`、`engine_fallback`、`engines:{名字:{state: loaded|available|missing|error,…}}`。
+
+**安裝／啟動**：`pnpm tts:install` 會一併抓 Breeze 的三個檔（`fetch_model.sh breeze|kokoro` 可分開抓，三個檔一樣 sha256 鎖定，落在 `models/breeze2-vits/`；舊安裝只補抓 124 MB，不會重抓 380 MB）。`LOCAL_TTS_ENGINE=kokoro` 可以切回去；Breeze 權重不在時服務照樣用 Kokoro 起來，`/healthz` 的 `engine_fallback` 寫明退的理由，**不會掛**。
+
+**樣本**：`/tmp/local-tts-samples-tw/` — `svc_{breeze,kokoro}_{1,2,3}.mp3` + `.hdr`（走服務，標頭有 `X-Engine`/`X-Rtf`/`X-Voice-Ignored`）、`word_{breeze,kokoro}_<詞>.mp3`（十個分辨詞）、`probe_{研究,垃圾}_{lexicon,taiwan}.wav`（讀音對照，覆寫表加進來之前錄的）、`api_adapter.mp3`（`LocalHttpTts` 實打回來那段）。
+
+**還沒做的**：`taiwan_readings.py` 那 61 條讀音**沒有母語者逐條驗收過**。`tests/test_taiwan_readings.py` 能擋住打錯字（驗出廠讀音、覆寫後讀音、符號都在 `tokens.txt` 裡、沒有無效條目、不相干的保險詞彙一個都沒被動到），但擋不住「我以為台灣是這樣唸」。表外的詞也仍然是大陸讀音。出貨前找一位台灣母語者把 61 條唸一遍。
+
+
+## 18. 30 秒 Demo（情境三）所需的三個機制
+1. **客戶先開口**：`SessionService.speak_opening_line()` 在首次連線 `mark_ready` 後，把 `opening_context` 裡最後一段「…」引句當作客戶第 0 輪送出並持久化；session 已有任何回合就不做（重連不會重複）。四個情境的 opening_context 都寫成「他坐下來第一句話是：「…」」的格式，所以全部受惠。副作用：回合計數會把這一輪算進去（UI 顯示 Turn 1 / 30）。
+2. **低耐心 persona 回覆精簡**：`CustomerTurnRequest` 依 `traits.patience < 35` 加 `reply_length` 指令（兩句、40 字內）。這是角色特性，順便讓對話框不需捲動。
+3. **皺眉 → 提示卡**（`affect-nudge.tsx`）：用瀏覽器端臉部讀數（每 250ms），負向標籤（angry/sad/fearful/disgusted/contempt）信心 ≥ 0.55 **持續 1.5 秒**且輪到學員說話時，在**輸入框正上方**出現「這句不好接？我可以給你一個回應方向，不會替你講。」按「給我方向」走既有 `coach.request_hint`；30 秒內只出現一次、15 秒自動收、評測模式不顯示、**不說出偵測到的情緒**。實測皺眉到出現 2.9 秒。
+
+## 19. 男性虛擬人改用 Ready Player Me 模型（`public/models/avatar_male_real.glb`）
+使用者提供的 `.glb` **不是 VRM**：沒有 VRM 擴充，是 Ready Player Me 匯出——Mixamo 骨架（`Head`/`Neck`/`LeftEye`/`LeftArm`…）、52 個 ARKit morph targets（`browInnerUp`、`eyeBlinkLeft`…）、1 段動畫、13.7 MB。`vrm-stage.tsx` 新增「一般 glTF」分支：
+- 表情：我們的情緒層本來就輸出 ARKit 權重，直接寫進同名 morph target（VRM 路徑才需要 `arkitToVrm` 轉換）；眨眼用 `eyeBlinkLeft/Right`，沒有時退到 `eyesClosed`。
+- 頭與眼：raw bone 的 rest 不是 identity（VRM normalized bone 才是），所以旋轉用 `rest × delta`，否則脖子會扭向世界座標軸。眼球依 gaze 小幅轉動。
+- 動畫：保留檔案內的身體 idle tracks，**臉部軌跡一律丟掉**（臉是我們驅動的）。
+- 朝向：RPM 面向 +Z，不需要 `rotateVRM0`。`modelUrlFor('male')` 指向 glb；女性仍是 VRM。
+- 限制：沒有 VRM 的 lookAt／spring bone；手臂姿勢校正（`ARM_POSE`）只作用於 VRM。
+
+### 19.1 改回 VRM：`Business_Male_02_50.vrm`（VRM 1.0）
+使用者隨後提供 VRM 1.0 男性模型「王先生・50代」（Microsoft Rocketbox，52 humanBones，17 個表情 preset：aa/ih/ou/ee/oh/blink/blinkLeft/blinkRight/happy/angry/sad/surprised/relaxed/lookUp/Down/Left/Right），已覆蓋 `public/models/avatar_male_suit.vrm`，`modelUrlFor('male')` 改回 VRM。RPM 的 `.glb` 與一般 glTF 分支保留備用。
+- three-vrm 3.x 同時支援 0.x 與 1.0；`rotateVRM0()` 對 1.0 是 no-op（1.0 本身面向 +Z）。
+- `ARM_POSE` 是照舊 VRoid 模型量的；Rocketbox 的 rest pose 若不同，用 `window.__aiCoachVrm.setArms({...})` 重量後改常數。
+- **授權待確認**：Rocketbox 授權條款在模型 meta 的 `licenseUrl`（github.com/microsoft/Microsoft-Rocketbox）；商用與再散布條件請看該檔。
+
+### 19.2 六個虛擬人：性別 × 年齡自動對應，以及三個必修的 render bug
+
+`public/models/` 現在是六個 Microsoft Rocketbox 角色——`avatar_{male,female}_{young,middle,senior}.vrm`，共 160 MB——由 `features/avatar/lib/avatar-body.ts` 依 persona 的性別與年齡自動挑，門檻與語音那套相同（<35 青年、35–64 中年、≥65 長者），所以不會出現 65 歲的臉配年輕的聲音。年齡差異是事先烤好的貼圖（皺紋來自老化 GAN、白髮來自亮度遮罩），同一個性別的三個年齡共用同一具 mesh。
+
+`avatar_male_suit.vrm` / `avatar_female_suit.vrm` / `avatar_male_real.glb` 已從工作目錄移除（§19 與 §19.1 描述的那三個），沒有程式再引用它們。
+
+執行期的 look 參數逐字抄自參考專案 viewer 的 `CHARACTERS`：膚色明暗與駝背弧度（m50 −0.02 / 0.12、m65 −0.04 / 0.30、f40 −0.01 / 0.07、f65 −0.04 / 0.26）。駝背照它的做法在世界空間 X 軸疊加到 spine/chest/upperChest/neck，並讓頭部反向補償 85%——不補償的話 65 歲會直接看著地板。它的第四條滑桿「髮色白化」沒有移植：這六個模型的白髮已經烤進貼圖，那條滑桿是給沒有年齡變體的模型用的。
+
+**三個 render bug，都不是模型壞掉，是轉檔流程與 three.js 的落差**（細節見 `docs/AVATAR_RENDER_REPAIRS.md`，修正在 `features/avatar/vrm/model-repairs.ts`，19 個測試）：
+
+1. **貼圖上下顛倒。** 參考專案的轉檔先把貼圖從材質上拿掉才跑 `GLTFExporter`，之後才用 `vrm_finalize.py` 把原始 JPEG/PNG bytes 塞回 GLB——這樣就跳過了 exporter 本來會做的垂直翻轉。臉部圖集因此整個上下相反，看起來是頭頂一頂黑帽、眼睛橫著一條深色帶。修法是載入後把 `m008_*`/`f016_*` 這些材質的 V 座標翻回來（clone accessor，因為 GLTFLoader 會共用）。
+2. **手臂張開。** Rocketbox「rest 是 A-pose,不是 T-pose」（來源專案 README），手臂在綁定姿勢就是垂的。先前套 VRoid 量到的 62°／−63° 讓手臂舉到一半，參考專案給拖放 VRM 的 fallback 90°／−90° 則讓手臂直接平舉——**任何修正都是在把手臂往外轉**。現在改成量測每具骨架自己的肩／肘／腕方向再算出放鬆姿勢。
+3. **老年版白瞳孔。** 老化腳本把臉部橢圓之外的深色像素一律推成灰白，虹膜的 UV 島剛好在圖集底部、落在橢圓外，於是被一起漂白。修法是只有那一塊 UV 島改採未老化的原始貼圖（`rocketbox_{male,female}_head_original.jpg`）。
+
+**授權**：Rocketbox 是 MIT，但這六個檔是經過老化 GAN 重繪的衍生貼圖，商用前要確認 GAN 權重（Fast-AgingGAN，MIT）與 Rocketbox 條款疊起來的結果。
 

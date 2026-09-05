@@ -46,6 +46,23 @@ export const MicOffIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const CameraIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.2a1 1 0 0 0 .8-.4l.9-1.2a1 1 0 0 1 .8-.4h5.6a1 1 0 0 1 .8.4l.9 1.2a1 1 0 0 0 .8.4h1.2A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5Z" />
+    <circle cx="12" cy="12.5" r="3.2" />
+  </Svg>
+);
+
+export const CameraOffIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.6" />
+    <path d="M9.9 6l.7-1a1 1 0 0 1 .8-.4h2.8a1 1 0 0 1 .8.4l.9 1.2a1 1 0 0 0 .8.4h1.2A2.5 2.5 0 0 1 21 8.5v7" />
+    <path d="M3 11.5v5A2.5 2.5 0 0 0 5.5 19h11" />
+    <path d="M14.8 14.9a3.2 3.2 0 0 1-4.4-4.4" />
+    <path d="M4 3l16 18" />
+  </Svg>
+);
+
 export const SendIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M4.5 12 20 4.5 15 20l-4-6-6.5-2Z" />

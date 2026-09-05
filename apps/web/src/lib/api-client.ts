@@ -339,6 +339,67 @@ export const endpoints = {
   getKnowledgeBase: (id: ID) => api.get<KnowledgeBase>(`/api/v1/knowledge-bases/${id}`),
   listDocuments: (kbId: ID, query?: Query) =>
     api.get<Paginated<KnowledgeDocument>>(`/api/v1/knowledge-bases/${kbId}/documents`, { query }),
+  /**
+   * One spoken utterance → text. The microphone never talks to a vendor from
+   * the browser: audio goes to our API, which holds the key (§71). The client
+   * decides whether to send the returned text as a turn.
+   */
+  transcribeUtterance: (
+    sessionId: ID,
+    blob: Blob,
+    mime: string,
+    engine: 'auto' | 'mac' | 'cloud' = 'auto',
+  ) => {
+    const form = new FormData();
+    const ext = mime.includes('mp4') ? 'mp4' : mime.includes('mpeg') ? 'mp3' : 'webm';
+    form.append('file', blob, `utterance.${ext}`);
+    return api.post<{ text: string; provider: string; language: string }>(
+      `/api/v1/sessions/${sessionId}/transcribe?engine=${engine}`,
+      { form },
+    );
+  },
+  /**
+   * One persona line → audio clip. Raw fetch rather than `request()`: the body
+   * is audio, not JSON. Same cookie + CSRF discipline. `engine` picks where it
+   * is synthesised: `cloud` (ElevenLabs), `local` (the on-device model server,
+   * cloud fallback when it is down) or `auto` (the server's TTS_PROVIDER). The
+   * Blob's `type` is whatever codec came back (MP3 or WAV); the player reads it.
+   */
+  synthesizeSpeech: async (
+    sessionId: ID,
+    text: string,
+    tuning: { stability: number; similarity: number; style: number; speed: number },
+    engine: 'auto' | 'cloud' | 'local' = 'auto',
+  ): Promise<Blob> => {
+    const response = await fetch(
+      new URL(`/api/v1/sessions/${sessionId}/speak?engine=${engine}`, API_BASE_URL),
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeader() },
+        body: JSON.stringify({ text, ...tuning }),
+      },
+    );
+    if (!response.ok) throw new ApiError({ status: response.status, code: 'tts_failed', message: 'speech synthesis failed' } as never);
+    return response.blob();
+  },
+  /** Which speech engines the deployment can offer — drives the on-device switches. */
+  sttCapabilities: () =>
+    api.get<{
+      default: string;
+      cloud: boolean;
+      mac: { available: boolean; onDevice?: boolean; authorization?: string; reason?: string };
+      tts?: {
+        default: string;
+        local: {
+          available: boolean;
+          model?: string;
+          voices?: string[];
+          singleSpeaker?: boolean;
+          reason?: string;
+        };
+      };
+    }>('/api/v1/sessions/stt/capabilities'),
   /** Multipart upload; the server issues signed storage URLs (§73). */
   uploadDocuments: (kbId: ID, form: FormData) =>
     api.post<KnowledgeDocument[]>(`/api/v1/knowledge-bases/${kbId}/documents`, { form }),

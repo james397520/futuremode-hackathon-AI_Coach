@@ -282,7 +282,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization", CSRF_HEADER_NAME, REQUEST_ID_HEADER],
-        expose_headers=[REQUEST_ID_HEADER, "Retry-After"],
+        expose_headers=[REQUEST_ID_HEADER, "Retry-After", "X-Voice-Id"],
         max_age=600,
     )
 

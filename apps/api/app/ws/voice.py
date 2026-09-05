@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from enum import StrEnum
 from typing import Any, Protocol, runtime_checkable
@@ -30,6 +31,7 @@ import structlog
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.ws.events import EventEmitter, now_ms
+from app.ws.voice_catalog import resolve_voice_id
 
 log = structlog.get_logger(__name__)
 
@@ -77,6 +79,18 @@ class VoiceConfig(BaseModel):
     stability: float | None = None
     similarity: float | None = None
     emotion_style: str | None = None
+    #: Explicit ElevenLabs `style` (0-1). Overrides the coarse emotion_style
+    #: mapping. Higher = more expressive = more pitch drift; the rising-intonation
+    #: complaint on Chinese from English-trained voices is mostly this plus low
+    #: stability.
+    style: float | None = None
+    speaker_boost: bool = True
+    #: Per-request model override (e.g. multilingual_v2 for quality).
+    model_id: str | None = None
+    #: Persona gender ("male" / "female" / other). ElevenLabs resolves it to a
+    #: voice_id up front (voice_catalog); the local model server takes it as-is
+    #: and picks its own default voice for that gender.
+    gender: str | None = None
     interruptible: bool = True
     silence_timeout_s: float = DEFAULT_SILENCE_TIMEOUT_S
     turn_timeout_s: float = DEFAULT_TURN_TIMEOUT_S
@@ -90,7 +104,11 @@ class SttPort(Protocol):
     provider: str
 
     def stream(
-        self, audio: AsyncIterator[bytes], *, language: str = "zh-TW"
+        self,
+        audio: AsyncIterator[bytes],
+        *,
+        language: str = "zh-TW",
+        mime_type: str = "audio/webm",
     ) -> AsyncIterator[TranscriptChunk]: ...
 
 
@@ -136,7 +154,11 @@ class OpenAiStt:
         return self._client
 
     async def stream(
-        self, audio: AsyncIterator[bytes], *, language: str = "zh-TW"
+        self,
+        audio: AsyncIterator[bytes],
+        *,
+        language: str = "zh-TW",
+        mime_type: str = "audio/webm",
     ) -> AsyncIterator[TranscriptChunk]:
         """Buffer the utterance, then transcribe it in one call.
 
@@ -150,7 +172,7 @@ class OpenAiStt:
         if not buffer:
             return
         files = {
-            "file": ("audio.webm", bytes(buffer), "audio/webm"),
+            "file": ("audio.webm", bytes(buffer), mime_type),
             "model": (None, self.model),
             "language": (None, language.split("-")[0]),
         }
@@ -159,10 +181,326 @@ class OpenAiStt:
             if response.status_code >= 400:
                 raise RuntimeError(f"stt {response.status_code}: {response.text[:160]}")
             payload = response.json()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("voice.stt_failed", provider=self.provider, error=repr(exc))
             raise
         yield TranscriptChunk(text=str(payload.get("text") or ""), is_final=True)
+
+
+#: Scribe wants ISO 639-3. Anything unmapped is omitted so the model auto-detects
+#: rather than being told a wrong language.
+_SCRIBE_LANGUAGE: dict[str, str] = {"zh": "zho", "en": "eng", "ja": "jpn", "ko": "kor"}
+
+
+def _to_traditional(text: str, language: str) -> str:
+    """Scribe transcribes zh-TW speech into Simplified characters. In a Taiwanese
+    product that is wrong on the transcript, in the evaluator's evidence quotes
+    and in every citation. s2twp also maps mainland phrasing (软件 -> 軟體)."""
+    if not text or not language.lower().startswith("zh") or language.lower().endswith("cn"):
+        return text
+    try:
+        from opencc import OpenCC
+
+        return OpenCC("s2twp").convert(text)
+    except Exception as exc:
+        log.info("voice.stt_convert_skipped", error=repr(exc))
+        return text
+
+
+class ElevenLabsStt:
+    """ElevenLabs Scribe transcription (§22). Credentials stay server-side.
+
+    Buffer-then-transcribe, like `OpenAiStt`: the REST endpoint is not
+    incremental, so one utterance yields one final chunk. Verified against the
+    live API with zh-TW audio produced by our own TTS.
+    """
+
+    provider = "elevenlabs"
+
+    def __init__(self, *, model_id: str = "scribe_v1", client: Any | None = None) -> None:
+        self.model_id = model_id
+        self._client = client
+
+    def _http(self) -> Any:
+        if self._client is None:
+            import httpx
+
+            from app.core.config import get_settings
+
+            settings = get_settings()
+            key = getattr(settings, "elevenlabs_api_key", "")
+            getter = getattr(key, "get_secret_value", None)
+            self._client = httpx.AsyncClient(
+                base_url=getattr(settings, "elevenlabs_base_url", "https://api.elevenlabs.io/v1"),
+                headers={"xi-api-key": str(getter()) if callable(getter) else str(key)},
+                timeout=60.0,
+            )
+        return self._client
+
+    async def stream(
+        self, audio: AsyncIterator[bytes], *, language: str = "zh-TW", mime_type: str = "audio/webm"
+    ) -> AsyncIterator[TranscriptChunk]:
+        buffer = bytearray()
+        async for frame in audio:
+            buffer.extend(frame)
+        if not buffer:
+            return
+        data: dict[str, str] = {"model_id": self.model_id}
+        code = _SCRIBE_LANGUAGE.get(language.split("-")[0].lower())
+        if code:
+            data["language_code"] = code
+        ext = "mp4" if "mp4" in mime_type else "mp3" if "mpeg" in mime_type else "webm"
+        try:
+            response = await self._http().post(
+                "/speech-to-text",
+                files={"file": (f"utterance.{ext}", bytes(buffer), mime_type)},
+                data=data,
+            )
+            if response.status_code >= 400:
+                raise RuntimeError(f"stt {response.status_code}: {response.text[:160]}")
+            payload = response.json()
+        except Exception as exc:
+            log.warning("voice.stt_failed", provider=self.provider, error=repr(exc))
+            raise
+        text = _to_traditional(str(payload.get("text") or "").strip(), language)
+        yield TranscriptChunk(text=text, is_final=True)
+
+
+class MacSpeechStt:
+    """macOS-native recognition via the `tools/mac-stt` helper (Speech.framework).
+
+    Runs entirely on this machine when `on_device` is set — no key, no network,
+    no vendor. The browser records Opus-in-WebM, which AVFoundation cannot read,
+    so anything that is not already wav/m4a/mp3/aiff is transcoded with ffmpeg
+    first. Every failure raises; `FallbackStt` decides what happens next.
+    """
+
+    provider = "mac"
+
+    def __init__(
+        self,
+        *,
+        binary: str | None = None,
+        on_device: bool = True,
+        runner: Any | None = None,
+        timeout_s: float = 70.0,
+        port: int | None = None,
+    ) -> None:
+        self.binary = binary or _default_mac_stt_bin()
+        self.port = _default_mac_stt_port() if port is None else port
+        self.on_device = on_device
+        self._runner = runner  # test seam: async (argv) -> (returncode, stdout, stderr)
+        self.timeout_s = timeout_s
+
+    def available(self) -> bool:
+        import os
+        from pathlib import Path
+
+        return bool(self.binary) and Path(self.binary).is_file() and os.access(self.binary, os.X_OK)
+
+    async def probe(self, language: str = "zh-TW") -> dict[str, Any]:
+        daemon = await self.daemon_probe(language)
+        if daemon is not None:
+            daemon["daemon"] = True
+            return daemon
+        if not self.available():
+            return {"available": False, "reason": "helper not built"}
+        code, out, _ = await self._run([self.binary, "--probe", "--locale", language])
+        try:
+            return json.loads(out) if code == 0 else {"available": False, "reason": out[:200]}
+        except json.JSONDecodeError:
+            return {"available": False, "reason": "bad probe output"}
+
+
+    async def _run(self, argv: list[str]) -> tuple[int, str, str]:
+        if self._runner is not None:
+            return await self._runner(argv)
+        proc = await asyncio.create_subprocess_exec(
+            *argv, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+        try:
+            out, err = await asyncio.wait_for(proc.communicate(), timeout=self.timeout_s)
+        except TimeoutError:
+            proc.kill()
+            raise RuntimeError("mac-stt timed out") from None
+        return proc.returncode or 0, out.decode("utf-8", "replace"), err.decode("utf-8", "replace")
+
+    async def stream(
+        self,
+        audio: AsyncIterator[bytes],
+        *,
+        language: str = "zh-TW",
+        mime_type: str = "audio/webm",
+    ) -> AsyncIterator[TranscriptChunk]:
+        import shutil
+        import tempfile
+        from pathlib import Path
+
+        buffer = bytearray()
+        async for frame in audio:
+            buffer.extend(frame)
+        if not buffer:
+            return
+        if not self.available():
+            raise RuntimeError("mac-stt helper not built (run tools/mac-stt/build.sh)")
+
+        if "mp4" in mime_type:
+            ext = "mp4"
+        elif "mpeg" in mime_type:
+            ext = "mp3"
+        elif "wav" in mime_type:
+            ext = "wav"
+        else:
+            ext = "webm"
+        with tempfile.TemporaryDirectory(prefix="aicoach-stt-") as tmp:
+            src = Path(tmp) / f"utterance.{ext}"
+            src.write_bytes(bytes(buffer))
+            target = src
+            if ext in ("webm", "ogg"):
+                ffmpeg = shutil.which("ffmpeg")
+                if not ffmpeg:
+                    raise RuntimeError("ffmpeg required to decode WebM/Opus for mac-stt")
+                target = Path(tmp) / "utterance.wav"
+                code, _, err = await self._run(
+                    [ffmpeg, "-loglevel", "error", "-y", "-i", str(src),
+                     "-ar", "16000", "-ac", "1", str(target)]
+                )
+                if code != 0:
+                    raise RuntimeError(f"ffmpeg failed: {err[:160]}")
+            payload = await self._via_daemon(str(target), language)
+            if payload is None:
+                argv = [self.binary, "--file", str(target), "--locale", language,
+                        "--on-device" if self.on_device else "--allow-server"]
+                code, out, err = await self._run(argv)
+                try:
+                    payload = json.loads(out) if out.strip() else {}
+                except json.JSONDecodeError:
+                    payload = {}
+                if code != 0 and "error" not in payload:
+                    payload["error"] = err[:160] or f"exit {code}"
+        if "error" in payload:
+            raise RuntimeError(f"mac-stt: {payload['error']}")
+        yield TranscriptChunk(text=str(payload.get("text") or "").strip(), is_final=True)
+
+    async def _via_daemon(self, path: str, language: str) -> dict[str, Any] | None:
+        """One request to the resident helper. None when it is not running —
+        the caller then falls back to a one-shot process, which will itself be
+        refused by TCC when spawned from the API, so the daemon is the path that
+        actually works in production; the fallback exists for dev shells."""
+        port = self.port
+        if not port:
+            return None
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection("127.0.0.1", port), timeout=1.0
+            )
+        except (OSError, TimeoutError):
+            return None
+        try:
+            req = {"id": 1, "file": path, "locale": language, "onDevice": self.on_device}
+            writer.write((json.dumps(req) + "\n").encode("utf-8"))
+            await writer.drain()
+            line = await asyncio.wait_for(reader.readline(), timeout=self.timeout_s)
+        finally:
+            writer.close()
+        try:
+            return json.loads(line.decode("utf-8")) if line else {"error": "daemon closed"}
+        except json.JSONDecodeError:
+            return {"error": "bad daemon reply"}
+
+    async def daemon_probe(self, language: str = "zh-TW") -> dict[str, Any] | None:
+        """Capability report from the running daemon, or None when it is down."""
+        if not self.port:
+            return None
+        try:
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection("127.0.0.1", self.port), timeout=1.0
+            )
+        except (OSError, TimeoutError):
+            return None
+        try:
+            writer.write((json.dumps({"id": 0, "probe": True, "locale": language}) + "\n").encode())
+            await writer.drain()
+            line = await asyncio.wait_for(reader.readline(), timeout=10.0)
+        finally:
+            writer.close()
+        try:
+            return json.loads(line.decode("utf-8")) if line else None
+        except json.JSONDecodeError:
+            return None
+
+
+class FallbackStt:
+    """Try one recogniser, fall through to the next on failure.
+
+    Ordering is a product decision, not a technical one: `mac` first keeps the
+    audio on the machine whenever the machine can do it, and only sends to the
+    cloud when it cannot. The provider name reports which one actually answered.
+    """
+
+    def __init__(self, *adapters: Any) -> None:
+        self.adapters = [a for a in adapters if a is not None]
+        self.provider = "none"
+
+    async def stream(
+        self,
+        audio: AsyncIterator[bytes],
+        *,
+        language: str = "zh-TW",
+        mime_type: str = "audio/webm",
+    ) -> AsyncIterator[TranscriptChunk]:
+        frames = [f async for f in audio]
+        last: Exception | None = None
+        for adapter in self.adapters:
+            try:
+                stream = adapter.stream(
+                    _replay_frames(frames), language=language, mime_type=mime_type
+                )
+                async for chunk in stream:
+                    self.provider = adapter.provider
+                    yield chunk
+                return
+            except Exception as exc:
+                last = exc
+                log.info("voice.stt_fallback", from_provider=adapter.provider, error=repr(exc))
+        if last is not None:
+            raise last
+
+
+def _default_tts_model() -> str:
+    try:
+        from app.core.config import get_settings
+
+        return str(getattr(get_settings(), "elevenlabs_tts_model", "") or "eleven_flash_v2_5")
+    except Exception:
+        return "eleven_flash_v2_5"
+
+
+def _default_mac_stt_port() -> int:
+    try:
+        from app.core.config import get_settings
+
+        return int(getattr(get_settings(), "mac_stt_port", 8790) or 0)
+    except Exception:
+        return 8790
+
+
+def _default_mac_stt_bin() -> str:
+    from pathlib import Path
+
+    try:
+        from app.core.config import get_settings
+
+        configured = str(getattr(get_settings(), "mac_stt_bin", "") or "")
+    except Exception:
+        configured = ""
+    if not configured:
+        return ""
+    path = Path(configured)
+    if not path.is_absolute():
+        # apps/api/app/ws/voice.py -> repo root is four levels up.
+        path = Path(__file__).resolve().parents[4] / path
+    return str(path)
 
 
 class OpenAiTts:
@@ -215,10 +553,10 @@ class ElevenLabsTts:
     def __init__(
         self,
         *,
-        model_id: str = "eleven_multilingual_v2",
+        model_id: str | None = None,
         client: Any | None = None,
     ) -> None:
-        self.model_id = model_id
+        self.model_id = model_id or _default_tts_model()
         self._client = client
 
     def _http(self) -> Any:
@@ -241,16 +579,24 @@ class ElevenLabsTts:
 
     async def stream(self, text: str, *, config: VoiceConfig) -> AsyncIterator[AudioChunk]:
         voice_id = config.voice_id or "21m00Tcm4TlvDq8ikWAM"
+        # Defaults chosen against the drift complaint: high stability, no style.
+        # 0.5 / emotion_style->0.4 made every Chinese sentence end on a question.
+        style = (
+            config.style
+            if config.style is not None
+            else (0.0 if not config.emotion_style else 0.15)
+        )
         body: dict[str, Any] = {
             "text": text,
-            "model_id": self.model_id,
+            "model_id": config.model_id or self.model_id,
             "voice_settings": {
-                "stability": config.stability if config.stability is not None else 0.5,
+                "stability": config.stability if config.stability is not None else 0.75,
                 "similarity_boost": (
                     config.similarity if config.similarity is not None else 0.75
                 ),
-                "style": 0.0 if not config.emotion_style else 0.4,
-                "speed": config.speed,
+                "style": max(0.0, min(1.0, style)),
+                "use_speaker_boost": config.speaker_boost,
+                "speed": max(0.7, min(1.2, config.speed)),
             },
         }
         async with self._http().stream(
@@ -264,13 +610,154 @@ class ElevenLabsTts:
         yield AudioChunk(data=b"", mime_type="audio/mpeg", is_final=True)
 
 
+def _default_local_tts_url() -> str:
+    try:
+        from app.core.config import get_settings
+
+        return str(getattr(get_settings(), "local_tts_url", "") or "http://127.0.0.1:8795")
+    except Exception:
+        return "http://127.0.0.1:8795"
+
+
+class LocalHttpTts:
+    """The local model server (services/local-tts, Kokoro-82M-v1.1-zh on onnxruntime).
+
+    Same shape as ElevenLabsTts — one line in, audio bytes out — but nothing
+    leaves the machine and there is no key. The server returns a whole clip, not
+    a stream: an 82M-parameter model finishes a sentence in well under the time
+    it takes to say it (RTF ≈ 0.2 on an M3), so buffering costs less than the
+    framing would. `mime_type` follows the format actually requested.
+    """
+
+    provider = "local"
+
+    def __init__(
+        self,
+        *,
+        base_url: str | None = None,
+        audio_format: str = "mp3",
+        client: Any | None = None,
+        timeout_s: float = 60.0,
+    ) -> None:
+        self.base_url = base_url or _default_local_tts_url()
+        self.audio_format = "wav" if audio_format == "wav" else "mp3"
+        self.timeout_s = timeout_s
+        self._client = client
+
+    @property
+    def mime_type(self) -> str:
+        return "audio/wav" if self.audio_format == "wav" else "audio/mpeg"
+
+    def _http(self) -> Any:
+        if self._client is None:
+            import httpx
+
+            self._client = httpx.AsyncClient(base_url=self.base_url, timeout=self.timeout_s)
+        return self._client
+
+    @staticmethod
+    def _gender(config: VoiceConfig) -> str | None:
+        g = (config.gender or "").lower()
+        return g if g in ("male", "female") else None
+
+    def request_body(self, text: str, config: VoiceConfig) -> dict[str, Any]:
+        body: dict[str, Any] = {
+            "text": text,
+            "speed": max(0.7, min(1.2, config.speed)),
+            "format": self.audio_format,
+        }
+        gender = self._gender(config)
+        if gender:
+            body["gender"] = gender
+        # An explicit local voice name (zf_001 / zm_010…) beats the gender default.
+        # ElevenLabs ids are 20-char opaque strings and must not be forwarded.
+        if config.voice_id and config.voice_id[:3] in ("zf_", "zm_"):
+            body["voice"] = config.voice_id
+        return body
+
+    async def stream(self, text: str, *, config: VoiceConfig) -> AsyncIterator[AudioChunk]:
+        response = await self._http().post("/speak", json=self.request_body(text, config))
+        if response.status_code >= 400:
+            raise RuntimeError(f"local tts {response.status_code}")
+        mime = str(response.headers.get("content-type") or self.mime_type).split(";")[0]
+        yield AudioChunk(data=bytes(response.content), mime_type=mime)
+        yield AudioChunk(data=b"", mime_type=mime, is_final=True)
+
+
+async def probe_local_tts(
+    base_url: str | None = None, *, timeout_s: float = 1.0, client: Any | None = None
+) -> dict[str, Any]:
+    """`GET /healthz` on the local model server, summarised for a capabilities reply.
+
+    Never raises: a closed port, a still-loading model and a malformed reply all
+    come back as `{"available": False, "reason": ...}` so the client simply does
+    not offer the option.
+    """
+    url = base_url or _default_local_tts_url()
+    try:
+        if client is None:
+            import httpx
+
+            async with httpx.AsyncClient(base_url=url, timeout=timeout_s) as http:
+                response = await http.get("/healthz")
+        else:
+            response = await client.get("/healthz")
+        data = response.json() if response.content else {}
+        if not isinstance(data, dict):
+            return {"available": False, "reason": f"http {response.status_code}"}
+        if response.status_code >= 400:
+            return {"available": False, "reason": str(data.get("status") or response.status_code)}
+        return {
+            "available": data.get("status") == "ok",
+            "model": data.get("model"),
+            "voices": list(data.get("voices") or []),
+            "device": data.get("device"),
+            "rtf_last": data.get("rtf_last"),
+            # Breeze2-VITS has one speaker, so a persona's gender cannot reach
+            # the voice. The UI has to say so: a 67-year-old man answering in a
+            # young woman's voice reads as a bug unless it is labelled.
+            # camelCase on the wire, matching `mac.onDevice` on the same
+            # endpoint (that one comes straight out of the Swift helper).
+            "singleSpeaker": bool(data.get("single_speaker")),
+        }
+    except Exception as exc:
+        return {"available": False, "reason": type(exc).__name__}
+
+
+class FallbackTts:
+    """Try each synthesiser in order; the first one that yields audio wins.
+
+    Used for `engine=local`: the model server may be down, mid-restart or still
+    loading, and the persona must still speak. A failure *after* the first
+    chunk is not retried — the client has already started playing.
+    """
+
+    def __init__(self, *adapters: Any) -> None:
+        self.adapters = [a for a in adapters if a is not None]
+        self.provider = self.adapters[0].provider if self.adapters else "none"
+
+    async def stream(self, text: str, *, config: VoiceConfig) -> AsyncIterator[AudioChunk]:
+        last: Exception | None = None
+        for adapter in self.adapters:
+            try:
+                async for chunk in adapter.stream(text, config=config):
+                    self.provider = adapter.provider
+                    yield chunk
+                return
+            except Exception as exc:
+                last = exc
+                log.info("voice.tts_fallback", from_provider=adapter.provider, error=repr(exc))
+        if last is not None:
+            raise last
+
+
 class NullStt:
     """No STT configured: voice degrades to text (§51 — core features never stop)."""
 
     provider = "none"
 
     async def stream(
-        self, audio: AsyncIterator[bytes], *, language: str = "zh-TW"
+        self, audio: AsyncIterator[bytes], *, language: str = "zh-TW", mime_type: str = "audio/webm"
     ) -> AsyncIterator[TranscriptChunk]:
         async for _frame in audio:
             pass
@@ -364,7 +851,7 @@ class VoiceSession:
                     await self.emitter.speech_partial("trainee", chunk.text)
         except asyncio.CancelledError:
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             await self.emitter.session_error(
                 "stt_failed", "we could not hear that clearly — please try again"
             )
@@ -392,7 +879,7 @@ class VoiceSession:
                 ):
                     yield chunk
                 return
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 if attempt == 2:
                     raise
                 log.info("voice.stt_retry", session=self.session_id, error=repr(exc))
@@ -424,7 +911,7 @@ class VoiceSession:
             await self.on_turn(text)
         except asyncio.CancelledError:
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("voice.turn_failed", session=self.session_id, error=repr(exc))
         finally:
             if self.state is VoiceState.THINKING:
@@ -458,7 +945,7 @@ class VoiceSession:
         except asyncio.CancelledError:
             log.info("voice.tts_cancelled", session=self.session_id)
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             log.warning("voice.tts_failed", session=self.session_id, error=repr(exc))
             await self.emitter.session_error(
                 "tts_failed", "voice playback failed; captions remain available"
@@ -499,19 +986,89 @@ async def _replay_frames(frames: Sequence[bytes]) -> AsyncIterator[bytes]:
         yield frame
 
 
+
+def build_stt(engine: str | None = None) -> SttPort:
+    """The speech-to-text adapter for one request.
+
+    `engine` is the client's per-utterance choice: `mac` (on-device, falls back
+    to the cloud if the helper cannot answer), `cloud` (vendor only), or None /
+    `auto` for the server's `STT_PROVIDER`. Separate from `build_voice_session`
+    because HTTP transcription needs no emitter, no TTS and no session state.
+    """
+    try:
+        from app.core.config import get_settings
+
+        settings = get_settings()
+        cloud: Any = None
+        if getattr(settings, "elevenlabs_api_key", None):
+            cloud = ElevenLabsStt()
+        elif getattr(settings, "openai_api_key", None):
+            cloud = OpenAiStt()
+
+        want = (engine or str(getattr(settings, "stt_provider", "elevenlabs"))).lower()
+        if want == "auto":
+            want = str(getattr(settings, "stt_provider", "elevenlabs")).lower()
+
+        if want == "mac":
+            mac = MacSpeechStt()
+            if mac.available():
+                return FallbackStt(mac, cloud) if cloud is not None else mac
+            log.info("voice.mac_stt_unavailable", binary=mac.binary)
+            return cloud or NullStt()
+        if want in ("cloud", "elevenlabs", "openai"):
+            return cloud or NullStt()
+    except Exception as exc:
+        log.warning("voice.stt_setup_failed", error=repr(exc))
+    return NullStt()
+
+
+def build_tts(engine: str | None = None) -> TtsPort:
+    """The text-to-speech adapter for one request.
+
+    `engine` is the client's per-line choice: `local` (the on-device model,
+    ElevenLabs as fallback when its port is closed), `cloud` (vendor only), or
+    None / `auto` for the server's `TTS_PROVIDER`.
+    """
+    cloud: Any = None
+    provider = "elevenlabs"
+    try:
+        from app.core.config import get_settings
+
+        settings = get_settings()
+        provider = str(getattr(settings, "tts_provider", "elevenlabs")).lower()
+        if getattr(settings, "elevenlabs_api_key", None):
+            cloud = ElevenLabsTts()
+        elif getattr(settings, "openai_api_key", None):
+            cloud = OpenAiTts()
+    except Exception as exc:
+        log.warning("voice.tts_setup_failed", error=repr(exc))
+
+    want = (engine or "auto").lower()
+    if want == "auto":
+        want = provider
+    if want == "local":
+        return FallbackTts(LocalHttpTts(), cloud)
+    if want in ("cloud", "elevenlabs", "openai"):
+        return cloud or NullTts()
+    return NullTts()
+
+
 def build_voice_session(
     *,
     session_id: str,
     emitter: EventEmitter,
     persona_voice: dict[str, Any] | None = None,
+    persona: dict[str, Any] | None = None,
     on_turn: TurnHandler | None = None,
     audio_sink: AudioSink | None = None,
 ) -> VoiceSession:
     """Pick providers from the persona's voice config + settings (§22.4, §44)."""
     voice = dict(persona_voice or {})
     config = VoiceConfig(
-        provider=str(voice.get("provider") or "openai"),
-        voice_id=voice.get("voice_id"),
+        # ElevenLabs is the configured provider (TTS_PROVIDER); a persona that
+        # names its own wins, otherwise the gender/age table decides.
+        provider=str(voice.get("provider") or "elevenlabs"),
+        voice_id=voice.get("voice_id") or resolve_voice_id(persona),
         language=str(voice.get("language") or "zh-TW"),
         speed=float(voice.get("speed") or 1.0),
         stability=voice.get("stability"),
@@ -523,13 +1080,12 @@ def build_voice_session(
         from app.core.config import get_settings  # assumed
 
         settings = get_settings()
-        if getattr(settings, "openai_api_key", None):
-            stt = OpenAiStt()
+        stt = build_stt()
         if config.provider == "elevenlabs" and getattr(settings, "elevenlabs_api_key", None):
             tts = ElevenLabsTts()
         elif config.provider == "openai" and getattr(settings, "openai_api_key", None):
             tts = OpenAiTts()
-    except Exception as exc:  # noqa: BLE001 - voice is optional, never fatal
+    except Exception as exc:
         log.warning("voice.provider_setup_failed", error=repr(exc))
     return VoiceSession(
         session_id=session_id,
@@ -547,7 +1103,10 @@ __all__ = [
     "STT_LATENCY_BUDGET_MS",
     "TTS_FIRST_BYTE_BUDGET_MS",
     "AudioChunk",
+    "ElevenLabsStt",
     "ElevenLabsTts",
+    "FallbackTts",
+    "LocalHttpTts",
     "NullStt",
     "NullTts",
     "OpenAiStt",
@@ -558,5 +1117,8 @@ __all__ = [
     "VoiceConfig",
     "VoiceSession",
     "VoiceState",
+    "build_stt",
+    "build_tts",
     "build_voice_session",
+    "probe_local_tts",
 ]

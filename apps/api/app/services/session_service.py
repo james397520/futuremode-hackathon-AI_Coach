@@ -17,7 +17,8 @@ Responsibilities
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+import re
+from collections.abc import Callable, Mapping
 from typing import Any
 
 import structlog
@@ -28,6 +29,9 @@ from app.agents.orchestrator import ConversationOrchestrator, TurnInput, TurnRes
 from app.agents.scenario_director import DirectorState, ScenarioDirector
 from app.core.context import RequestContext  # assumed: app.core.context.RequestContext
 from app.domain import PersonaSimulationState  # assumed: re-exported from app.domain
+from app.domain.affect import face_from_command
+from app.domain.request_response import SessionTranscriptResponse
+from app.domain.session import CoachInsight, TranscriptTurn
 from app.services.base import (
     MANAGEMENT_ROLES,
     ROLE_COACH,
@@ -36,7 +40,6 @@ from app.services.base import (
     new_id,
 )
 from app.services.exceptions import (
-    ConflictError,
     NotFoundError,
     PermissionDeniedError,
     StateTransitionError,
@@ -277,9 +280,13 @@ class SessionService(BaseService):
             "success_condition", "failure_condition", "time_limit_seconds", "max_turns",
             "minimum_score", "rubric_id", "compliance_rules", "required_disclosures",
         )
+        # `id` and `gender` are not cosmetic: voice selection keys on gender and
+        # hashes the id for the ungendered fallback. Leaving them out made every
+        # session's persona "ungendered", so 林佳穎 (female) spoke with the male
+        # voice whenever the hash landed on it.
         persona_fields = (
-            "name", "age", "occupation", "industry", "background", "language", "locale",
-            "traits", "voice", "avatar_url",
+            "id", "name", "gender", "age", "occupation", "industry", "background",
+            "language", "locale", "traits", "voice", "avatar_url",
         )
         return PinnedSnapshot(
             scenario_id=str(field(scenario, "id", "")),
@@ -349,6 +356,45 @@ class SessionService(BaseService):
             await emitter.session_resumed()
         return self.to_view(updated)
 
+    async def speak_opening_line(self, session_id: str) -> dict[str, Any] | None:
+        """Let the customer open the conversation with the line the scenario puts
+        in their mouth — the 「…」-quoted sentence in `opening_context`.
+
+        Every scenario is written that way ("他坐下來第一句話是：「…」"), yet the
+        session used to start with the trainee staring at a description card and
+        the customer silent. Idempotent: nothing happens once the session has any
+        turn, so a reconnect never repeats the opener.
+        """
+        row = await self._require(session_id, read_only=True)
+        existing = await self.repo.list(
+            "TranscriptTurn", filters={"session_id": session_id}, order_by="timestamp_ms"
+        )
+        if existing:
+            return None
+        pinned = await self._pinned_for_row(row)
+        context = str((pinned.scenario or {}).get("opening_context") or "")
+        quoted = re.findall(r"「([^」]{2,120})」", context)
+        if not quoted:
+            return None
+        text = quoted[-1].strip()
+        emitter = await self.emitters.get(
+            session_id, tenant_id=self.tenant_id, workspace_id=self.workspace_id
+        )
+        turn: dict[str, Any] = {
+            "id": new_id("pt"),
+            "session_id": session_id,
+            "seq": 0,
+            "speaker": "persona",
+            "text": text,
+            "timestamp_ms": now_ms(),
+        }
+        await self.repo.add("TranscriptTurn", {**turn, **self.owned_fields()})
+        await self.repo.commit()
+        await emitter.agent_response_final(
+            {k: v for k, v in turn.items() if k != "seq"}
+        )
+        return turn
+
     async def mark_ready(self, session_id: str) -> SessionView:
         return await self.transition(session_id, "ready")
 
@@ -393,6 +439,7 @@ class SessionService(BaseService):
         text: str,
         *,
         client_intent_hint: ClientIntentHint | None = None,
+        face_affect: dict[str, Any] | None = None,
         orchestrator: ConversationOrchestrator | None = None,
     ) -> TurnResult:
         """One trainee turn. Delegates the AI work to the orchestrator (§19)."""
@@ -437,6 +484,7 @@ class SessionService(BaseService):
             score_live_enabled=runtime.score_live_enabled,
             voice_enabled=runtime.voice_enabled,
             client_intent_hint=client_intent_hint,
+            face_affect=face_from_command(face_affect),
             disclosure_made_earlier=runtime.disclosure_made,
         )
         result = await conductor.handle_turn(payload)
@@ -522,6 +570,42 @@ class SessionService(BaseService):
             citations=citations,
             evaluation_id=field(row, "evaluation_id"),
             duration_ms=_duration_ms(started, ended),
+        )
+
+    async def get_transcript(self, session_id: str) -> SessionTranscriptResponse:
+        """§25 / §30 transcript in the shape the route declares.
+
+        The route has always declared `SessionTranscriptResponse`; the service
+        only ever had `transcript()`, which returns a bare list, so every call
+        500'd on response validation. Built from `replay()` so the insights and
+        the state timeline come along for free. Rows are filtered to the model's
+        declared fields because `DomainModel` is `extra="forbid"` and the ORM
+        rows carry `seq`, tenant columns and timestamps the contract does not.
+        """
+        payload = await self.replay(session_id)
+
+        def _fit(model: type[Any], row: Mapping[str, Any]) -> Any:
+            allowed = set(model.model_fields)
+            return model.model_validate({k: v for k, v in row.items() if k in allowed})
+
+        # The stored timeline is a list of per-turn *deltas* (only the fields the
+        # director changed), not full states. A timeline of states is rebuilt by
+        # starting from the pinned persona's seeded state and folding each delta
+        # in — which is also what §31 means by a state timeline.
+        fields = set(PersonaSimulationState.model_fields)
+        running = self.initial_persona_state(payload.pinned).model_dump()
+        snapshots: list[PersonaSimulationState] = []
+        for item in payload.state_timeline:
+            if not isinstance(item, Mapping):
+                continue
+            running.update({k: v for k, v in item.items() if k in fields})
+            snapshots.append(PersonaSimulationState.model_validate(running))
+
+        return SessionTranscriptResponse(
+            session_id=session_id,
+            turns=[_fit(TranscriptTurn, t) for t in payload.transcript],
+            insights=[_fit(CoachInsight, i) for i in payload.coach_insights],
+            state_timeline=snapshots,
         )
 
     async def transcript(self, session_id: str) -> list[dict[str, Any]]:
@@ -864,21 +948,73 @@ async def _override_evaluation(self: SessionService, session_id: str, payload: A
 
 
 async def _request_hint(self: SessionService, session_id: str, payload: Any = None) -> Any:
-    """§24 Training-Mode hint. Assessment Mode must never reach this."""
-    view = await self._require(session_id, read_only=True)
-    mode = getattr(view, "mode", None) or getattr(getattr(view, "session", None), "mode", None)
-    if str(mode) == "assessment":
+    """§24 Training-Mode hint, on demand.
+
+    Runs the coach agent with `explicit_request=True` against the live runtime
+    state and publishes the insights on the session stream — the same shape the
+    per-turn coach produces, so the UI needs no second path. Assessment Mode
+    must never reach this (§8.4).
+
+    Previously called `self._build_orchestrator(session_id)` — the method takes
+    `(runtime, emitter)` — so every "給我提示" click 500'd.
+    """
+    from app.agents.coach_agent import CoachRequest, to_domain_insight
+
+    row = await self._require(session_id, read_only=True)
+    if str(field(row, "mode", "training")) == "assessment":
         raise ValidationFailedError("hints are not available in assessment mode")
-    orchestrator = self._build_orchestrator(session_id)
-    return await orchestrator.request_hint(
-        session_id, payload.model_dump() if hasattr(payload, "model_dump") else (payload or {})
+
+    runtime = await self._runtime_state(session_id, row)
+    emitter = await self.emitters.get(
+        session_id, tenant_id=self.tenant_id, workspace_id=self.workspace_id
     )
+    orchestrator = self._build_orchestrator(runtime, emitter)
+    coach = getattr(orchestrator, "coach", None)
+    if coach is None:
+        raise ValidationFailedError("coaching is not available for this session")
+
+    scenario = (runtime.pinned.scenario if runtime.pinned is not None else {}) or {}
+    last_trainee = next(
+        (t for s_, t in reversed(runtime.recent_turns) if s_ == "trainee"), ""
+    )
+    context = getattr(payload, "context", None) if payload is not None else None
+    persona_state = runtime.persona_state
+    state_dict = (
+        persona_state.model_dump()
+        if hasattr(persona_state, "model_dump")
+        else (persona_state if isinstance(persona_state, dict) else {})
+    )
+
+    await emitter.agent_thinking("coach")
+    output = await coach.run(
+        CoachRequest(
+            mode=runtime.mode,
+            locale=runtime.locale,
+            session_id=session_id,
+            timestamp_ms=now_ms(),
+            trainee_text=str(context or last_trainee or ""),
+            persona_text=runtime.last_persona_text,
+            persona_state=state_dict,
+            director_signals=[],
+            learning_objectives=list(scenario.get("learning_objectives") or []),
+            required_talking_points=list(scenario.get("required_talking_points") or []),
+            recent_turns=list(runtime.recent_turns),
+            explicit_request=True,
+        )
+    )
+    insights: list[dict[str, Any]] = []
+    for draft in output.insights:
+        insight = to_domain_insight(draft, session_id=session_id, timestamp_ms=now_ms())
+        await self.repo.add("CoachInsight", {**insight, **self.owned_fields()})
+        insights.append(insight)
+        await emitter.coach_insight(insight)
+    await self.repo.commit()
+    return {"insights": insights, "suppressed": output.suppressed_by_mode}
 
 
 SessionService.create_session = _create_session          # type: ignore[attr-defined]
 SessionService.end_session = SessionService.end          # type: ignore[attr-defined]
 SessionService.get_session = _get_session                 # type: ignore[attr-defined]
-SessionService.get_transcript = SessionService.transcript  # type: ignore[attr-defined]
 async def _list_sessions(
     self: SessionService,
     *,

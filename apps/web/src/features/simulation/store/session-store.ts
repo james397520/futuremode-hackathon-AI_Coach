@@ -29,6 +29,7 @@ import type {
   SessionState,
   SkillKey,
   StreamingEvent,
+  TraineeAffect,
   TranscriptTurn,
 } from '@ai-coach/shared';
 
@@ -78,6 +79,38 @@ export interface VoiceSliceState {
   permission: MicPermission;
   lastError: string | null;
   bargeInCount: number;
+  /**
+   * Which synthesiser speaks. `auto` uses ElevenLabs when the server sends
+   * audio for a turn and falls back to the OS voice when it does not, which is
+   * also what happens with no network. `system` forces the OS voice (free,
+   * offline, on-device); `cloud` forces ElevenLabs and stays silent if the
+   * server sent nothing, so a demo cannot be quietly downgraded.
+   */
+  speechEngine: 'auto' | 'system' | 'cloud';
+  /**
+   * Which recogniser transcribes the trainee. `mac` keeps the audio on this
+   * machine (Apple Speech.framework via our API's helper) and falls back to the
+   * cloud when the helper cannot answer; `cloud` is vendor only; `auto` is the
+   * server's STT_PROVIDER. Only offered when the API reports the helper works.
+   */
+  sttEngine: 'auto' | 'mac' | 'cloud';
+  /**
+   * What the recogniser is doing right now, for the strip under the composer.
+   * Speech that produces no visible reaction is indistinguishable from a broken
+   * microphone, a muted one, an expired session and a rate limit — every one of
+   * which happened. So each utterance reports where it got to.
+   */
+  /** ElevenLabs expressiveness knobs. High stability / zero style = flat, no drift. */
+  ttsTuning: { stability: number; similarity: number; style: number; speed: number };
+  /** OS voice knobs. */
+  systemTuning: { rate: number; pitch: number };
+  sttStatus: {
+    phase: 'idle' | 'transcribing' | 'done' | 'empty' | 'error';
+    provider?: string;
+    ms?: number;
+    detail?: string;
+    at: number;
+  };
 }
 
 export interface SimulationData {
@@ -99,6 +132,8 @@ export interface SimulationData {
   pendingCitations: CitationsByTurn;
 
   personaState: PersonaSimulationState | null;
+  /** Fused trainee affect (text + face). Null until the first turn reports one. */
+  traineeAffect: TraineeAffect | null;
   personaHistory: PersonaStateSnapshot[];
   timeline: TimelineMarker[];
 
@@ -139,6 +174,11 @@ export const initialVoiceState: VoiceSliceState = {
   permission: 'unknown',
   lastError: null,
   bargeInCount: 0,
+  speechEngine: 'auto',
+  sttEngine: 'auto',
+  sttStatus: { phase: 'idle', at: 0 },
+  ttsTuning: { stability: 0.75, similarity: 0.75, style: 0, speed: 1 },
+  systemTuning: { rate: 1, pitch: 1 },
 };
 
 export function createInitialData(sessionId: ID, mode: SessionMode = 'training'): SimulationData {
@@ -158,6 +198,7 @@ export function createInitialData(sessionId: ID, mode: SessionMode = 'training')
     pendingCitations: {},
 
     personaState: null,
+    traineeAffect: null,
     personaHistory: [],
     timeline: [],
 
@@ -433,6 +474,10 @@ export function reduceEvent(state: SimulationData, event: StreamingEvent): Simul
         activeAgent: null,
         turnCount: turns.length,
       };
+    }
+
+    case 'trainee.affect.updated': {
+      return { ...base, traineeAffect: event.affect };
     }
 
     case 'persona.state.updated': {
@@ -797,6 +842,8 @@ export const useSpeechPartial = (): SimulationData['speechPartial'] =>
 
 export const usePersonaState = (): PersonaSimulationState | null =>
   useSessionStore((s) => s.personaState);
+export const useTraineeAffect = (): TraineeAffect | null =>
+  useSessionStore((s) => s.traineeAffect);
 export const usePersonaHistory = (): PersonaStateSnapshot[] => useSessionStore((s) => s.personaHistory);
 export const useTimeline = (): TimelineMarker[] => useSessionStore((s) => s.timeline);
 

@@ -19,8 +19,20 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { endpoints } from '@/lib/api-client';
+
 import type { AudioDeviceOption, MicPermission } from '../lib/types';
 import { useSessionActions, useSessionStore } from '../store/session-store';
+import { localTtsUsable, useSttCapabilities } from './use-stt-capabilities';
+import {
+  cancelSpeech,
+  pickVoice,
+  recognitionCapability,
+  speak,
+  synthesisCapability,
+  type RecognitionCapability,
+  type SpeechGender,
+} from '../lib/system-speech';
 
 const PROCESSOR_NAME = 'ai-coach-level-vad';
 
@@ -103,6 +115,27 @@ export interface UseVoiceSessionOptions {
   /** Fired after this much continuous silence while the floor is the trainee's. */
   onSilenceTimeout?: () => void;
   silenceTimeoutMs?: number;
+  /**
+   * End-of-utterance silence. Speech is only "finished" after this much
+   * continuous quiet; a pause shorter than this is the same sentence. The VAD
+   * itself reacts in tens of milliseconds, which is right for the level meter
+   * and barge-in but wrong for segmentation — at that granularity every
+   * breath became its own message.
+   */
+  utteranceEndSilenceMs?: number;
+  /**
+   * One finished utterance (push-to-talk released, or VAD saw the trainee stop).
+   * The blob is what the microphone heard; the page decides what to do with it
+   * — in practice, send it to the API for transcription. Never leaves the hook
+   * in any other direction.
+   */
+  onUtterance?: (blob: Blob, mime: string, durationMs: number) => void;
+  /** Session id, needed for the HTTP cloud-TTS path. */
+  sessionId?: string;
+  /** Persona identity, so the OS fallback picks a matching system voice. */
+  personaGender?: SpeechGender | null;
+  personaAge?: number | null;
+  locale?: string;
 }
 
 export interface VoiceSessionApi {
@@ -130,6 +163,22 @@ export interface VoiceSessionApi {
   refreshDevices: () => Promise<void>;
   /** Play a TTS clip through the selected output device. */
   playTts: (url: string) => Promise<void>;
+  /**
+   * Speak a persona turn. Prefers server audio (ElevenLabs); falls back to the
+   * on-device system voice when there is none — which is also the no-network
+   * and no-API-key case. `system` means "on this machine": the local TTS model
+   * (services/local-tts) when the API reports it reachable, else the OS voice.
+   * Returns which engine actually spoke.
+   */
+  speakTurn: (
+    text: string,
+    audioUrl?: string | null,
+    engineOverride?: 'auto' | 'system' | 'cloud',
+  ) => Promise<'cloud' | 'local' | 'system' | 'none'>;
+  /** OS voices for this locale, once probed. Empty until the first probe. */
+  systemVoices: SpeechSynthesisVoice[];
+  /** Where the browser's speech *recognition* runs. Disclosed, never assumed. */
+  recognition: RecognitionCapability;
   /** Stop TTS immediately (barge-in, pause, end call). */
   cancelTts: () => void;
   ttsPlaying: boolean;
@@ -137,6 +186,9 @@ export interface VoiceSessionApi {
 
 interface Graph {
   stream: MediaStream;
+  recorder: MediaRecorder | null;
+  recorderChunks: Blob[];
+  recorderMime: string;
   context: AudioContext;
   source: MediaStreamAudioSourceNode;
   analyser: AnalyserNode;
@@ -144,6 +196,15 @@ interface Graph {
   sink: GainNode;
   blobUrl: string | null;
   pollTimer: number | null;
+}
+
+/** Opus-in-WebM everywhere it exists; Safari only records MP4/AAC. */
+function pickRecorderMime(): string {
+  if (typeof MediaRecorder === 'undefined') return '';
+  for (const mime of ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']) {
+    if (MediaRecorder.isTypeSupported(mime)) return mime;
+  }
+  return '';
 }
 
 function resolveAudioContext(): typeof AudioContext | null {
@@ -158,6 +219,11 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     personaSpeaking,
     pushToTalk = false,
     silenceTimeoutMs = 8000,
+    utteranceEndSilenceMs = 900,
+    personaGender = null,
+    personaAge = null,
+    locale = 'zh-TW',
+    sessionId = '',
   } = options;
 
   const actions = useSessionActions();
@@ -175,6 +241,40 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
   const [vadActive, setVadActive] = useState(false);
   const [pushToTalkHeld, setPushToTalkHeldState] = useState(false);
   const [ttsPlaying, setTtsPlaying] = useState(false);
+  // Read by the VAD path: while the customer is audibly speaking, the mic is
+  // hearing the speakers, and whatever it hears must not become a transcript.
+  const ttsPlayingRef = useRef(false);
+  ttsPlayingRef.current = ttsPlaying;
+  const [systemVoices, setSystemVoices] = useState<SpeechSynthesisVoice[]>([]);
+  // Probed once and cached: the engine is a property of the machine, not the turn.
+  const [recognition] = useState<RecognitionCapability>(() => recognitionCapability());
+  const speechEngine = useSessionStore((s) => s.voice.speechEngine);
+  const speechEngineRef = useRef(speechEngine);
+  speechEngineRef.current = speechEngine;
+  const ttsTuning = useSessionStore((s) => s.voice.ttsTuning);
+  const ttsTuningRef = useRef(ttsTuning);
+  ttsTuningRef.current = ttsTuning;
+  const systemTuning = useSessionStore((s) => s.voice.systemTuning);
+  const systemTuningRef = useRef(systemTuning);
+  systemTuningRef.current = systemTuning;
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
+  // Whether the local TTS *model* answered the API's probe. A ref, like the
+  // rest: `speakTurn` is stable across renders and reads the latest value.
+  const capabilities = useSttCapabilities();
+  const localModelRef = useRef(false);
+  localModelRef.current = localTtsUsable(capabilities);
+  const systemVoicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  const personaGenderRef = useRef<SpeechGender | null>(personaGender);
+  personaGenderRef.current = personaGender;
+  const personaAgeRef = useRef<number | null>(personaAge);
+  personaAgeRef.current = personaAge;
+  const localeRef = useRef(locale);
+  localeRef.current = locale;
+  const playTtsRef = useRef<(url: string) => Promise<void>>(async () => undefined);
+  // `finalizeUtterance` is declared after `speakTurn` (it needs the recorder
+  // helpers); a ref avoids both a TDZ error in the deps array and a stale closure.
+  const finalizeRef = useRef<() => void>(() => undefined);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
 
   const graphRef = useRef<Graph | null>(null);
@@ -184,6 +284,10 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
   const levelRef = useRef(0);
   const noiseRef = useRef(0);
   const speakingSinceRef = useRef<number | null>(null);
+  // Pending end-of-utterance timer; non-null means "quiet, but maybe just a pause".
+  const endpointTimerRef = useRef<number | null>(null);
+  const endSilenceRef = useRef(utteranceEndSilenceMs);
+  endSilenceRef.current = utteranceEndSilenceMs;
   const lastVoiceAtRef = useRef<number>(0);
   const silenceTimerRef = useRef<number | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
@@ -198,6 +302,9 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
   // ---- TTS -----------------------------------------------------------------
 
   const cancelTts = useCallback(() => {
+    // Barge-in has to silence whichever engine is talking, not just the one we
+    // would have chosen — the other may still be mid-sentence.
+    cancelSpeech();
     const el = audioElRef.current;
     if (!el) return;
     try {
@@ -208,6 +315,104 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     }
     setTtsPlaying(false);
   }, []);
+
+  /**
+   * Speak one persona turn. `auto` prefers the server's ElevenLabs audio and
+   * falls back to the on-device voice when the server sent none — which is the
+   * same path taken with no API key and with no network. `cloud` deliberately
+   * stays silent rather than downgrading, so a demo cannot quietly lose the
+   * voice it was set up to show.
+   */
+  const speakTurn = useCallback(
+    async (
+      text: string,
+      audioUrl?: string | null,
+      engineOverride?: 'auto' | 'system' | 'cloud',
+    ): Promise<'cloud' | 'local' | 'system' | 'none'> => {
+      const engine = engineOverride ?? speechEngineRef.current;
+      if (mutedRef.current) return 'none';
+      // The floor changes hands: anything the trainee was saying is closed and
+      // sent before the customer starts, so the two never share a recording.
+      finalizeRef.current();
+
+      if (engine === 'system' && localModelRef.current && sessionIdRef.current) {
+        // "Local" with the model server up: the API synthesises on this machine
+        // (Kokoro zh) and returns a clip. Anything going wrong — server mid-
+        // restart, timeout, decode error — drops to the OS voice below, so the
+        // customer still speaks; it just sounds like the system voice.
+        try {
+          const blob = await endpoints.synthesizeSpeech(
+            sessionIdRef.current,
+            text,
+            ttsTuningRef.current,
+            'local',
+          );
+          const url = URL.createObjectURL(blob);
+          window.setTimeout(() => URL.revokeObjectURL(url), 120_000);
+          await playTtsRef.current(url);
+          return 'local';
+        } catch {
+          // Fall through to speechSynthesis.
+        }
+      }
+
+      if (engine !== 'system') {
+        // Cloud voice over HTTP: a server-provided clip if the turn carried one,
+        // otherwise synthesise this line now with the trainee's tuning.
+        try {
+          let url = audioUrl ?? null;
+          if (!url && sessionIdRef.current) {
+            const blob = await endpoints.synthesizeSpeech(
+              sessionIdRef.current,
+              text,
+              ttsTuningRef.current,
+            );
+            url = URL.createObjectURL(blob);
+            // Release the object URL once played; the element owns it until then.
+            window.setTimeout(() => URL.revokeObjectURL(url as string), 120_000);
+          }
+          if (url) {
+            await playTtsRef.current(url);
+            return 'cloud';
+          }
+        } catch {
+          // Fall through: no network, no key, or a rejected clip — exactly when
+          // the on-device fallback earns itself (unless the user pinned cloud).
+        }
+        if (engine === 'cloud') return 'none';
+      }
+
+      const voice = pickVoice(systemVoicesRef.current, personaGenderRef.current, personaAgeRef.current);
+      const started = speak(text, {
+        voice,
+        lang: localeRef.current,
+        rate: systemTuningRef.current.rate,
+        pitch: systemTuningRef.current.pitch,
+        onEnd: () => setTtsPlaying(false),
+        onError: () => setTtsPlaying(false),
+      });
+      if (started) setTtsPlaying(true);
+      return started ? 'system' : 'none';
+    },
+    [],
+  );
+
+  // Probe the OS voices once the mic side is enabled; the list is per-machine.
+  // Deliberately NOT gated on `enabled`. That flag means "the microphone is
+  // wanted", and speaking has nothing to do with listening: gating the probe on
+  // it left the engine picker showing "no system voices" — and the system
+  // option disabled — on any page where the trainee had not started their mic.
+  useEffect(() => {
+    let cancelled = false;
+    void synthesisCapability(locale).then((cap) => {
+      if (cancelled) return;
+      setSystemVoices(cap.voices);
+      systemVoicesRef.current = cap.voices;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
 
   const playTts = useCallback(
     async (url: string) => {
@@ -240,6 +445,8 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     },
     [storedOutputDevice],
   );
+
+  playTtsRef.current = playTts;
 
   // ---- Devices -------------------------------------------------------------
 
@@ -278,7 +485,14 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       setAnalyser(null);
       return;
     }
+    if (endpointTimerRef.current !== null) {
+      window.clearTimeout(endpointTimerRef.current);
+      endpointTimerRef.current = null;
+    }
+    speakingSinceRef.current = null;
     try {
+      if (graph.recorder && graph.recorder.state !== 'inactive') graph.recorder.stop();
+      graph.recorder = null;
       if (graph.pollTimer) window.clearInterval(graph.pollTimer);
       graph.worklet?.port.close();
       graph.worklet?.disconnect();
@@ -298,6 +512,65 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     actions.setVoice({ vadActive: false });
   }, [actions]);
 
+  // ---- Utterance capture -----------------------------------------------------
+  // Recording follows the *floor*, not the audio graph: it starts when the
+  // trainee takes the floor (key down, or VAD onset) and stops when they give it
+  // up. Between those two points the mic is already open for VAD, so this adds
+  // no permission prompt and no second capture.
+  const startRecording = useCallback(() => {
+    const graph = graphRef.current;
+    if (!graph || graph.recorder || typeof MediaRecorder === 'undefined') return;
+    try {
+      const recorder = graph.recorderMime
+        ? new MediaRecorder(graph.stream, { mimeType: graph.recorderMime })
+        : new MediaRecorder(graph.stream);
+      graph.recorderChunks = [];
+      recorder.ondataavailable = (event: BlobEvent) => {
+        if (event.data && event.data.size > 0) graph.recorderChunks.push(event.data);
+      };
+      recorder.start(250);
+      graph.recorder = recorder;
+    } catch {
+      graph.recorder = null;
+    }
+  }, []);
+
+  const stopRecording = useCallback((durationMs: number) => {
+    const graph = graphRef.current;
+    const recorder = graph?.recorder;
+    if (!graph || !recorder) return;
+    graph.recorder = null;
+    recorder.onstop = () => {
+      const mime = recorder.mimeType || graph.recorderMime || 'audio/webm';
+      const blob = new Blob(graph.recorderChunks, { type: mime });
+      graph.recorderChunks = [];
+      // Under ~300ms is a key tap, not a sentence; sending it wastes a round trip
+      // and produces an empty transcript the UI then has to explain.
+      if (blob.size > 0 && durationMs >= 300) {
+        callbacks.current.onUtterance?.(blob, mime, durationMs);
+      }
+    };
+    try {
+      recorder.stop();
+    } catch {
+      // Already inactive; nothing to flush.
+    }
+  }, []);
+
+  /** Close the current utterance now: stop capture, hand the blob over. */
+  const finalizeUtterance = useCallback(() => {
+    if (endpointTimerRef.current !== null) {
+      window.clearTimeout(endpointTimerRef.current);
+      endpointTimerRef.current = null;
+    }
+    if (speakingSinceRef.current === null) return;
+    const duration = Date.now() - speakingSinceRef.current;
+    speakingSinceRef.current = null;
+    stopRecording(duration);
+    callbacks.current.onSpeechEnd?.(duration);
+  }, [stopRecording]);
+  finalizeRef.current = finalizeUtterance;
+
   // ---- VAD / barge-in ------------------------------------------------------
 
   const handleVad = useCallback(
@@ -308,22 +581,45 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
 
       setVadActive((prev) => (prev === effective ? prev : effective));
 
-      if (effective && speakingSinceRef.current === null) {
-        speakingSinceRef.current = Date.now();
-        callbacks.current.onSpeechStart?.();
-        // Barge-in: the trainee took the floor while the persona was talking.
-        if (personaSpeakingRef.current) {
-          cancelTts();
-          actions.registerBargeIn();
-          callbacks.current.onBargeIn?.();
+      if (effective) {
+        // STT is off while TTS is audible. The microphone is hearing the
+        // speakers; recording that would transcribe the customer's own line
+        // back as the trainee's. Voice energy here still counts as barge-in —
+        // it stops the TTS at once — and capture begins on the next VAD tick,
+        // when `ttsPlayingRef` has already gone false, so only the first few
+        // tens of milliseconds of the interruption are lost.
+        if (ttsPlayingRef.current) {
+          if (personaSpeakingRef.current || ttsPlayingRef.current) {
+            cancelTts();
+            actions.registerBargeIn();
+            callbacks.current.onBargeIn?.();
+          }
+          return;
         }
-      } else if (!effective && speakingSinceRef.current !== null) {
-        const duration = Date.now() - speakingSinceRef.current;
-        speakingSinceRef.current = null;
-        callbacks.current.onSpeechEnd?.(duration);
+        // Voice resumed inside the pause window: same utterance, keep recording.
+        if (endpointTimerRef.current !== null) {
+          window.clearTimeout(endpointTimerRef.current);
+          endpointTimerRef.current = null;
+        }
+        if (speakingSinceRef.current === null) {
+          speakingSinceRef.current = Date.now();
+          startRecording();
+          callbacks.current.onSpeechStart?.();
+          // Barge-in on text-only persona turns (no audio playing).
+          if (personaSpeakingRef.current) {
+            actions.registerBargeIn();
+            callbacks.current.onBargeIn?.();
+          }
+        }
+      } else if (speakingSinceRef.current !== null && endpointTimerRef.current === null) {
+        // Quiet. Do not end the utterance yet — wait out a natural pause.
+        endpointTimerRef.current = window.setTimeout(() => {
+          endpointTimerRef.current = null;
+          finalizeUtterance();
+        }, endSilenceRef.current);
       }
     },
-    [actions, cancelTts],
+    [actions, cancelTts, finalizeUtterance, startRecording],
   );
 
   // ---- Start ---------------------------------------------------------------
@@ -448,6 +744,9 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
 
       graphRef.current = {
         stream,
+        recorder: null,
+        recorderChunks: [],
+        recorderMime: pickRecorderMime(),
         context,
         source,
         analyser: analyserNode,
@@ -578,9 +877,12 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
         for (const track of graph.stream.getAudioTracks()) track.enabled = !value;
         graph.worklet?.port.postMessage({ type: 'mute', value });
       }
-      if (value) handleVad(false);
+      if (value) {
+        finalizeUtterance();
+        handleVad(false);
+      }
     },
-    [actions, handleVad],
+    [actions, finalizeUtterance, handleVad],
   );
 
   const toggleMute = useCallback(() => setMuted(!mutedRef.current), [setMuted]);
@@ -590,9 +892,17 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       heldRef.current = pressed;
       setPushToTalkHeldState(pressed);
       actions.setVoice({ pushToTalkHeld: pressed });
-      if (!pressed) handleVad(false);
+      if (pressed) {
+        // Start on key-down so the first syllable is not lost waiting for VAD.
+        if (speakingSinceRef.current === null) speakingSinceRef.current = Date.now();
+        startRecording();
+      } else {
+        // Releasing the key *is* the end of the sentence; no pause window here.
+        finalizeUtterance();
+        handleVad(false);
+      }
     },
-    [actions, handleVad],
+    [actions, finalizeUtterance, handleVad, startRecording],
   );
 
   const selectInputDevice = useCallback(
@@ -654,6 +964,9 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       selectOutputDevice,
       refreshDevices,
       playTts,
+      speakTurn,
+      systemVoices,
+      recognition,
       cancelTts,
       ttsPlaying,
     }),
@@ -668,6 +981,7 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       permission,
       playTts,
       pushToTalkHeld,
+      recognition,
       refreshDevices,
       selectInputDevice,
       selectOutputDevice,
@@ -678,7 +992,9 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
       stop,
       storedInputDevice,
       storedMuted,
+      speakTurn,
       storedOutputDevice,
+      systemVoices,
       toggleMute,
       ttsPlaying,
       vadActive,

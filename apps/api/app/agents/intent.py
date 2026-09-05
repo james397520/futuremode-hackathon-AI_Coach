@@ -210,6 +210,14 @@ _AMBIGUOUS_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
         r"^(有|會)差(很多|多少)嗎",
         r"^值得嗎",
         r"^(is|isit)(this)?worthit",
+        # Referent-free evaluations a salesperson actually says mid-pitch. Each
+        # names nothing — no product, no number, no term — so the customer has to
+        # ask which part is meant (§8.1) rather than guess.
+        r"^(那)?(這個|那個|這樣|那樣)(怎麼樣|怎樣|如何|好嗎|ok嗎|可以嗎)[?？]?$",
+        r"^(那)?(這樣|那樣)(呢|咧)[?？]?$",
+        r"^(那)?(要|會|大概)(多少|幾)(錢)?[?？]?$",
+        r"^(那)?(有|會)差嗎[?？]?$",
+        r"^(那)?這樣(算|夠)(嗎|不夠)[?？]?$",
     )
 )
 

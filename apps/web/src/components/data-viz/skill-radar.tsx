@@ -1,5 +1,9 @@
 import { titleize } from '@/lib/utils';
 
+/** Axis-label type size, and how far past the outer ring the labels sit. */
+const LABEL_FONT = 9.5;
+const LABEL_RADIUS = 1.16;
+
 export interface RadarSeries {
   id: string;
   label: string;
@@ -31,6 +35,22 @@ export function SkillRadar({
   const radius = center - 46;
   const rings = [0.25, 0.5, 0.75, 1];
 
+  // Axis labels are drawn outside the last ring, so a long one ("Communication",
+  // 74 px at 9.5 px) runs past a square viewBox and is clipped by the SVG
+  // viewport — the word simply ends mid-letter. Widen the box by what the
+  // longest label actually needs instead of shrinking the chart to fit its
+  // longest word: the geometry is unchanged, only the canvas around it grows.
+  const labelText = (axis: string) => titleize(axis).split(' ')[0] ?? '';
+  // No text measurement in SVG before paint; CJK is full-width, Latin ~0.58 em.
+  const labelWidth = (text: string) =>
+    [...text].reduce(
+      (w, ch) => w + (/[\u2e80-\u9fff\uf900-\ufaff\uff00-\uffef]/.test(ch) ? LABEL_FONT : LABEL_FONT * 0.58),
+      0,
+    );
+  const widestLabel = Math.max(0, ...axes.map((axis) => labelWidth(labelText(axis))));
+  const padX = Math.max(0, Math.ceil(center + radius * LABEL_RADIUS - size + widestLabel) + 6);
+  const boxWidth = size + padX * 2;
+
   const pointAt = (index: number, ratio: number) => {
     const angle = (Math.PI * 2 * index) / count - Math.PI / 2;
     return {
@@ -51,9 +71,9 @@ export function SkillRadar({
   return (
     <figure className="m-0 flex flex-col items-center gap-3">
       <svg
-        viewBox={`0 0 ${size} ${size}`}
+        viewBox={`${-padX} 0 ${boxWidth} ${size}`}
         width="100%"
-        style={{ maxWidth: size }}
+        style={{ maxWidth: boxWidth }}
         role="img"
         aria-label={`Skill radar across ${count} dimensions for ${series.map((s) => s.label).join(' and ')}`}
       >
@@ -73,7 +93,7 @@ export function SkillRadar({
 
         {axes.map((axis, index) => {
           const { x, y } = pointAt(index, 1);
-          const labelPoint = pointAt(index, 1.16);
+          const labelPoint = pointAt(index, LABEL_RADIUS);
           return (
             <g key={axis}>
               <line x1={center} y1={center} x2={x} y2={y} className="chart-grid-line" />
@@ -82,7 +102,7 @@ export function SkillRadar({
                 y={labelPoint.y}
                 textAnchor={labelPoint.x > center + 4 ? 'start' : labelPoint.x < center - 4 ? 'end' : 'middle'}
                 dominantBaseline="middle"
-                style={{ fill: 'var(--text-tertiary)', fontSize: 9.5, letterSpacing: '0.02em' }}
+                style={{ fill: 'var(--text-tertiary)', fontSize: LABEL_FONT, letterSpacing: '0.02em' }}
               >
                 {titleize(axis).split(' ')[0]}
               </text>

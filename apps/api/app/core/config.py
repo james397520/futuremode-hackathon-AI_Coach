@@ -24,7 +24,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 AppEnv = Literal["local", "test", "staging", "production"]
 WebGpuMode = Literal["auto", "on", "off"]
 LlmProvider = Literal["openai", "azure_openai", "aup", "minimax", "none"]
-TtsProvider = Literal["elevenlabs", "openai", "none"]
+TtsProvider = Literal["elevenlabs", "openai", "local", "none"]
+SttProvider = Literal["mac", "elevenlabs", "openai", "none"]
 VectorBackend = Literal["qdrant", "memory", "chroma", "faiss"]
 
 #: Placeholder shipped in ``.env.example``; must never reach a deployed environment.
@@ -86,6 +87,30 @@ class Settings(BaseSettings):
     )
     llm_provider: LlmProvider = Field(default="openai", validation_alias="LLM_PROVIDER")
     tts_provider: TtsProvider = Field(default="elevenlabs", validation_alias="TTS_PROVIDER")
+    # Scribe needs no OpenAI dependency, so ElevenLabs covers both directions by default.
+    stt_provider: SttProvider = Field(default="elevenlabs", validation_alias="STT_PROVIDER")
+    # macOS-native recogniser (tools/mac-stt). Used when STT_PROVIDER=mac, or as
+    # the on-device choice a client may request per utterance; falls back to the
+    # cloud provider when the helper is missing or unauthorised.
+    mac_stt_bin: str = Field(default="tools/mac-stt/bin/mac-stt", validation_alias="MAC_STT_BIN")
+    # The helper runs as its own launchd agent (TCC attributes the permission to
+    # it, not to whoever spawned it) and listens on loopback. The API talks to it
+    # here; a per-call subprocess is only the fallback when the daemon is down.
+    mac_stt_port: int = Field(default=8790, validation_alias="MAC_STT_PORT")
+    # Local TTS model server (services/local-tts: Kokoro-82M-v1.1-zh on onnxruntime,
+    # its own launchd agent on loopback). Used when TTS_PROVIDER=local, or when a
+    # client asks for `engine=local` per line; falls back to the cloud provider when
+    # the port is closed, so a missing model never silences the persona.
+    local_tts_url: str = Field(default="http://127.0.0.1:8795", validation_alias="LOCAL_TTS_URL")
+    # Measured on this account, zh-TW, 24-char sentence, median of 3, streaming:
+    #   eleven_multilingual_v2  TTFB ~1040ms  total ~1100ms
+    #   eleven_flash_v2_5       TTFB  ~215ms  total  ~310ms
+    #   eleven_turbo_v2_5       TTFB  ~290ms  total  ~390ms
+    # A live customer that takes a second to start talking feels broken; flash
+    # is the default. Set ELEVENLABS_TTS_MODEL=eleven_multilingual_v2 for quality.
+    elevenlabs_tts_model: str = Field(
+        default="eleven_flash_v2_5", validation_alias="ELEVENLABS_TTS_MODEL"
+    )
     llm_model: str = Field(default="gpt-4o", validation_alias="LLM_MODEL")
     minimax_base_url: str = Field(
         default="https://api.minimax.io/anthropic/v1", validation_alias="MINIMAX_BASE_URL"
@@ -179,7 +204,7 @@ class Settings(BaseSettings):
 
     @property
     def elevenlabs_enabled(self) -> bool:
-        return self.tts_provider == "elevenlabs"
+        return self.tts_provider == "elevenlabs" or self.stt_provider == "elevenlabs"
 
     @property
     def minimax_enabled(self) -> bool:

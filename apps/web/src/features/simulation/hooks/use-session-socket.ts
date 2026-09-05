@@ -141,6 +141,10 @@ export function useSessionSocket(options: UseSessionSocketOptions): SessionSocke
           cb.onRuntimeFallback?.(event.to, event.reason);
           break;
 
+        // Fused trainee affect — the store holds it; nothing side-effecting here.
+        case 'trainee.affect.updated':
+          break;
+
         case 'connection.reconnecting':
           setConnected(false);
           break;
