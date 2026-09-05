@@ -82,7 +82,7 @@ function ActionButton({
     <button
       type="button"
       onClick={onClick}
-      className="sim-focusable sim-lift flex items-center gap-2 rounded-input border px-4 py-2.5 text-body text-text-secondary"
+      className="sim-focusable sim-lift flex items-center gap-2 rounded-input px-4 py-2.5 text-body text-text-secondary"
       style={insetSurface('neutral', 9)}
     >
       {icon}

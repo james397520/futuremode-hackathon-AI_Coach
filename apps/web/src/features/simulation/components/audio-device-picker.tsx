@@ -94,7 +94,7 @@ export function AudioDevicePicker({
             <button
               type="button"
               onClick={onRequestPermission}
-              className="sim-focusable mt-2 block rounded-pill border px-3 py-1.5 text-meta"
+              className="sim-focusable mt-2 block rounded-pill px-3 py-1.5 text-meta"
               style={insetSurface('blue', 14)}
             >
               <span style={{ color: toneText('blue') }}>Allow microphone</span>
@@ -108,7 +108,7 @@ export function AudioDevicePicker({
             <button
               type="button"
               onClick={onRefresh}
-              className="sim-focusable flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-tiny text-text-secondary"
+              className="sim-focusable flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-tiny text-text-secondary"
               style={insetSurface('neutral', 8)}
             >
               <RestartIcon size={12} />
@@ -162,7 +162,7 @@ export function AudioDevicePicker({
           <button
             type="button"
             onClick={onClose}
-            className="sim-focusable rounded-input border px-4 py-2 text-body"
+            className="sim-focusable rounded-input px-4 py-2 text-body"
             style={insetSurface('neutral', 10)}
           >
             Done

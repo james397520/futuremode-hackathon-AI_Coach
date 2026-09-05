@@ -111,7 +111,7 @@ export function StateTimeline({
             <div key={emotion} className="flex shrink-0 items-center gap-1.5">
               <span
                 className={cn(
-                  'rounded-pill border px-2.5 py-1 text-tiny transition-all duration-300',
+                  'rounded-pill px-2.5 py-1 text-tiny transition-all duration-300',
                   isCurrent && 'font-semibold',
                 )}
                 style={
@@ -142,7 +142,7 @@ export function StateTimeline({
       {/* Marker track ------------------------------------------------------ */}
       <div className="mt-5">
         <div
-          className="relative h-8 rounded-pill border"
+          className="relative h-8 rounded-pill"
           style={insetSurface('neutral', 7)}
           role="group"
           aria-label="Session markers"
@@ -162,7 +162,7 @@ export function StateTimeline({
                 }`}
               >
                 <span
-                  className="sim-marker-pop absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-pill border"
+                  className="sim-marker-pop absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-pill"
                   style={{
                     left: `${pct}%`,
                     backgroundColor: toneText(tone),

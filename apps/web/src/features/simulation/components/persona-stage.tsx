@@ -145,7 +145,7 @@ export function PersonaStage({
           {/* Bottom status — a chip, never a video-conference control bar (§20.1). */}
           <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4">
             <span
-              className="flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-tiny backdrop-blur"
+              className="flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-tiny backdrop-blur"
               style={{
                 backgroundColor: 'color-mix(in srgb, var(--glass-card-strong) 88%, transparent)',
                 borderColor: tint('neutral', 22),

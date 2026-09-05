@@ -155,7 +155,7 @@ export function Composer({
             onClick={onToggleMic}
             aria-pressed={micLive && !muted}
             aria-label={micLive && !muted ? '靜音麥克風' : '啟用麥克風'}
-            className="sim-focusable sim-lift flex h-10 w-10 shrink-0 items-center justify-center rounded-input border"
+            className="sim-focusable sim-lift flex h-10 w-10 shrink-0 items-center justify-center rounded-input"
             style={insetSurface(vadActive ? 'mint' : micLive && !muted ? 'blue' : 'neutral', 14)}
           >
             {micLive && !muted ? (
@@ -172,7 +172,7 @@ export function Composer({
             onClick={onRequestHint}
             disabled={blocked}
           aria-label="向教練詢問提示"
-            className="sim-focusable sim-lift flex h-10 w-10 shrink-0 items-center justify-center rounded-input border disabled:opacity-50"
+            className="sim-focusable sim-lift flex h-10 w-10 shrink-0 items-center justify-center rounded-input disabled:opacity-50"
             style={insetSurface('violet', 13)}
           >
             <LightbulbIcon size={17} style={{ color: toneText('violet') }} />

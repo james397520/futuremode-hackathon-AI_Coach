@@ -27,7 +27,7 @@ export function TonePill({ tone = 'blue', children, icon, fill = 16, className, 
     <span
       title={title}
       className={cn(
-        'inline-flex shrink-0 items-center gap-1.5 rounded-pill border px-2.5 py-1 text-tiny',
+        'inline-flex shrink-0 items-center gap-1.5 rounded-pill px-2.5 py-1 text-tiny',
         className,
       )}
       style={pillSurface(tone, fill)}

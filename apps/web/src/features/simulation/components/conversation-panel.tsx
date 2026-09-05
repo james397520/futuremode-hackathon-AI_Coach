@@ -111,7 +111,7 @@ function TranscriptHeader({
 
       {language ? (
         <span
-          className="rounded-pill border px-2 py-0.5 text-tiny text-text-tertiary"
+          className="rounded-pill px-2 py-0.5 text-tiny text-text-tertiary"
           style={insetSurface('neutral', 8)}
         >
           {language}

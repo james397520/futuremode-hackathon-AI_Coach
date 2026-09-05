@@ -132,7 +132,7 @@ export function CoachCard({
           <button
             type="button"
             onClick={onAskCoach}
-            className="sim-focusable sim-lift flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-meta"
+            className="sim-focusable sim-lift flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-meta"
             style={insetSurface('violet', 13)}
           >
             <LightbulbIcon size={13} style={{ color: toneText('violet') }} />

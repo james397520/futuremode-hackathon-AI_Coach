@@ -73,7 +73,7 @@ function PillButton({ tone, icon, label, onClick, disabled, pressed, fill = 15 }
       disabled={disabled}
       aria-pressed={pressed}
       className={cn(
-        'sim-focusable sim-lift inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-meta',
+        'sim-focusable sim-lift inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-meta',
         'disabled:cursor-not-allowed disabled:opacity-45',
       )}
       style={insetSurface(tone, pressed ? fill + 8 : fill)}

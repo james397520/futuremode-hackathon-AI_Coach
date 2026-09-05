@@ -77,7 +77,7 @@ function ControlButton({
       aria-pressed={pressed}
       aria-label={label}
       title={label}
-      className="sim-focusable sim-lift flex h-11 w-11 items-center justify-center rounded-input border disabled:cursor-not-allowed disabled:opacity-45"
+      className="sim-focusable sim-lift flex h-11 w-11 items-center justify-center rounded-input disabled:cursor-not-allowed disabled:opacity-45"
       style={insetSurface(tone, pressed ? fill + 10 : fill)}
     >
       <span style={{ color: toneText(tone) }}>{icon}</span>
@@ -117,7 +117,7 @@ export function VoiceControls({
     >
       {/* Voice is optional. Text remains the primary way to reply. */}
       <span
-        className="flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-tiny"
+        className="flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-tiny"
         style={insetSurface(tone, 14)}
         role="status"
       >
@@ -163,7 +163,7 @@ export function VoiceControls({
       />
 
       <details className="relative ml-auto">
-        <summary className="sim-focusable cursor-pointer list-none rounded-input border px-3 py-2 text-meta text-text-secondary" style={insetSurface('neutral', 9)}>
+        <summary className="sim-focusable cursor-pointer list-none rounded-input px-3 py-2 text-meta text-text-secondary" style={insetSurface('neutral', 9)}>
           更多設定
         </summary>
         <div className="glass-strong absolute bottom-11 right-0 z-20 grid min-w-48 gap-1 rounded-card border p-2 shadow-floating" style={{ borderColor: tint('neutral', 18) }}>

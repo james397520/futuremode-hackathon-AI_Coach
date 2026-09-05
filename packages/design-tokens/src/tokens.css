@@ -45,14 +45,20 @@
   --shadow-shell: 0 30px 70px rgba(53, 78, 129, 0.1);
   --shadow-inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 
-  /* ---- Radius (§9) — 任何主要資訊卡禁止直角 ---- */
-  --radius-shell: 30px;
-  --radius-panel: 24px;
-  --radius-card: 22px;
-  --radius-card-sm: 20px;
-  --radius-input: 16px;
-  --radius-button: 12px;
-  --radius-avatar: 14px;
+  /* ---- Radius ----
+   * Deliberately tighter than spec §9 (30/24/22px) and than the §99 "no 8px
+   * radius" rule: the product owner asked for a 4-8px scale. Kept as one
+   * coherent ramp rather than only shrinking cards, because an 8px card inside
+   * a 30px shell reads as a mistake.
+   * Pills stay fully round — they are pills, not cards.
+   */
+  --radius-shell: 8px;
+  --radius-panel: 8px;
+  --radius-card: 8px;
+  --radius-card-sm: 6px;
+  --radius-input: 6px;
+  --radius-button: 6px;
+  --radius-avatar: 4px;
   --radius-pill: 999px;
 
   /* ---- Spacing (§8) 8px base ---- */

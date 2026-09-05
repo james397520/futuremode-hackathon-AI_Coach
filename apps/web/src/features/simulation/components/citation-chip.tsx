@@ -34,7 +34,7 @@ export function CitationChip({ citation, defaultOpen = false, className }: Citat
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="sim-focusable inline-flex max-w-full items-center gap-1.5 rounded-pill border px-2.5 py-1 text-tiny transition-colors"
+        className="sim-focusable inline-flex max-w-full items-center gap-1.5 rounded-pill px-2.5 py-1 text-tiny transition-colors"
         style={insetSurface('cyan', open ? 16 : 10)}
       >
         <BookIcon size={12} style={{ color: toneText('cyan') }} />

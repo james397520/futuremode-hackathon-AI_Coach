@@ -57,7 +57,7 @@ export function TranscriptDialog({
               setCopied(true);
               window.setTimeout(() => setCopied(false), 1600);
             }}
-            className="sim-focusable flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-meta"
+            className="sim-focusable flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-meta"
             style={insetSurface('blue', 12)}
           >
             <TranscriptIcon size={13} style={{ color: toneText('blue') }} />
@@ -66,7 +66,7 @@ export function TranscriptDialog({
           <button
             type="button"
             onClick={onDownload}
-            className="sim-focusable flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-meta"
+            className="sim-focusable flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-meta"
             style={insetSurface('neutral', 10)}
           >
             <DownloadIcon size={13} />
@@ -164,14 +164,14 @@ export function ReportIssueDialog({ open, onClose, onSubmit }: ReportIssueDialog
           maxLength={1000}
           placeholder="What happened? (optional)"
           aria-label="Issue detail"
-          className="sim-scroll w-full resize-none rounded-input border border-border-soft bg-transparent p-3 text-body text-text-primary placeholder:text-text-tertiary focus:outline-none"
+          className="sim-scroll w-full resize-none rounded-input border-border-soft bg-transparent p-3 text-body text-text-primary placeholder:text-text-tertiary focus:outline-none"
         />
 
         <div className="flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="sim-focusable rounded-input border px-4 py-2 text-body text-text-secondary"
+            className="sim-focusable rounded-input px-4 py-2 text-body text-text-secondary"
             style={insetSurface('neutral', 9)}
           >
             Cancel

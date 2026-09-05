@@ -93,7 +93,7 @@ function AudioReplay({ url, label }: { url: string; label: string }) {
       type="button"
       onClick={toggle}
       aria-label={playing ? `Pause ${label}` : `Replay ${label}`}
-      className="sim-focusable inline-flex h-6 items-center gap-1 rounded-pill border px-2 text-tiny text-text-tertiary transition-colors hover:text-text-secondary"
+      className="sim-focusable inline-flex h-6 items-center gap-1 rounded-pill px-2 text-tiny text-text-tertiary transition-colors hover:text-text-secondary"
       style={insetSurface('neutral', 8)}
     >
       {playing ? <PauseIcon size={11} /> : <PlayIcon size={11} />}

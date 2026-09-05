@@ -256,7 +256,7 @@ export function TranscriptFeed({
         <button
           type="button"
           onClick={() => scrollToBottom()}
-          className="sim-focusable absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-pill border px-3 py-1.5 text-tiny shadow-soft backdrop-blur"
+          className="sim-focusable absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-pill px-3 py-1.5 text-tiny shadow-soft backdrop-blur"
           style={{
             backgroundColor: 'var(--glass-card-strong)',
             borderColor: tint('neutral', 24),

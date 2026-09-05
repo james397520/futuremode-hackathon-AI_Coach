@@ -67,7 +67,7 @@ function HeaderIconButton({
         onClick={onClick}
         disabled={disabled}
         aria-label={label}
-        className="sim-focusable sim-lift flex h-9 w-9 items-center justify-center rounded-input border disabled:cursor-not-allowed disabled:opacity-45"
+        className="sim-focusable sim-lift flex h-9 w-9 items-center justify-center rounded-input disabled:cursor-not-allowed disabled:opacity-45"
         style={insetSurface(tone === 'danger' ? 'danger' : 'neutral', tone === 'danger' ? 12 : 9)}
       >
         <span style={{ color: toneText(tone === 'danger' ? 'danger' : 'neutral') }}>{children}</span>
@@ -151,7 +151,7 @@ export function SessionHeader({
         )}
 
         <span
-          className="flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-tiny tabular-nums"
+          className="flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-tiny tabular-nums"
           style={insetSurface(overtime ? 'warning' : 'neutral', 9)}
           title={remainingMs === null ? 'Elapsed time' : 'Elapsed / remaining'}
         >
@@ -165,7 +165,7 @@ export function SessionHeader({
         </span>
 
         <span
-          className="rounded-pill border px-2.5 py-1 text-tiny tabular-nums text-text-secondary"
+          className="rounded-pill px-2.5 py-1 text-tiny tabular-nums text-text-secondary"
           style={insetSurface('neutral', 9)}
           title="Turns exchanged"
         >
@@ -181,7 +181,7 @@ export function SessionHeader({
           }
         >
           <span
-            className="flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-tiny"
+            className="flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-tiny"
             style={insetSurface(badge.tone, 13)}
           >
             <RadioIcon size={12} style={{ color: toneText(badge.tone) }} />
@@ -191,7 +191,7 @@ export function SessionHeader({
 
         {!online ? (
           <span
-            className="flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-tiny"
+            className="flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-tiny"
             style={insetSurface('warning', 13)}
             role="status"
           >
