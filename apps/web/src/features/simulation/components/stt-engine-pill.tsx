@@ -29,6 +29,42 @@ const PROVIDER_LABEL: Record<string, string> = {
   none: '未設定',
 };
 
+/** Status only — what the last utterance did. Used under the composer. */
+export function SttStatus() {
+  const status = useSessionStore((s) => s.voice.sttStatus);
+  const view = describeStatus(status);
+  if (!view.text) return null;
+  return (
+    <span className="flex items-center gap-1.5" style={{ color: toneText(view.tone) }} role="status">
+      <LiveDot tone={view.tone === 'neutral' ? 'neutral' : view.tone} pulsing={status.phase === 'transcribing'} />
+      {view.text}
+    </span>
+  );
+}
+
+type StatusTone = 'neutral' | 'mint' | 'warning' | 'danger' | 'blue';
+
+function describeStatus(status: { phase: string; provider?: string; ms?: number; detail?: string }): {
+  text: string;
+  tone: StatusTone;
+} {
+  switch (status.phase) {
+    case 'transcribing':
+      return { text: '正在轉寫…', tone: 'blue' };
+    case 'done':
+      return {
+        text: `已送出 · ${PROVIDER_LABEL[status.provider ?? ''] ?? status.provider} ${status.ms ?? 0}ms`,
+        tone: 'mint',
+      };
+    case 'empty':
+      return { text: '沒有聽到內容', tone: 'warning' };
+    case 'error':
+      return { text: `轉寫失敗${status.detail ? `：${status.detail}` : ''}`, tone: 'danger' };
+    default:
+      return { text: '', tone: 'neutral' };
+  }
+}
+
 export function SttEnginePill() {
   const engine = useSessionStore((s) => s.voice.sttEngine);
   const status = useSessionStore((s) => s.voice.sttStatus);
