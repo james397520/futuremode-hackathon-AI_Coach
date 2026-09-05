@@ -53,4 +53,10 @@ export type ClientCommand =
   | { type: 'coach.request_hint' }
   | { type: 'voice.push_to_talk'; pressed: boolean }
   | { type: 'client.intent_hint'; intent: string; confidence: number }
+  /**
+   * 學員臉部情緒（§webcam channel）。只送標籤與信心值，**永遠不送影像**：
+   * 辨識在瀏覽器端完成，畫面不離開裝置。與 intent_hint 一樣是 advisory，
+   * 後端只當提示，不當事實。
+   */
+  | { type: 'trainee.affect'; label: string; confidence: number; at_ms: number }
   | { type: 'ack'; seq: number };

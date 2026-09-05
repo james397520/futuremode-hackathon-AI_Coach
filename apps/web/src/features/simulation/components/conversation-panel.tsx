@@ -59,6 +59,9 @@ export interface ConversationPanelProps {
 
   voiceEnabled: boolean;
   micLive: boolean;
+  /** Webcam affect channel — omit `onToggleCamera` to hide the control entirely. */
+  cameraLive?: boolean;
+  onToggleCamera?: (() => void) | undefined;
   muted: boolean;
   vadActive: boolean;
   captionsEnabled: boolean;
@@ -242,6 +245,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
     maxTurns,
     voiceEnabled,
     micLive,
+  cameraLive = false,
+  onToggleCamera,
     muted,
     vadActive,
     captionsEnabled,
@@ -326,6 +331,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
           micLive={micLive}
           muted={muted}
           onToggleMic={onToggleMic}
+          cameraLive={cameraLive}
+          onToggleCamera={onToggleCamera}
           vadActive={vadActive}
           turnCount={turnCount}
           maxTurns={maxTurns}

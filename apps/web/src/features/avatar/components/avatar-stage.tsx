@@ -94,7 +94,10 @@ function statusAnnouncement(
   personaName: string,
   vrmOnScreen: boolean,
 ): string {
-  if (vrmOnScreen && (status === 'unavailable' || status === 'unknown')) {
+  // Announce what is on screen. The VRM outranks frames, so it is checked
+  // first: gating it on an absent runtime made the page announce "live video"
+  // over a locally-rendered 3D character.
+  if (vrmOnScreen) {
     return `${personaName} 以 3D 虛擬人呈現。語音與對話不受影響。`;
   }
   switch (status) {
@@ -177,15 +180,28 @@ export function AvatarStage({
     if (status !== 'ready') resetFrames();
   }, [status, resetFrames]);
 
-  const live = status === 'ready' && (transport === 'ws-frames' || transport === 'webrtc');
   const effectivePortrait = runtimePortrait ?? portraitUrl ?? null;
 
-  // The 3D character: wanted on every non-live rung, shown once its model is
-  // in, replaced by the portrait if WebGL or the load fails. `failed` is sticky
-  // for this mount — retrying a broken GPU every render would just flicker.
+  /*
+   * The 3D character outranks the runtime's frame stream.
+   *
+   * It used to be the other way round — VRM only on the non-live rungs — which
+   * meant that on a machine where the Avatar Runtime is installed (this one),
+   * the stage always showed the runtime's photo-portrait and the 3D model was
+   * effectively unreachable. The product decision is the opposite: the VRM *is*
+   * the virtual human; the frame stream fills in while the model loads and
+   * takes over for good if it fails. `NEXT_PUBLIC_AVATAR_3D=0` restores frames.
+   *
+   * `failed` is sticky for this mount — retrying a broken GPU every render
+   * would just flicker.
+   */
   const [vrmStatus, setVrmStatus] = useState<VrmStageStatus>('loading');
-  const wantVrm = AVATAR_3D_ENABLED && !live && vrmStatus !== 'failed';
+  const wantVrm = AVATAR_3D_ENABLED && vrmStatus !== 'failed';
   const vrmOnScreen = wantVrm && vrmStatus === 'ready';
+
+  const streaming = status === 'ready' && (transport === 'ws-frames' || transport === 'webrtc');
+  // What is actually on screen: the canvas only wins when the VRM is not up.
+  const live = streaming && !vrmOnScreen;
   const onVrmStatus = useCallback((next: VrmStageStatus, reason?: string) => {
     setVrmStatus(next);
     if (next === 'failed' && reason) {

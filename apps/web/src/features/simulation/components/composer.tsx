@@ -19,7 +19,7 @@ import type { SessionState } from '@ai-coach/shared';
 import { INPUT_BLOCKED_STATES } from '../lib/session-transitions';
 import { insetSurface, tint, toneText } from '../lib/tone';
 import { LiveDot } from './atoms';
-import { LightbulbIcon, MicIcon, MicOffIcon, SendIcon } from './icons';
+import { CameraIcon, CameraOffIcon, LightbulbIcon, MicIcon, MicOffIcon, SendIcon } from './icons';
 import { cn, Textarea } from './kit';
 
 const MAX_CHARS = 1200;
@@ -32,6 +32,13 @@ export interface ComposerProps {
   onRequestHint?: () => void;
   voiceEnabled: boolean;
   micLive: boolean;
+  /**
+   * Webcam channel for facial-affect recognition. Absent = no camera button at
+   * all, which is the correct default: the control must not exist where the
+   * feature is not wired (§47).
+   */
+  cameraLive?: boolean;
+  onToggleCamera?: (() => void) | undefined;
   muted: boolean;
   onToggleMic: () => void;
   vadActive?: boolean;
@@ -57,6 +64,8 @@ export function Composer({
   onRequestHint,
   voiceEnabled,
   micLive,
+  cameraLive = false,
+  onToggleCamera,
   muted,
   onToggleMic,
   vadActive = false,
@@ -163,6 +172,24 @@ export function Composer({
               <MicIcon size={17} style={{ color: toneText(vadActive ? 'mint' : 'blue') }} />
             ) : (
               <MicOffIcon size={17} className="text-text-tertiary" />
+            )}
+          </button>
+        ) : null}
+
+        {onToggleCamera ? (
+          <button
+            type="button"
+            onClick={onToggleCamera}
+            aria-pressed={cameraLive}
+            aria-label={cameraLive ? '關閉攝影機' : '開啟攝影機'}
+            title={cameraLive ? '關閉攝影機' : '開啟攝影機（分析你的表情，畫面不會離開這台電腦）'}
+            className="sim-focusable flex h-9 w-9 shrink-0 items-center justify-center rounded-input"
+            style={insetSurface(cameraLive ? 'cyan' : 'neutral', 14)}
+          >
+            {cameraLive ? (
+              <CameraIcon size={17} style={{ color: toneText('cyan') }} />
+            ) : (
+              <CameraOffIcon size={17} className="text-text-tertiary" />
             )}
           </button>
         ) : null}

@@ -209,8 +209,13 @@ class ConversationOrchestrator:
                 key_objections=list(payload.scenario.get("key_objections") or []),
             )
         )
-        # persona.state.updated is emitted here — after the director ran (§20/§68)
-        await self.emitter.persona_state_updated(decision.state)
+        # persona.state.updated is deliberately NOT emitted here. The director has
+        # decided the new state, but the customer has not spoken yet — publishing
+        # it at this point filled the right-hand meters (trust / interest /
+        # resistance / patience, goal, budget) several seconds before the persona
+        # said a word, which reads as fabricated, and it leaks the director's
+        # decision to the client ahead of the reply. It is emitted once, below,
+        # after `agent.response.final` (§20/§68).
 
         # --- 3. knowledge (concurrent with the compliance model tier) ---
         await self.emitter.agent_thinking("knowledge")
@@ -252,7 +257,6 @@ class ConversationOrchestrator:
         state = decision.state
         if reply.reveals_hidden_need and decision.allow_hidden_need_reveal:
             state = self.director.apply_hidden_need_reveal(state)
-            await self.emitter.persona_state_updated(state)
 
         persona_turn = self._turn_dict(
             payload,
@@ -263,6 +267,9 @@ class ConversationOrchestrator:
             state_delta=decision.state_delta,
         )
         await self.emitter.agent_response_final(persona_turn)
+        # One state update per turn, after the persona has spoken, carrying the
+        # hidden-need reveal when the reply triggered it.
+        await self.emitter.persona_state_updated(state)
 
         # --- 5/6/7. post-checks, coach, evaluator (concurrent) ---------
         await self.emitter.agent_thinking("compliance")

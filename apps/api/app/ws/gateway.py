@@ -54,6 +54,7 @@ CLIENT_COMMANDS = frozenset(
         "coach.request_hint",
         "voice.push_to_talk",
         "client.intent_hint",
+        "trainee.affect",
         "ack",
     }
 )
@@ -370,6 +371,19 @@ class _Connection:
         if kind == "voice.push_to_talk":
             await self._push_to_talk(bool(command.get("pressed")))
             return
+        if kind == "trainee.affect":
+            # Advisory, exactly like `client.intent_hint`: the browser classified
+            # the trainee's own face and sent a label. It is stored for the next
+            # turn and never trusted as fact — a client can say anything. No
+            # image data is accepted here, and none is ever requested.
+            label = str(command.get("label") or "")
+            if label:
+                self._trainee_affect = {
+                    "label": label[:32],
+                    "confidence": max(0.0, min(1.0, float(command.get("confidence") or 0.0))),
+                    "at_ms": int(command.get("at_ms") or now_ms()),
+                }
+            return
         if kind == "client.intent_hint":
             # Advisory only (Part II §53/§55): stored for the next turn, never trusted.
             self._pending_hint = {
@@ -379,6 +393,8 @@ class _Connection:
             return
 
     _pending_hint: dict[str, Any] | None = None
+    #: Latest browser-side facial-affect reading; advisory, overwritten each time.
+    _trainee_affect: dict[str, Any] | None = None
 
     async def _run_turn(self, text: str) -> None:
         from app.agents.intent import ClientIntentHint

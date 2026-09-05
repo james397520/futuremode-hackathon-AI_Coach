@@ -27,7 +27,7 @@ import { VRMLoaderPlugin, VRMUtils, type VRM } from '@pixiv/three-vrm';
 
 import { useAvatarStore } from '../avatar-store';
 import type { AvatarBodyGender } from '../lib/persona-gender';
-import { auroraGlow, cn } from '../lib/tone';
+import { cn } from '../lib/tone';
 import {
   ARKIT_NAMES,
   VRM_EXPRESSION_NAMES,
@@ -58,14 +58,58 @@ export function modelUrlFor(gender: AvatarBodyGender): string {
   return `/models/avatar_${gender}_suit.vrm`;
 }
 
+/**
+ * Black → purple ground (see the JSX note). Built from the theme's violet /
+ * indigo accents and the theme-invariant ink so it does not flip in light
+ * mode; `black` is the one literal, because the ink is a charcoal and the
+ * bottom-left corner has to be actually black under the glass cards.
+ */
+const STAGE_GROUND = [
+  'linear-gradient(205deg,',
+  '  color-mix(in srgb, var(--accent-violet) 58%, var(--sim-ink, #303035)) 0%,',
+  '  color-mix(in srgb, var(--accent-indigo) 34%, var(--sim-ink, #303035)) 42%,',
+  '  color-mix(in srgb, var(--sim-ink, #303035) 45%, black) 78%,',
+  '  black 100%)',
+].join('\n');
+
 const IDLE_FPS = 30;
 /** Viewer's emotion smoothing constant (`k1 = 1 - exp(-dt*6)`). */
 const EMOTION_SMOOTHING = 6;
 /** Camera: a narrow lens flattens the face the way a portrait lens does. */
 const CAMERA_FOV = 22;
-/** Height of the head-and-shoulders window we frame, in metres. */
-const FRAME_HEIGHT_M = 0.52;
-const FRAME_WIDTH_M = 0.46;
+/**
+ * Height of the window we frame, in metres. Tuned for the stage-fill layout,
+ * where the character owns the whole left panel and the context cards float
+ * over the lower 40% of it: at the old 0.52 (a tight head-and-shoulders crop
+ * for the small 4/3 card) the cards landed on the chin, because there was no
+ * torso below it to land on. 0.86 puts head, shoulders and chest in frame, so
+ * the cards sit on the chest as intended.
+ */
+const FRAME_HEIGHT_M = 0.86;
+const FRAME_WIDTH_M = 0.52;
+/**
+ * The tight head-and-shoulders crop the small 4/3 card was tuned for. Which of
+ * the two is used is decided by the host's aspect, not by a prop: a portrait
+ * host is the full-height stage and wants the torso, a landscape one is the
+ * little card and would render a distant figure at 0.86.
+ */
+const CLOSE_FRAME_HEIGHT_M = 0.52;
+const CLOSE_FRAME_WIDTH_M = 0.46;
+const CLOSE_TARGET_DROP_M = 0.09;
+/** Below this width/height ratio the host counts as the full-height stage. */
+const PORTRAIT_ASPECT = 0.9;
+/**
+ * ...and so does any host at least this tall, whatever its aspect: with the
+ * persona column at ~two thirds of the screen the stage is close to square, and
+ * by aspect alone it fell back to the head-shot crop.
+ */
+const TALL_HOST_PX = 480;
+/**
+ * How far below the head bone the frame is centred. Keeps the head at roughly
+ * the upper fifth: head centre sits ~0.08 above headBase, and 0.18 below that
+ * centre is 0.30 of the frame height, i.e. 20% down from the top edge.
+ */
+const FRAME_TARGET_DROP_M = 0.18;
 
 interface Rig {
   renderer: THREE.WebGLRenderer;
@@ -81,15 +125,64 @@ interface Rig {
   headBase: THREE.Vector3;
 }
 
+let webglProbe: boolean | null = null;
+
+/** three r163+ is WebGL2-only, so that is what we probe. Cached: one stray context, ever. */
 function hasWebGL(): boolean {
+  if (webglProbe !== null) return webglProbe;
   if (typeof document === 'undefined') return false;
   try {
-    const probe = document.createElement('canvas');
-    return Boolean(probe.getContext('webgl2') ?? probe.getContext('webgl'));
+    webglProbe = Boolean(document.createElement('canvas').getContext('webgl2'));
   } catch {
-    return false;
+    webglProbe = false;
+  }
+  return webglProbe;
+}
+
+/**
+ * Dev-only inspection handle (`window.__aiCoachVrm`): lets a reviewer or a
+ * browser-automation check read the live expression weights and tick the loop
+ * by hand in a hidden tab, where rAF never fires. Stripped in production.
+ */
+interface VrmDebugHandle {
+  status: VrmStageStatus;
+  gender: AvatarBodyGender;
+  step: (dt: number) => void;
+  weights: () => Readonly<Record<VrmExpressionName, number>> | null;
+  head: () => { yaw: number; pitch: number; roll: number } | null;
+  /** Dial the arms in live, in degrees; see `ARM_POSE`. */
+  setArms: (degrees: Partial<typeof ARM_POSE>) => void;
+}
+declare global {
+  interface Window {
+    __aiCoachVrm?: VrmDebugHandle;
   }
 }
+const DEBUG_HANDLE = process.env.NODE_ENV !== 'production';
+
+const DEG = Math.PI / 180;
+
+/**
+ * Arms-down pose for the VRoid rest T-pose, in degrees on the *normalized*
+ * humanoid bones (which rest at identity, so these are absolute rotations).
+ *
+ * **Measured, not derived.** The reference viewer's author recorded that they
+ * guessed these twice and were wrong both times ("一次太高,一次縮進身體裡") and
+ * replaced the guess with sliders; our own first guess was wrong too — it had
+ * the upper-arm sign inverted (arms went up into a V) and rotated the forearm
+ * about Y instead of X. These numbers came off the slider panel at a standing
+ * rest pose. The slight left/right asymmetry is deliberate: it is what was
+ * measured, and it reads as a person rather than a mannequin.
+ *
+ * `dev` builds expose `window.__aiCoachVrm.setArms({...degrees})` so this can be
+ * re-measured the same way instead of re-guessed.
+ */
+const ARM_POSE = {
+  leftUpperArmZ: 62,
+  leftLowerArmX: -24,
+  rightUpperArmZ: -63,
+  rightLowerArmX: -30,
+};
 
 /** Viewer's `BODY_POSE_BONE` — trunk/limbs only, never head or eyes. */
 const BODY_POSE_BONE =
@@ -114,7 +207,11 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
     const canvas = canvasRef.current;
     if (!host || !canvas) return undefined;
 
+    // Re-applied by the dev-only `setArms`, so the pose can be dialled in live.
+    let applyArmPose: (() => void) | null = null;
+
     const report = (status: VrmStageStatus, reason?: string): void => {
+      if (DEBUG_HANDLE && window.__aiCoachVrm) window.__aiCoachVrm.status = status;
       onStatusRef.current?.(status, reason);
     };
 
@@ -175,14 +272,19 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
     const frameCamera = (): void => {
       const { camera, headBase } = rig;
       const aspect = camera.aspect || 1;
+      const portrait = aspect < PORTRAIT_ASPECT || host.clientHeight >= TALL_HOST_PX;
+      const frameH = portrait ? FRAME_HEIGHT_M : CLOSE_FRAME_HEIGHT_M;
+      const frameW = portrait ? FRAME_WIDTH_M : CLOSE_FRAME_WIDTH_M;
+      const drop = portrait ? FRAME_TARGET_DROP_M : CLOSE_TARGET_DROP_M;
       const halfTan = Math.tan((CAMERA_FOV * Math.PI) / 360);
       // Fit the taller of the two constraints so a narrow card still shows
       // both shoulders and a wide one does not crop the top of the head.
-      const distV = FRAME_HEIGHT_M / 2 / halfTan;
-      const distH = FRAME_WIDTH_M / 2 / (halfTan * aspect);
+      const distV = frameH / 2 / halfTan;
+      const distH = frameW / 2 / (halfTan * aspect);
       const dist = Math.max(distV, distH);
-      // Look a little below the eyes so the head sits in the upper third.
-      const target = new THREE.Vector3(headBase.x, headBase.y - 0.09, headBase.z);
+      // Look below the eyes so the head sits in the upper fifth and the chest
+      // fills the band the floating cards occupy.
+      const target = new THREE.Vector3(headBase.x, headBase.y - drop, headBase.z);
       camera.position.set(target.x, target.y + 0.03, target.z + dist);
       camera.lookAt(target);
       camera.near = Math.max(0.02, dist / 50);
@@ -221,6 +323,8 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
     const emotionCur: ArkitWeights = {};
     const clock = { last: performance.now(), accum: 0 };
     const headEuler = new THREE.Euler();
+    let lastWeights: Record<VrmExpressionName, number> | null = null;
+    let lastHead: { yaw: number; pitch: number; roll: number } | null = null;
 
     const step = (dt: number): void => {
       const { vrm, head, camera, gazeTarget, available, mixer } = rig;
@@ -253,11 +357,13 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
       if (em) {
         for (const name of available) em.setValue(name, weights[name]);
       }
+      lastWeights = weights;
 
       if (head) {
         // Normalized bones rest at identity, so the pose is absolute.
         headEuler.set(pose.headPitch, pose.headYaw, pose.headRoll, 'YXZ');
         head.quaternion.setFromEuler(headEuler);
+        lastHead = { yaw: pose.headYaw, pitch: pose.headPitch, roll: pose.headRoll };
       }
 
       // Eye contact with a drift: the lookAt target hovers around the lens.
@@ -290,6 +396,20 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
       clock.accum = 0;
     };
     document.addEventListener('visibilitychange', onVisibility);
+
+    if (DEBUG_HANDLE) {
+      window.__aiCoachVrm = {
+        status: 'loading',
+        gender,
+        step,
+        weights: () => lastWeights,
+        head: () => lastHead,
+        setArms: (degrees) => {
+          Object.assign(ARM_POSE, degrees);
+          applyArmPose?.();
+        },
+      };
+    }
 
     // --- model -------------------------------------------------------------
     report('loading');
@@ -325,10 +445,13 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
         const rightArm = humanoid.getNormalizedBoneNode('rightUpperArm');
         const leftFore = humanoid.getNormalizedBoneNode('leftLowerArm');
         const rightFore = humanoid.getNormalizedBoneNode('rightLowerArm');
-        if (leftArm) leftArm.rotation.z = -1.2;
-        if (rightArm) rightArm.rotation.z = 1.2;
-        if (leftFore) leftFore.rotation.y = -0.35;
-        if (rightFore) rightFore.rotation.y = 0.35;
+        applyArmPose = () => {
+          if (leftArm) leftArm.rotation.set(0, 0, ARM_POSE.leftUpperArmZ * DEG);
+          if (rightArm) rightArm.rotation.set(0, 0, ARM_POSE.rightUpperArmZ * DEG);
+          if (leftFore) leftFore.rotation.set(ARM_POSE.leftLowerArmX * DEG, 0, 0);
+          if (rightFore) rightFore.rotation.set(ARM_POSE.rightLowerArmX * DEG, 0, 0);
+        };
+        applyArmPose();
 
         // Body idle from the file, if any (the viewer's Avaturn A/T-pose fix).
         let mixer: THREE.AnimationMixer | null = null;
@@ -391,16 +514,23 @@ export function VrmStage({ gender, ariaLabel, speaking, onStatus, className }: V
         VRMUtils.deepDispose(rig.vrm.scene);
         rig.vrm = null;
       }
+      // No `forceContextLoss()`: React StrictMode re-runs this effect on the
+      // same canvas in dev, and a deliberately lost context cannot be reused.
+      // `dispose()` frees the GPU resources; the context goes with the canvas.
       rig.renderer.dispose();
-      rig.renderer.forceContextLoss();
+      if (DEBUG_HANDLE && window.__aiCoachVrm?.step === step) delete window.__aiCoachVrm;
     };
     // `gender` swaps the model, which means a new rig; everything else is a ref.
   }, [gender]);
 
   return (
     <div ref={hostRef} className={cn('relative h-full w-full overflow-hidden', className)}>
-      {/* Same ground as the portrait, so the swap between them is invisible. */}
-      <div aria-hidden="true" className="absolute inset-0" style={{ background: auroraGlow(1) }} />
+      {/* Ground behind the character: violet at the top-right falling to black
+          at the bottom-left. The glass cards float over that corner, and glass
+          only reads as glass on a ground that is dark and *even* — over the
+          old pale aurora the same card was half white and half black depending
+          on whether the suit or the wall was behind it. */}
+      <div aria-hidden="true" className="absolute inset-0" style={{ background: STAGE_GROUND }} />
       <canvas
         ref={canvasRef}
         role="img"

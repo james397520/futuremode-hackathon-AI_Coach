@@ -44,9 +44,12 @@ function traineeLabel(
   backend: string | null,
   renderer: 'frames' | 'vrm' | 'portrait',
 ): Label {
-  // The 3D character is drawn locally whenever the runtime is not streaming, so
-  // it is the truth for every non-live rung of the ladder.
-  if (renderer === 'vrm' && status !== 'ready' && status !== 'degraded') {
+  // `renderer` is what is actually on the stage, and the VRM now outranks the
+  // runtime's frame stream — so this is checked before the status ladder. The
+  // old version also required a non-ready runtime, which meant that on a
+  // machine with the runtime installed the badge claimed "GPU accelerated"
+  // while a locally-rendered 3D character was the thing on screen.
+  if (renderer === 'vrm') {
     return { text: '3D 虛擬人（本機渲染）', tone: 'indigo' };
   }
   switch (status) {

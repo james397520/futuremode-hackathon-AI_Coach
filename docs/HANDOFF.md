@@ -377,3 +377,32 @@ API 與 avatar runtime 三次在沒有任何關閉紀錄的情況下消失，log
 即使以 tracked 背景模式啟動，API 仍在 06:14Z 於一連串正常請求後 `exit 1`、無 traceback；同為 uvicorn 的 avatar runtime（13:25 同樣方式啟動）活著，排除整批 `pkill`。根因未定。
 新增 `scripts/dev/run-api.sh`：從根 `.env` 載入設定、`while` 迴圈啟動 uvicorn、每次啟動與退出（含 exit code、UTC 時間）記到 `/tmp/ai-coach-api-exits.log`。下次死掉會留下證據，且 2 秒內自動復活。用 `run_in_background: true` 執行它。
 
+## 15. 主題：淺紫（此決定取代先前的「純黑」）
+
+先前 §9.5 記錄的「深色畫布改純黑 + 鎖定深色」**已作廢**。中途 agent 覆蓋 tokens 時把它換成 Soft Lavender палет（`--bg-canvas: #ccc8fe` 淺 / `#17151f` 深），主題鎖定也一併消失；把這個回歸回報給產品負責人後，裁定是 **維持紫色**。
+
+所以現況即是正確狀態，**不要再把它「修回」純黑**：
+- `tokens.css` 淺色 `--bg-canvas: #ccc8fe`、深色 `#17151f`
+- `theme-script.ts` / `theme-provider.tsx` 恢復正常的 light/dark/system 解析，沒有強制 dark
+- `layout.tsx` 的 `themeColor` 兩個值需與上面兩個畫布色一致
+
+### 15.1 API segfault — 已解（降到 Python 3.12）
+`scripts/dev/run-api.sh` 的退出紀錄證明 API 不是被外部砍掉，是自己崩潰：
+```
+exit code=134   # SIGABRT
+exit code=139   # SIGSEGV  (兩次)
+```
+約 8–50 分鐘一次，監督迴圈 2 秒內拉回，所以只表現為前端偶發「Could not reach the AI service」。
+
+**處置**：`apps/api/.venv` 已從 Homebrew Python **3.14** 換成 uv 管理的 **CPython 3.12.12**（`uv python install 3.12` + `uv venv --python 3.12`，不需 brew 也不需密碼）。原生擴充確認都是 3.12 的輪子（`asyncpg…cpython-312-darwin.so`、`pydantic_core…cpython-312-darwin.so`、`bcrypt`、`cryptography`），242 個測試全過。舊環境保留在 `apps/api/.venv-py314-backup/`，確認穩定數日後可刪。`apps/api/.python-version` 釘 3.12——**不要在 3.14 上重建這個 venv**。
+
+### 15.2 兩層 supervisor（保留）
+即使根因已處理，兩層自動重啟仍保留，因為它同時負責「開機自動起 API」：
+
+| 層 | 負責 | 實測 |
+|---|---|---|
+| `scripts/dev/run-api.sh` | uvicorn 崩了拉回、記錄每次退出碼 | `kill -SEGV` → 3.4s 復活 |
+| launchd agent `com.aicoach.api` | wrapper 本身死了拉回、登入時啟動 | `kill -KILL` wrapper → 立刻重生 |
+
+安裝 `bash scripts/dev/install-api-service.sh`（`--status` / `--uninstall`）。三個曾經踩過的坑：wrapper 沒有 `trap` 會留下孤兒 uvicorn 佔住 8000；沒有退避時壞設定會空轉；macOS 內建 bash 3.2 在 `set -u` 下**空陣列算 unbound**，所以 `reload_flag` 必須是字串不能是陣列。
+

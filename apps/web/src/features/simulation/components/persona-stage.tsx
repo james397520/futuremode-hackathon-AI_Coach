@@ -44,6 +44,12 @@ export interface PersonaStageProps {
   sessionId?: string;
   /** Timestamp of the last trainee barge-in — each increase fires §44 interrupt. */
   bargeInAtMs?: number;
+  /**
+   * Fill the parent instead of holding a 4/3 card. Used by the `stage-fill`
+   * layout, where the virtual human *is* the left half of the screen and the
+   * context cards float over it — so a fixed aspect box would letterbox it.
+   */
+  fill?: boolean;
   className?: string;
 }
 
@@ -61,10 +67,11 @@ export function PersonaStage({
   personaState = null,
   sessionId,
   bargeInAtMs = 0,
+  fill = false,
   className,
 }: PersonaStageProps) {
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative', fill && 'h-full min-h-0', className)}>
       {/* Soft aurora glow behind the stage — small area only (§2). */}
       <div
         aria-hidden="true"
@@ -72,8 +79,13 @@ export function PersonaStage({
         style={{ background: auroraGlow(speaking ? 1.25 : 1) }}
       />
 
-      <div className="glass-card sim-portrait relative overflow-hidden p-0">
-        <div className="relative aspect-[4/3] w-full">
+      <div
+        className={cn(
+          'glass-card sim-portrait relative overflow-hidden p-0',
+          fill && 'h-full min-h-0',
+        )}
+      >
+        <div className={cn('relative w-full', fill ? 'h-full min-h-0' : 'aspect-[4/3]')}>
           {/*
             The virtual human itself (`features/avatar`). It picks its own
             surface: live frames from the local Avatar Runtime when one is
@@ -140,7 +152,7 @@ export function PersonaStage({
                 // light mode, which put white text on a white wash over the photo.
                 style={onMediaSurface()}
               >
-                Profile
+                資料
                 <ChevronRightIcon size={12} />
               </button>
             ) : null}

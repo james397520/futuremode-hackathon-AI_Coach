@@ -183,3 +183,15 @@ export const VOICE_STATUS_LABEL: Record<
   idle: '準備完成', connecting: '連線中', listening: '聆聽中', transcribing: '轉錄中',
   thinking: '思考中', speaking: '說話中', interrupted: '已中斷', reconnecting: '重新連線中', ended: '通話已結束',
 };
+
+/** 學員臉部情緒標籤（webcam channel）。模型輸出的英文代碼 -> 顯示字。 */
+export const AFFECT_LABEL: Record<string, string> = {
+  neutral: '平靜',
+  happy: '愉快',
+  surprised: '驚訝',
+  sad: '低落',
+  angry: '不悅',
+  fearful: '緊張',
+  disgusted: '排斥',
+  contempt: '不以為然',
+};
