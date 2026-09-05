@@ -132,9 +132,11 @@
   .avatar img{width:100%;height:100%;object-fit:cover;object-position:center 30%}
   .member h3{font-size:17px}
   .member .role{color:var(--fg-3);font-weight:500}
-  .member ul{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
-  .member ul li{font-size:12.5px;color:var(--fg-2);line-height:1.5;padding-left:12px;position:relative}
-  .member ul li::before{content:"";position:absolute;left:0;top:.6em;width:4px;height:4px;border-radius:50%;background:var(--fg-3)}
+  .member ul,.feature ul{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
+  .member ul li,.feature ul li{font-size:12.5px;color:var(--fg-2);line-height:1.5;padding-left:12px;position:relative}
+  .member ul li::before,.feature ul li::before{content:"";position:absolute;left:0;top:.6em;width:4px;height:4px;border-radius:50%;background:var(--fg-3)}
+  #engineering .features{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:760px){#engineering .features{grid-template-columns:1fr}}
   .member small{display:block;color:var(--fg-3);font-size:13px;margin-top:4px}
 
   /* limitations */
@@ -451,32 +453,56 @@
 <section id="engineering">
   <div class="wrap">
     <div class="eyebrow">Engineering</div>
-    <h2>核心技術：不是一個 demo，是可查證的工程</h2>
-    <p class="lead">以下每一點都能在原始碼裡逐行對應，不是簡報上的形容詞。</p>
+    <h2>核心技術</h2>
+    <p class="lead">以下每一點都能在原始碼裡逐行對應。</p>
     <div class="grid features" style="margin-top:48px">
       <div class="card feature">
         <div class="num">01 / ORCHESTRATION</div>
         <svg viewBox="0 0 24 24"><circle cx="4" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="20" cy="12" r="2"/><path d="M6 12h4M14 6.5 18 11M14 17.5 18 13"/></svg>
         <h3>七階段 Multi-Agent 編排</h3>
-        <p>每輪對話依序跑合規預檢、情境導演、知識檢索、客戶模擬、合規複檢、教練回饋與評分；非關鍵環節失敗會自動降級，不會讓整場對話中斷。</p>
+        <p>每輪對話由對話編排器依序呼叫七個責任明確的 Agent，而不是單一個大 prompt 硬撐全場。</p>
+        <ul>
+          <li>合規預檢 → 情境導演 → 知識檢索 → 客戶模擬（串流回覆）→ 合規複檢 → 教練回饋 → 評分</li>
+          <li>情境導演的難度升降是決定性規則引擎，不呼叫 LLM；訓練模式可降難度，正式評測模式禁止自動降難度，避免評分被灌水</li>
+          <li>客戶模擬以信任、興趣、抗拒、耐心等狀態變數驅動語氣與立場，並有程式化守門機制防止角色扮演洩漏隱藏設定</li>
+          <li>非關鍵環節（如教練回饋）失敗時自動降級，不會讓整場對話中斷</li>
+        </ul>
       </div>
       <div class="card feature">
         <div class="num">02 / SCORING</div>
         <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
         <h3>逐字核對證據，拒絕幻覺分數</h3>
-        <p>評分前會逐字比對模型引用的證據是否真的出現在逐字稿中，核對不上的證據直接捨棄，證據不足時強制打中性分數，而非讓 AI 自由心證。</p>
+        <p>評估引擎不是讓 LLM 憑印象打分，而是把「證據」當成程式碼可以驗證的物件。</p>
+        <ul>
+          <li>模型每個分數都必須附上引用逐字稿的原話證據</li>
+          <li>系統逐字核對該引用是否真的出現在逐字稿中，核對不上的證據直接捨棄</li>
+          <li>證據不足時強制打中性分數（45–55），而非放任模型自由心證</li>
+          <li>內建 10 個技能維度的評分標準，訓練模式與正式評測模式套用不同難度規則</li>
+        </ul>
       </div>
       <div class="card feature">
         <div class="num">03 / HYBRID RAG</div>
         <svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M21 21l-5.2-5.2"/><path d="M6 10h8M10 6v8"/></svg>
         <h3>七種切塊策略 + 混合檢索</h3>
-        <p>以 Qdrant 為向量資料庫，依文件型態自動選擇切塊方式，用 RRF 融合向量與關鍵字搜尋，並以租戶隔離避免跨企業知識庫互相查到彼此資料。</p>
+        <p>完整 parse → chunk → embed → index → retrieve → rerank 管線，而非把文件整份塞給 LLM。</p>
+        <ul>
+          <li>切塊策略依文件型態自動選用：標題、段落、固定 token、語意、表格、FAQ、自動判斷共七種</li>
+          <li>向量資料庫採 Qdrant，並以租戶隔離參數強制過濾，避免跨企業知識庫互相查到彼此資料</li>
+          <li>檢索採 RRF（倒數排名融合）混合向量與關鍵字搜尋，而非單純比對向量相似度</li>
+          <li>Embedding 雙軌支援：可用私有部署模型（BGE / e5）或 API（OpenAI），依企業資安需求選擇</li>
+        </ul>
       </div>
       <div class="card feature">
         <div class="num">04 / AVATAR FALLBACK</div>
         <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="6" rx="1.5"/><rect x="4" y="10.5" width="16" height="6" rx="1.5"/><path d="M8 20.5h8"/></svg>
         <h3>依硬體效能自動降級</h3>
-        <p>表情與嘴型分別由 LivePortrait、MuseTalk 驅動；效能不足時自動降級為 Wav2Lip、甚至純音量驅動嘴型，確保不同硬體都能即時運作而不卡格。</p>
+        <p>虛擬人渲染不是單一模型賭運氣，而是一條會自己判斷硬體能力的渲染鏈。</p>
+        <ul>
+          <li>表情與頭部姿態由 LivePortrait 驅動、嘴型由 MuseTalk 驅動</li>
+          <li>效能不足時自動降級：MuseTalk → Wav2Lip → 純音量驅動嘴型，確保不同硬體都能即時運作而不卡格</li>
+          <li>表情轉換加入遲滯（hysteresis）機制，避免情緒在臨界值附近來回抖動</li>
+          <li>畫面透過 WebSocket 逐幀傳輸（JPEG / WebP / PNG）</li>
+        </ul>
       </div>
     </div>
   </div>
