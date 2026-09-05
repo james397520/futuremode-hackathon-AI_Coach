@@ -400,14 +400,17 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
               agentActivityAtMs={agentAtMs}
               turnCount={traineeTurns}
               maxTurns={script.maxTurns}
-              voiceEnabled={false}
+              voiceEnabled
               micLive={false}
-              muted
+              muted={false}
+              cameraLive={false}
               vadActive={false}
-              captionsEnabled={false}
+              captionsEnabled
               onSend={onSendTrainee}
               onPushToTalk={noop}
               onToggleMic={noop}
+              onToggleCamera={noop}
+              onRequestHint={noop}
               onPauseResume={noop}
               onRestart={restart}
               onEnd={restart}
