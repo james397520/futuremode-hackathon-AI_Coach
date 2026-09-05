@@ -144,6 +144,71 @@ AI 客戶：如果市場大跌，你們有什麼具體的措施來保護我的�
 | `學員文字語氣：不耐煩（high）` | 背景分析文字語氣，附上發言證據、原因與溝通建議 |
 | AI 客戶反覆追問同一個未解決的疑慮 | 客戶人設的狀態變數（信任／抗拒）驅動，不是每輪重新開始 |
 
+## 虛擬人角色與表情驅動
+
+`arkit52-avatar/` 是「模型輸出動畫參數、Web 負責 3D 渲染」這條路線的實作：
+**52 維 ARKit blendshape 係數 → `morphTargetInfluences` → 3D 角色**。
+純前端（three.js r170 + @pixiv/three-vrm v3），本地副本無 CDN 依賴，離線可跑。
+
+### 角色素材
+
+![練習對象名冊](docs/img/avatar/cast.png)
+
+角色來自 [Microsoft Rocketbox](https://github.com/microsoft/Microsoft-Rocketbox)（MIT 授權，可商用）。
+4 個底模搭配年齡變體，組成 8 個練習對象，涵蓋 20／30／40／50／65 歲、男女各半，
+分青年／中年／長者三組。每個角色帶 **175 個 blendshape**，其中 `AK_*` 開頭的 52 個
+就是完整的 ARKit 52，A2E 資料可以原封驅動，不需要再做一層對應。
+
+接進來處理了三件事：未壓縮 TGA 貼圖轉成 web 格式（90MB → 9.3MB）、
+3ds Max Biped 骨骼命名對應、以及 A-pose 綁定與 Mixamo T-pose 動作之間的 rest 差異。
+
+### 老化管線
+
+![老化貼圖管線](docs/img/avatar/aging.png)
+
+年齡差異不是執行期調色，而是**事先烤好的臉部與髮片貼圖**：皺紋由老化 GAN
+（[Fast-AgingGAN](https://github.com/HasnainRaz/Fast-AgingGAN)，MIT）產生，白髮由亮度遮罩推出。
+同一個 FBX 底模只換貼圖，所以身體、法線、高光那些沒有變體的貼圖會自動沿用。
+
+關鍵是**只取 delta**（`aged - original`）疊回原貼圖，而不是整張換掉——delta 才是老化特徵，
+原本的五官與光影因此全部保留。另外加了羽化橢圓遮罩（避免 GAN 把雜訊灑到頭皮）、
+delta 輕微高斯模糊（皺紋是線條，單點雜訊是副產物）、亮度與色度分開放大（避免整張臉偏橘）。
+強度大致對應：`1.5` ≈ 40 代、`2.5` ≈ 55–60、`4.0` ≈ 70+。
+
+### 表情驅動
+
+![ARKit 52 表情驅動](docs/img/avatar/expressions.png)
+
+上圖是同一個角色、同一份 morph target，只改 52 維係數的結果。驅動分三層疊加：
+
+- **口型層**：A2E（audio-to-expression）介面格式為 `{fps: 30, names[52], frames[N][52]}`，
+  幀間線性插值，並保留連續平滑包絡讓嘴巴永不完全闔上，避免逐音節抽搐感。
+- **情緒層**：說話時嘴部／顎／舌通道以口型為主，情緒仍保留 35% 權重疊加，
+  所以情緒的嘴角形狀在講話過程中依然可辨識，而不是被口型完全蓋掉。
+- **Idle 層**：procedural 眨眼、眼球 saccade、頭部微動。
+
+拖進來的 VRM 模型（表情系統是 aa/ih/ou 口型加 happy/angry/sad，與 ARKit 52 不同）
+由 viewer 內建的 `arkitToVrm()` 映射層轉換，所以任何模型都吃同一份資料。
+
+### 骨架與動作
+
+角色是綁好骨架的完整人體，不是只有一顆會動的頭：
+
+- **Mixamo 動作即時 retarget** — 掃描 `public/motions/` 自動產生按鈕，點擊後重定向到角色骨架播放，
+  切換動作以 0.3 秒 crossfade 銜接。骨骼名稱對應表同時涵蓋 Mixamo 與 3ds Max Biped 命名，
+  25 根關鍵骨骼全數命中。
+- **虛擬 T-pose rest** — Rocketbox 的 rest 是 A-pose，Mixamo 動作卻是相對 T-pose 記錄的，
+  直接套會讓手臂多轉一次。retarget 因此逐骨骼求出把目標 rest 轉到來源 rest 的最小旋轉；
+  兩邊 rest 一致時該旋轉為單位四元數，對其他模型無影響。修正後關節誤差降到 0.000002°。
+- **雙骨 IK 修正** — 兩套骨架的肩膀階層與臂長不同，雙手靠近的動作（例如握手）會對不齊，
+  改以逐幀取樣加 IK 修正。
+- **視角與姿勢** — 臉部特寫／上半身／全身切換；沒有動作播放時套用實測確認過的自然垂放角度，
+  避免角色維持綁定時的 A-pose。
+
+> 目前 `sample_a2e.json` 是模擬 LAM-A2E 輸出格式的示範資料，尚未接上真正的語音推論；
+> 下一步（V0.5）是接 LAM-A2E ONNX（onnxruntime-web + WebGPU），輸入 16 kHz PCM、
+> 輸出 `[1, 30, 52]`，直接餵進現有的同一條路徑。
+
 ## 使用技術
 
 | 類型 | 技術／服務 | 用途 |
