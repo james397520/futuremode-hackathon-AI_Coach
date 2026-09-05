@@ -4,6 +4,10 @@
 
 FUTUREMODE 2026 台灣未來祭 · BUILDMODE 黑客松參賽作品 · **Track 5**
 
+[![SkillCoach 實機操作：3D 虛擬人對練與即時臉部情緒辨識](docs/media/demo-preview.gif)](https://james397520.github.io/futuremode-hackathon-AI_Coach/#top)
+
+▶ 上圖為實機操作片段。完整影片（39 秒、有聲）可[在專案網站播放](https://james397520.github.io/futuremode-hackathon-AI_Coach/#top)，或下載 [`docs/media/demo.mp4`](docs/media/demo.mp4)。
+
 - 專案網站：<https://james397520.github.io/futuremode-hackathon-AI_Coach/>
 - 儲存庫：<https://github.com/james397520/futuremode-hackathon-AI_Coach>
 - 應用程式原始碼與安裝說明：[PLATFORM_README.md](PLATFORM_README.md)（本檔案是黑客松提交總覽，實際的 monorepo 開發文件在該檔）
@@ -296,9 +300,7 @@ python -m http.server 8765 --directory docs
 ## 作品展示
 
 - 線上網站：<https://james397520.github.io/futuremode-hackathon-AI_Coach/>
-- Demo 影片：[在專案網站上播放](https://james397520.github.io/futuremode-hackathon-AI_Coach/#demo)（39 秒，720p），或直接下載 [`docs/media/demo.mp4`](docs/media/demo.mp4)
-
-https://github.com/james397520/futuremode-hackathon-AI_Coach/raw/main/docs/media/demo.mp4
+- Demo 影片：[在專案網站上播放](https://james397520.github.io/futuremode-hackathon-AI_Coach/#top)（39 秒、720p、有聲），或直接下載 [`docs/media/demo.mp4`](docs/media/demo.mp4)；本檔最上方的動圖為其片段預覽
 
 ## 第三方服務、資料與素材
 
