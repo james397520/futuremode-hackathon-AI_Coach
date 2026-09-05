@@ -330,7 +330,12 @@ export function ConversationPanel(props: ConversationPanelProps) {
         <AffectNudge
           reading={affectReading}
           cameraLive={cameraLive}
-          traineesTurn={status === 'listening' || status === 'idle' || status === 'ready'}
+          // Anything except the trainee actually talking. Looking stuck while
+          // the customer answers is the most natural moment to look stuck, and
+          // gating on the trainee's *turn* meant the frown that prompted the
+          // offer had usually passed by the time the turn came round — the card
+          // then appeared much later, attached to nothing.
+          traineesTurn={status !== 'connecting' && status !== 'completed' && status !== 'error'}
           onAskHint={onRequestHint}
         />
 

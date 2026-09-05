@@ -34,6 +34,17 @@ import {
   type SpeechGender,
 } from '../lib/system-speech';
 
+/**
+ * Barge-in while the customer is audible.
+ *
+ * `levelRef` is `rms * 6` clamped to 1. Laptop speaker bleed measured well
+ * under a third of that scale on this machine, and someone actually speaking
+ * into the built-in microphone sits far above it, so the level is what
+ * separates the two; the sustain window then rejects a cough or a chair.
+ */
+const BARGE_IN_LEVEL = 0.3;
+const BARGE_IN_SUSTAIN_MS = 350;
+
 const PROCESSOR_NAME = 'ai-coach-level-vad';
 
 /**
@@ -288,6 +299,9 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
   const callbacks = useRef(options);
   callbacks.current = options;
 
+  // When a loud-enough voice first appeared over the top of the customer's own
+  // audio. Null whenever the room is merely bleeding the speakers back in.
+  const bargeInSinceRef = useRef<number | null>(null);
   const levelRef = useRef(0);
   const noiseRef = useRef(0);
   const speakingSinceRef = useRef<number | null>(null);
@@ -596,13 +610,31 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
         // when `ttsPlayingRef` has already gone false, so only the first few
         // tens of milliseconds of the interruption are lost.
         if (ttsPlayingRef.current) {
-          if (personaSpeakingRef.current || ttsPlayingRef.current) {
-            cancelTts();
-            actions.registerBargeIn();
-            callbacks.current.onBargeIn?.();
+          // The microphone is hearing the speakers, and the customer's own
+          // voice coming back in is "voice" as far as the VAD is concerned —
+          // so *any* energy here used to count as an interruption and the
+          // customer was cut off about a second into her own sentence
+          // (「直接講，」 and then silence). Holding the space bar is still an
+          // instant interruption because it is unambiguous; without it, the
+          // input has to be clearly louder than the bleed and stay that way
+          // for a moment before we accept that a person is talking over her.
+          const deliberate = pushToTalkRef.current && heldRef.current;
+          const loud = levelRef.current >= BARGE_IN_LEVEL;
+          if (!deliberate && !loud) {
+            bargeInSinceRef.current = null;
+            return;
           }
+          if (!deliberate) {
+            if (bargeInSinceRef.current === null) bargeInSinceRef.current = Date.now();
+            if (Date.now() - bargeInSinceRef.current < BARGE_IN_SUSTAIN_MS) return;
+          }
+          bargeInSinceRef.current = null;
+          cancelTts();
+          actions.registerBargeIn();
+          callbacks.current.onBargeIn?.();
           return;
         }
+        bargeInSinceRef.current = null;
         // Voice resumed inside the pause window: same utterance, keep recording.
         if (endpointTimerRef.current !== null) {
           window.clearTimeout(endpointTimerRef.current);

@@ -36,7 +36,10 @@ const MIN_CONFIDENCE = 0.42;
 // or a glance away, short enough that someone frowning at a demo sees the card
 // while they are still frowning.
 const SUSTAIN_MS = 1200;
-const COOLDOWN_MS = 30_000;
+// Between cards. 30 s was long enough that a second frown in the same exchange
+// simply produced nothing, which reads as the feature having broken rather than
+// as restraint.
+const COOLDOWN_MS = 12_000;
 const AUTO_HIDE_MS = 15_000;
 
 export interface AffectNudgeProps {
