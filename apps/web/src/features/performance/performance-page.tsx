@@ -9,7 +9,7 @@ import { ScoreBar, SkillRadar, TrendLine } from '@/components/data-viz';
 import { RiskPill } from '@/components/status';
 import { SKILL_LABEL } from '@/lib/fixtures/evaluations';
 import {
-  DEMO_HISTORY_MASTERY,
+  DEMO_HISTORY_JOURNEYS,
   DEMO_HISTORY_PROFILE,
   DEMO_HISTORY_RECOMMENDATION,
   DEMO_HISTORY_SESSIONS,
@@ -75,7 +75,7 @@ export function PerformancePage({ userId }: { userId?: string }) {
             axes={[...SKILL_KEYS]}
             series={[
               { id: 'me', label: isOwn ? '你' : target?.display_name ?? '學員', color: 'var(--accent-indigo)', values: radarValues },
-              { id: 'team', label: '團隊平均', color: 'var(--accent-cyan)', values: [85, 76, 84, 82, 80, 78, 83, 71, 77, 86] },
+              { id: 'team', label: '團隊平均', color: 'var(--accent-cyan)', values: [78, 80, 76, 79, 74, 77, 80, 82, 73, 79] },
             ]}
           />
         </GlassCard>
@@ -131,26 +131,42 @@ export function PerformancePage({ userId }: { userId?: string }) {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <GlassCard className="p-5">
-          <h2 className="text-card-title">情境熟練度</h2>
-          <ul className="mt-3 divide-y divide-border-soft/70">
-            {DEMO_HISTORY_MASTERY.map((entry) => (
-              <li key={entry.scenario_id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 py-3">
-                <div className="min-w-0 flex-1">
-                  <Link
-                    href={entry.href}
-                    className="text-body-sm font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
-                  >
-                    {entry.scenario_name}
-                  </Link>
-                  <p className="text-tiny text-text-tertiary">
-                    {DIFFICULTY_LABEL[entry.difficulty] ?? entry.difficulty} · 嘗試 {entry.attempts} 次
-                  </p>
-                </div>
-                <div className="w-40">
-                  <ScoreBar compact label={`及格率 ${Math.round(entry.pass_rate * 100)}%`} score={entry.average_score} />
-                </div>
-              </li>
-            ))}
+          <h2 className="text-card-title">示範情境的分數歷程</h2>
+          <p className="text-tiny text-text-tertiary">每一次練習的分數，由舊到新；及格線 70。</p>
+          <ul className="mt-4 divide-y divide-border-soft/70">
+            {DEMO_HISTORY_JOURNEYS.map((journey) => {
+              const latest = journey.scores[journey.scores.length - 1] ?? 0;
+              const first = journey.scores[0] ?? latest;
+              const best = Math.max(...journey.scores);
+              const passed = journey.scores.filter((v) => v >= journey.pass_threshold).length;
+              const delta = latest - first;
+              return (
+                <li key={journey.scenario_id} className="flex flex-wrap items-center gap-x-5 gap-y-2 py-3.5">
+                  <div className="min-w-0 flex-1 basis-56">
+                    <Link
+                      href={journey.href}
+                      className="text-body-sm font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
+                    >
+                      {journey.scenario_name}
+                    </Link>
+                    <p className="mt-0.5 text-tiny text-text-tertiary">
+                      {DIFFICULTY_LABEL[journey.difficulty] ?? journey.difficulty} · {journey.scores.length} 次 · 及格 {passed}/{journey.scores.length}
+                    </p>
+                  </div>
+                  <Sparkline values={journey.scores} threshold={journey.pass_threshold} />
+                  <div className="flex items-baseline gap-2 tabular-nums">
+                    <span className="text-display leading-none">{latest}</span>
+                    <span className="text-tiny text-text-tertiary">最佳 {best}</span>
+                    <span
+                      className="text-tiny font-medium"
+                      style={{ color: delta >= 0 ? 'var(--success)' : 'var(--danger)' }}
+                    >
+                      {delta >= 0 ? '+' : ''}{delta}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </GlassCard>
 
@@ -224,5 +240,25 @@ export function PerformancePage({ userId }: { userId?: string }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/** 迷你折線：一眼看出起伏與是否跨過及格線，不佔版面。 */
+function Sparkline({ values, threshold }: { values: number[]; threshold: number }) {
+  const w = 168;
+  const h = 40;
+  const pad = 4;
+  const min = Math.min(threshold - 8, ...values);
+  const max = Math.max(threshold + 8, ...values);
+  const x = (i: number) => pad + (i * (w - pad * 2)) / Math.max(1, values.length - 1);
+  const y = (v: number) => h - pad - ((v - min) * (h - pad * 2)) / Math.max(1, max - min);
+  const path = values.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const last = values[values.length - 1] ?? 0;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden className="shrink-0">
+      <line x1={pad} x2={w - pad} y1={y(threshold)} y2={y(threshold)} stroke="var(--border-soft)" strokeDasharray="3 3" />
+      <path d={path} fill="none" stroke="var(--accent-indigo)" strokeWidth={1.8} strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={x(values.length - 1)} cy={y(last)} r={3.2} fill={last >= threshold ? 'var(--success)' : 'var(--danger)'} />
+    </svg>
   );
 }

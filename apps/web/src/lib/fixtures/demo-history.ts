@@ -40,34 +40,34 @@ export const DEMO_SCENARIOS: DemoScenarioRef[] = [
 /** 個人技能輪廓（十維度）。合規與同理最弱——正是示範情境要練的。 */
 export const DEMO_HISTORY_PROFILE: SkillProfile = {
   user_id: 'usr_demo',
-  overall_score: 81,
+  overall_score: 78,
   skills: {
-    professional_knowledge: 86,
-    empathy: 73,
-    needs_discovery: 84,
-    communication_clarity: 82,
-    objection_handling: 79,
-    trust_building: 80,
-    product_knowledge: 85,
-    compliance: 70,
-    closing_ability: 77,
-    goal_achievement: 83,
+    professional_knowledge: 84,
+    empathy: 69,
+    needs_discovery: 81,
+    communication_clarity: 79,
+    objection_handling: 74,
+    trust_building: 77,
+    product_knowledge: 83,
+    compliance: 66,
+    closing_ability: 72,
+    goal_achievement: 80,
   },
   weakest_skill: 'compliance',
   strongest_skill: 'professional_knowledge',
-  monthly_improvement: 5.2,
-  completed_sessions: 27,
-  compliance_trend: [54, 58, 60, 63, 67, 70],
-  days_to_readiness: 16,
+  monthly_improvement: 4.1,
+  completed_sessions: 23,
+  compliance_trend: [52, 61, 57, 66, 63, 70],
+  days_to_readiness: 21,
 };
 
 /** 六個月的總分與練習次數。 */
 export const DEMO_HISTORY_TREND: Array<{ label: string; score: number; sessions: number }> = [
-  { label: '4月', score: 68, sessions: 3 },
-  { label: '5月', score: 72, sessions: 5 },
-  { label: '6月', score: 74, sessions: 4 },
+  { label: '4月', score: 66, sessions: 3 },
+  { label: '5月', score: 73, sessions: 5 },
+  { label: '6月', score: 70, sessions: 4 },
   { label: '7月', score: 77, sessions: 6 },
-  { label: '8月', score: 79, sessions: 5 },
+  { label: '8月', score: 75, sessions: 5 },
   { label: '9月', score: 82, sessions: 4 },
 ];
 
@@ -77,9 +77,9 @@ export const DEMO_HISTORY_MASTERY: Array<ScenarioMastery & { href: string }> = [
     scenario_id: 'demo_clarify',
     scenario_name: '模糊提問的釐清對談——林佳穎',
     difficulty: 'easy',
-    attempts: 11,
-    pass_rate: 0.82,
-    average_score: 84,
+    attempts: 7,
+    pass_rate: 0.86,
+    average_score: 80,
     href: '/demo/clarify',
   },
   {
@@ -87,8 +87,8 @@ export const DEMO_HISTORY_MASTERY: Array<ScenarioMastery & { href: string }> = [
     scenario_name: '投資型保單的合規對談——周敏惠',
     difficulty: 'hard',
     attempts: 9,
-    pass_rate: 0.56,
-    average_score: 74,
+    pass_rate: 0.33,
+    average_score: 67,
     href: '/demo/compliance',
   },
   {
@@ -97,7 +97,7 @@ export const DEMO_HISTORY_MASTERY: Array<ScenarioMastery & { href: string }> = [
     difficulty: 'hard',
     attempts: 7,
     pass_rate: 0.57,
-    average_score: 76,
+    average_score: 69,
     href: '/demo',
   },
 ];
@@ -152,3 +152,15 @@ export const DEMO_HISTORY_RECOMMENDATION: Recommendation & { retry_href: string;
   weak_skills: ['compliance', 'empathy'],
   suggested_difficulty: 'hard',
 };
+
+/** 三個示範情境逐次嘗試的分數（由舊到新，含真實起伏）。及格線 70。 */
+export interface DemoJourney extends DemoScenarioRef {
+  scores: number[];
+  pass_threshold: number;
+}
+
+export const DEMO_HISTORY_JOURNEYS: DemoJourney[] = [
+  { ...DEMO_SCENARIOS[0]!, scores: [71, 78, 74, 82, 80, 85, 88], pass_threshold: 70 },
+  { ...DEMO_SCENARIOS[1]!, scores: [58, 62, 55, 66, 71, 64, 73, 68, 83], pass_threshold: 70 },
+  { ...DEMO_SCENARIOS[2]!, scores: [63, 60, 68, 66, 74, 72, 79], pass_threshold: 70 },
+];

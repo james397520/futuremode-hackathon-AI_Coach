@@ -97,6 +97,7 @@ export const RUNTIME_LABEL: Record<string, string> = {
  */
 const TRAINING_TYPE_LABEL: Record<string, string> = {
   objection_handling: '異議處理', needs_discovery: '需求探索', compliance_assessment: '合規考核',
+  compliance_check: '合規檢查', conversation_control: '對話掌控', difficult_conversation: '困難對話',
   executive_pitch: '高階主管提案', negotiation: '議價協商', product_pitch: '商品說明',
   closing: '締結成交', discovery: '需求探索',
 };

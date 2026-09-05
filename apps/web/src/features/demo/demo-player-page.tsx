@@ -5,7 +5,7 @@
  *
  * 直接用正式產品的版面元件：SessionHeader ＋ TrainingGrid(stage-left) ＋
  * ConversationPanel（對談、composer、教練卡、合規卡、引用晶片、事件列）＋
- * PersonaColumn(stage-fill)（大虛擬人＋自拍位＋情境資訊卡）。差別只有資料來源：
+ * PersonaStage ＋「目前狀態」「AI 教練」兩張浮動卡（與語音頁相同）。差別只有資料來源：
  * 對話照 `demo-scripts.ts` 的劇本演出：AI（客戶／教練／合規）自動輸出，輪到學員時
  * 把該說的話自動貼進輸入框、由使用者親自按「送出」，按下後 AI 再自動接續。不呼叫
  * 後端對話、不呼叫模型，所以錄影逐字一致、不會中斷。
@@ -21,21 +21,18 @@ import type {
   AgentName,
   CoachInsight,
   ComplianceFinding,
-  PersonaEmotion,
   PersonaSimulationState,
-  ScenarioPhase,
   SessionState,
   TranscriptTurn,
 } from '@ai-coach/shared';
-import type {
-  PersonaStateSnapshot,
-  TimelineMarker,
-  TimelineMarkerKind,
-} from '@/features/simulation/lib/types';
 import { SessionHeader } from '@/features/simulation/components/session-header';
 import { TrainingGrid } from '@/features/simulation/components/training-grid';
 import { ConversationPanel } from '@/features/simulation/components/conversation-panel';
-import { PersonaColumn } from '@/features/simulation/components/persona-column';
+import { PersonaStage } from '@/features/simulation/components/persona-stage';
+import { PersonaStateCard } from '@/features/simulation/components/persona-state-card';
+import { CoachCard } from '@/features/simulation/components/coach-card';
+import { SelfView } from '@/features/simulation/components/self-view';
+import { cn } from '@/features/simulation/components/kit';
 import { SimulationStyles } from '@/features/simulation/components/simulation-styles';
 import { endpoints } from '@/lib/api-client';
 import type { DemoBeat, DemoScript } from './demo-scripts';
@@ -79,11 +76,11 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   const [activeAgent, setActiveAgent] = useState<AgentName | null>(null);
   const [agentAtMs, setAgentAtMs] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
-  // Live persona-column data — evolves as the conversation advances, exactly as
-  // the real page's cards expect (phase progress, state timeline, mastery).
-  const [pstate, setPstate] = useState<PersonaSimulationState>(() => baseState(script));
-  const [history, setHistory] = useState<PersonaStateSnapshot[]>([]);
-  const [markers, setMarkers] = useState<TimelineMarker[]>([]);
+  // Persona state for the 目前狀態 card and the avatar's expression. Starts null
+  // — exactly like the real store before the engine's first report — so the card
+  // reads 「等待模擬人物回應中」 until the customer first answers.
+  const [pstate, setPstate] = useState<PersonaSimulationState | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -96,35 +93,13 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   const resumeRef = useRef(0); // beat index to resume at after the trainee line is sent
   const pstateRef = useRef<PersonaSimulationState>(baseState(script)); // mirror for merge
 
-  // Advance the persona state + push a history snapshot + a timeline marker, so
-  // PersonaColumn's cards (目標達成進度 / 狀態時間軸 / 情境進度) move exactly as the
-  // real page drives them. Never changes the card logic — only feeds it data.
-  const evolve = useCallback(
-    (
-      patch: Partial<PersonaSimulationState>,
-      marker?: { kind: TimelineMarkerKind; label: string; emotion?: PersonaEmotion },
-    ) => {
-      const next = { ...pstateRef.current, ...patch };
-      pstateRef.current = next;
-      const atMs = Math.max(0, Date.now() - startRef.current);
-      setPstate(next);
-      setHistory((h) => [...h, { atMs, state: next }]);
-      if (marker) {
-        setMarkers((m) => [
-          ...m,
-          {
-            id: `mk${seqRef.current++}`,
-            atMs,
-            kind: marker.kind,
-            label: marker.label,
-            emotion: marker.emotion ?? next.emotion,
-            phase: next.scenario_phase,
-          },
-        ]);
-      }
-    },
-    [],
-  );
+  // Advance the persona state so the 目前狀態 card and avatar expression move
+  // exactly as the real engine drives them. Card logic is untouched.
+  const evolve = useCallback((patch: Partial<PersonaSimulationState>) => {
+    const next = { ...pstateRef.current, ...patch };
+    pstateRef.current = next;
+    setPstate(next);
+  }, []);
   const clamp = (n: number) => Math.max(0, Math.min(100, n));
 
   const nextTs = useCallback(() => seqRef.current++ * 1000, []);
@@ -219,25 +194,19 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
       // Drive the persona-column cards: a cited reply reads as progress into the
       // presentation phase and lifts interest/trust; a plain reply nudges it.
       if (beat.citations?.length) {
-        evolve(
-          {
+        evolve({
             emotion: 'interested',
             interest: clamp(pstateRef.current.interest + 8),
             trust: clamp(pstateRef.current.trust + 6),
             scenario_phase: 'presentation',
             compliance_risk: 'safe',
-          },
-          { kind: 'key_response', label: '引用核准資料回應', emotion: 'interested' },
-        );
+          });
       } else {
-        evolve(
-          {
+        evolve({
             emotion: 'curious',
             interest: clamp(pstateRef.current.interest + 4),
             trust: clamp(pstateRef.current.trust + 3),
-          },
-          { kind: 'state_transition', label: '客戶回應' },
-        );
+          });
       }
     },
     [nextTs, speakLine, evolve],
@@ -287,16 +256,13 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
       if (i >= script.beats.length) {
         setActiveAgent(null);
         setStatus('completed');
-        evolve(
-          {
+        evolve({
             emotion: 'reassured',
             trust: clamp(pstateRef.current.trust + 8),
             resistance: clamp(pstateRef.current.resistance - 10),
             scenario_phase: 'closing',
             compliance_risk: 'safe',
-          },
-          { kind: 'state_transition', label: '對話收尾', emotion: 'reassured' },
-        );
+          });
         return;
       }
       const beat = script.beats[i];
@@ -360,7 +326,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
               requested: false,
             },
           ]);
-          evolve({ patience: clamp(pstateRef.current.patience - 4) }, { kind: 'missed_signal', label: beat.title });
+          evolve({ patience: clamp(pstateRef.current.patience - 4) });
           setActiveAgent(null);
           after(AFTER_EVENT_MS, () => play(i + 1));
         });
@@ -373,16 +339,13 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
       setAgentAtMs(Date.now());
       after(TYPING_MS, () => {
         setFindings((p) => [...p, { ...beat.finding, timestamp_ms: nextTs() }]);
-        evolve(
-          {
+        evolve({
             emotion: 'skeptical',
             resistance: clamp(pstateRef.current.resistance + 8),
             trust: clamp(pstateRef.current.trust - 4),
             compliance_risk: beat.finding.severity,
             scenario_phase: 'objection_handling',
-          },
-          { kind: 'compliance_warning', label: '合規警示', emotion: 'skeptical' },
-        );
+          });
         setActiveAgent(null);
         after(AFTER_EVENT_MS, () => play(i + 1));
       });
@@ -403,9 +366,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
     startRef.current = Date.now();
     setElapsedMs(0);
     pstateRef.current = baseState(script);
-    setPstate(pstateRef.current);
-    setHistory([]);
-    setMarkers([]);
+    setPstate(null);
     setStatus('ready');
     const opening = script.opening;
     if (opening.speaker === 'persona') {
@@ -441,10 +402,8 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
     setTurns([]);
     setInsights([]);
     setFindings([]);
-    setHistory([]);
-    setMarkers([]);
     pstateRef.current = baseState(script);
-    setPstate(pstateRef.current);
+    setPstate(null);
     setSpeaking(false);
     setActiveAgent(null);
     setStatus('connecting');
@@ -523,41 +482,43 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
             />
           }
           right={
-            <PersonaColumn
-              className="h-full max-h-full"
-              layout="stage-fill"
-              mode="training"
-              scenarioName={script.scenarioTitle}
-              industry={script.industry}
-              trainingType={script.trainingType}
-              difficulty={script.difficulty}
-              learningObjectives={script.learningObjectives}
-              restrictedTopics={script.restrictedTopics}
-              personaName={script.personaName}
-              personaGender={script.personaGender}
-              personaAge={script.personaAge}
-              personaSubtitle={script.personaOccupation}
-              onPersonaVisible={begin}
-              speaking={speaking}
-              listening={status === 'listening'}
-              thinking={status === 'processing'}
-              requiredTalkingPoints={script.requiredTalkingPoints}
-              keyObjections={script.keyObjections}
-              successCondition={script.successCondition}
-              timeLimitSeconds={script.timeLimitSeconds}
-              remainingMs={Math.max(0, script.timeLimitSeconds * 1000 - elapsedMs)}
-              overtime={false}
-              scenarioPhase={pstate.scenario_phase}
-              turns={turns}
-              personaState={pstate}
-              personaStateUpdating={activeAgent === 'customer'}
-              personaHistory={history}
-              timelineMarkers={markers}
-              startedAtMs={startRef.current}
-              elapsedMs={elapsedMs}
-              coachInsights={insights}
-              suppressedCoachCount={0}
-            />
+            <section className="relative h-full min-h-0 overflow-hidden" aria-label="AI 模擬人物">
+              <SelfView videoRef={videoRef} live={false} reading={null} analyzerInstalled={false} />
+              <PersonaStage
+                fill
+                className="h-full min-h-0"
+                personaName={script.personaName}
+                personaGender={script.personaGender}
+                personaAge={script.personaAge}
+                onPersonaVisible={begin}
+                subtitle={`${script.personaOccupation} · ${script.industry}`}
+                personaState={pstate}
+                eyebrow="語音模擬"
+                speaking={speaking}
+                listening={status === 'listening'}
+                thinking={status === 'processing'}
+              />
+              {/* Same two-column, chest-height glass stack as the real voice page. */}
+              <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3 pb-11">
+                <div
+                  className={cn(
+                    'sim-stage-overlay pointer-events-auto grid w-full items-stretch gap-2',
+                    'max-h-[38%] grid-cols-1 overflow-y-auto',
+                    'sm:grid-cols-2 sm:grid-rows-1 sm:overflow-hidden',
+                    '[&>*]:min-h-0 [&>*]:overflow-y-auto',
+                  )}
+                >
+                  <PersonaStateCard state={pstate} updating={status === 'processing' || speaking} />
+                  <CoachCard
+                    mode="training"
+                    insights={insights}
+                    suppressedCount={0}
+                    startedAtMs={startRef.current}
+                    onAskCoach={noop}
+                  />
+                </div>
+              </div>
+            </section>
           }
         />
       </div>
