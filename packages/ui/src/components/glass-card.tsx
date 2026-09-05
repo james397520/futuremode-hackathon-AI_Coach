@@ -21,17 +21,17 @@ import { focusRing } from '../lib/focus-ring';
 export const glassSurface = {
   /** §3.2 */
   card:
-    'bg-glass-card border border-border-glass backdrop-blur-card ' +
+    'liquid-glass bg-glass-card backdrop-blur-card backdrop-saturate-150 ' +
     '[box-shadow:var(--shadow-soft),var(--shadow-inset-hi)]',
   /** §3.3 — 密集文字一律用這層 */
-  strong: 'bg-glass-strong border border-border-soft backdrop-blur-card',
+  strong: 'liquid-glass bg-glass-strong backdrop-blur-card',
   /** §3.2 + 更深的 depth */
   floating:
-    'bg-glass-card border border-border-glass backdrop-blur-card ' +
+    'liquid-glass bg-glass-card backdrop-blur-card backdrop-saturate-150 ' +
     '[box-shadow:var(--shadow-floating),var(--shadow-inset-hi)]',
   /** 浮層（popover / dropdown / modal）— strong surface + floating shadow */
   overlay:
-    'bg-glass-strong border border-border-glass backdrop-blur-card ' +
+    'liquid-glass bg-glass-strong backdrop-blur-card ' +
     '[box-shadow:var(--shadow-floating),var(--shadow-inset-hi)]',
 } as const;
 

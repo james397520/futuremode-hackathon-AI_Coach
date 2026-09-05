@@ -37,23 +37,126 @@
 }
 
 /* §3.1 外層玻璃大框 */
+/* ---------------------------------------------------------------------------
+ * Liquid glass
+ *
+ * A frosted panel is `backdrop-filter: blur()` and stops there. Real glass does
+ * four things that blur alone cannot, and all four are what make the reference
+ * read as a physical slab:
+ *
+ *   1. the RIM catches light — bright along the top-left, dark along the
+ *      bottom-right, because the edge is a curved surface, not a 1px line;
+ *   2. the edge REFRACTS, so the background bends where the glass thickens;
+ *   3. that bending splits colour slightly — a faint cyan/magenta fringe;
+ *   4. the body is brighter and more saturated than what is behind it, because
+ *      glass gathers light rather than just scattering it.
+ *
+ * Elements 1, 3 and 4 are layered inset shadows and filter values. True
+ * refraction (2) needs a displacement map; `--glass-refract` carries one where
+ * the browser supports `backdrop-filter: url()`, and its absence costs only the
+ * bend, not the effect.
+ *
+ * Legibility outranks all of it: the body stays opaque enough that the contrast
+ * ratios measured for text still hold.
+ * ------------------------------------------------------------------------- */
+
+.glass-shell,
+.glass-card,
+.liquid-glass {
+  position: relative;
+  isolation: isolate;
+}
+
+/* The rim: a light-catching bevel rather than a border. Two inset highlights
+ * (top-left) and two inset shadows (bottom-right) give the edge thickness, and
+ * the two coloured hairlines are the dispersion fringe. */
+.glass-shell::after,
+.glass-card::after,
+.liquid-glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
+    inset 1px 0 0 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 0 rgba(9, 20, 44, 0.14),
+    inset -1px 0 0 0 rgba(9, 20, 44, 0.09),
+    /* dispersion: cool on one edge, warm on the other */
+    inset 0 2px 3px -2px rgba(120, 220, 255, 0.5),
+    inset 0 -2px 3px -2px rgba(220, 130, 255, 0.35);
+}
+
 .glass-shell {
   background: var(--glass-shell);
-  backdrop-filter: blur(var(--blur-shell)) saturate(var(--saturate-shell));
-  -webkit-backdrop-filter: blur(var(--blur-shell)) saturate(var(--saturate-shell));
-  border: 1px solid var(--border-glass);
+  backdrop-filter: blur(var(--blur-shell)) saturate(var(--saturate-shell))
+    brightness(1.06);
+  -webkit-backdrop-filter: blur(var(--blur-shell)) saturate(var(--saturate-shell))
+    brightness(1.06);
+  border: 0;
   border-radius: var(--radius-shell);
-  box-shadow: var(--shadow-shell), var(--shadow-inset-hi);
+  box-shadow:
+    var(--shadow-shell),
+    /* the slab has depth: a soft contact shadow under the bottom edge */
+    0 1px 2px rgba(9, 20, 44, 0.06);
 }
 
 /* §3.2 內層玻璃卡 */
 .glass-card {
   background: var(--glass-card);
-  backdrop-filter: blur(var(--blur-card));
-  -webkit-backdrop-filter: blur(var(--blur-card));
-  border: 1px solid var(--border-glass);
+  backdrop-filter: blur(var(--blur-card)) saturate(150%) brightness(1.04);
+  -webkit-backdrop-filter: blur(var(--blur-card)) saturate(150%) brightness(1.04);
+  border: 0;
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow-soft), 0 1px 2px rgba(9, 20, 44, 0.05);
+}
+
+/* A sheen across the top third — light entering the slab and scattering. Kept
+ * under the content (`z-index: 0` vs the rim's 1) so it never veils text. */
+.glass-shell::before,
+.glass-card::before,
+.liquid-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    linear-gradient(
+      168deg,
+      rgba(255, 255, 255, 0.5) 0%,
+      rgba(255, 255, 255, 0.12) 34%,
+      transparent 62%
+    );
+}
+
+[data-theme='dark'] .glass-shell::after,
+[data-theme='dark'] .glass-card::after,
+[data-theme='dark'] .liquid-glass::after {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.24),
+    inset 1px 0 0 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.5),
+    inset -1px 0 0 0 rgba(0, 0, 0, 0.35),
+    inset 0 2px 3px -2px rgba(120, 220, 255, 0.28),
+    inset 0 -2px 3px -2px rgba(200, 130, 255, 0.2);
+}
+
+[data-theme='dark'] .glass-shell::before,
+[data-theme='dark'] .glass-card::before,
+[data-theme='dark'] .liquid-glass::before {
+  background:
+    linear-gradient(
+      168deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.03) 34%,
+      transparent 62%
+    );
 }
 
 /* §3.3 Strong surface：transcript / 表單 / 設定頁（要保證文字可讀） */

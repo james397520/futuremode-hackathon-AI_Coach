@@ -50,7 +50,7 @@ export const GlassShell = React.forwardRef<HTMLDivElement, GlassShellProps>(func
         ref={ref}
         className={cn(
           'relative flex w-full max-w-shell flex-col',
-          'rounded-shell border border-border-glass bg-glass-shell',
+          'liquid-glass rounded-shell bg-glass-shell',
           'backdrop-blur-shell backdrop-saturate-[var(--saturate-shell)]',
           '[box-shadow:var(--shadow-shell),var(--shadow-inset-hi)]',
           'text-text-primary',
