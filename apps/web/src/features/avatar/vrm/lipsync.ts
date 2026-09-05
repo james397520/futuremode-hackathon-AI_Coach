@@ -48,6 +48,18 @@ const VISEME_TOTAL = VISEMES.reduce((s, v) => s + v.w, 0);
 /** Floor on jawOpen while speaking — the "never fully closed" rule. */
 const MIN_OPEN_WHILE_SPEAKING = 0.12;
 
+/**
+ * How far of each viseme actually gets used.
+ *
+ * The table above is written as "what this vowel looks like at full effort",
+ * which is right for a shouted 「啊」 and much too much for someone talking
+ * across a desk. On the Rocketbox heads `aa` at 0.75 is a yawn — the jaw drops
+ * to its mechanical limit and the face reads as a puppet. Conversational
+ * speech lives in the bottom half of the range, so the shapes are scaled here,
+ * once, instead of every number in the table being re-tuned by hand.
+ */
+const VISEME_SCALE = 0.58;
+
 const CHANNELS = [
   'jawOpen', 'mouthStretchLeft', 'mouthStretchRight', 'mouthFunnel', 'mouthPucker',
   'mouthUpperUpLeft', 'mouthUpperUpRight', 'mouthLowerDownLeft', 'mouthLowerDownRight',
@@ -115,7 +127,7 @@ export class ProceduralLipsync implements SpeechSource {
       }
     }
     // Amplitude jitter per syllable so no two "a"s are identical.
-    const gain = 0.75 + this.rng() * 0.45;
+    const gain = (0.75 + this.rng() * 0.45) * VISEME_SCALE;
     for (const c of CHANNELS) this.target[c] = 0;
     for (const key of Object.keys(chosen.shape) as Channel[]) {
       this.target[key] = Math.min(1, (chosen.shape[key] ?? 0) * gain);

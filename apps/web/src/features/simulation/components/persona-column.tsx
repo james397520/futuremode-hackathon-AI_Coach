@@ -228,8 +228,8 @@ export function PersonaColumn(props: PersonaColumnProps) {
             (說話中／聆聽中／待命中) and the waveform sit in an `inset-x-0 bottom-0
             p-4` strip up to 48 px tall, and without this the bottom card was
             painted over 「待命中」. */}
-        <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3 pb-14">
-          <div className="sim-scroll sim-stage-overlay pointer-events-auto grid max-h-[36%] w-full grid-cols-1 content-start items-stretch gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+        <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3 pb-11">
+          <div className="sim-stage-overlay pointer-events-auto grid max-h-[38%] w-full grid-cols-1 items-end gap-2 sm:grid-cols-2 [&>*]:sim-scroll [&>*]:max-h-full [&>*]:overflow-y-auto">
             {cards}
           </div>
         </div>

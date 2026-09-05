@@ -18,6 +18,7 @@
  * speaking, cancels TTS locally, and this page tells the server the floor moved.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { endpoints } from '@/lib/api-client';
 
@@ -130,6 +131,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
   const sttEngineRef = useRef(sttEngine);
   sttEngineRef.current = sttEngine;
 
+  const router = useRouter();
   const voice = useVoiceSession({
     enabled: true,
     sessionId,
@@ -287,13 +289,38 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
 
   // ---- Handlers ------------------------------------------------------------
 
+  // Restart has to reset the *server* session, not just this page. Clearing the
+  // store and remounting the socket left the transcript, the turn count and the
+  // persona state on the API, so the next connect replayed all of it and the
+  // whole conversation reappeared a second later — the button looked broken
+  // precisely because it did something.
+  //
+  // A training product already has the right word for this: another attempt.
+  // Creating a fresh session of the same scenario is the only reset that is
+  // actually clean, and it keeps the finished attempt intact for review.
   const handleRestart = useCallback(() => {
     voice.cancelTts();
     actions.resetForRestart();
     setNotices([]);
     setInterrupted(false);
     setEpoch((n) => n + 1);
-  }, [actions, voice]);
+    const scenarioId = bootstrap?.scenario?.id;
+    if (!scenarioId) return;
+    void endpoints
+      .createSession({
+        scenario_id: scenarioId,
+        mode: bootstrap.mode,
+        voice_enabled: true,
+        score_live_enabled: bootstrap.scoreLiveEnabled ?? true,
+      })
+      .then((created) => {
+        router.push(`/simulations/${created.session.session_id}/voice`);
+      })
+      .catch(() => {
+        // The local reset above already happened; say nothing rather than
+        // stranding the user on a half-reset page with an error toast.
+      });
+  }, [actions, bootstrap, router, voice]);
 
   const handleEnd = useCallback(() => {
     voice.cancelTts();
@@ -354,7 +381,12 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
     );
   }
 
-  const personaSpeaking = status === 'persona_speaking';
+  // The mouth has to move while the audio is *actually playing*, not while the
+  // socket says the persona is speaking. `persona_speaking` is set by the text
+  // stream (`agent.response.partial`) and clears when the text ends, which is
+  // before the clip starts and long before it finishes — so the lipsync ran
+  // against silence and the avatar sat still through the whole reply.
+  const personaSpeaking = status === 'persona_speaking' || voice.ttsPlaying;
   const personaListening = voiceStatus === 'listening' || voiceStatus === 'transcribing';
 
   return (
@@ -529,8 +561,8 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                     persona's face. */}
                 {/* Same two-column, chest-height glass stack as PersonaColumn's
                     stage-fill layout — keep the two in step. */}
-                <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3 pb-14">
-                  <div className="sim-scroll sim-stage-overlay pointer-events-auto grid max-h-[36%] w-full grid-cols-1 content-start items-stretch gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3 pb-11">
+                  <div className="sim-stage-overlay pointer-events-auto grid max-h-[38%] w-full grid-cols-1 items-end gap-2 sm:grid-cols-2 [&>*]:sim-scroll [&>*]:max-h-full [&>*]:overflow-y-auto">
                     <PersonaStateCard
                       state={personaState}
                       updating={status === 'processing' || personaSpeaking}

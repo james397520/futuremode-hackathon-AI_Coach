@@ -18,6 +18,7 @@
  *     events (§62 / §94).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Citation } from '@ai-coach/shared';
 
 import { useQuery } from '@tanstack/react-query';
@@ -155,6 +156,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
   const sttEngineRef = useRef(sttEngine);
   sttEngineRef.current = sttEngine;
 
+  const router = useRouter();
   const voice = useVoiceSession({
     enabled: Boolean(bootstrap?.voiceEnabled) && micWanted,
     sessionId,
@@ -336,12 +338,37 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
     else socket.pause();
   }, [socket, status]);
 
+  // Restart has to reset the *server* session, not just this page. Clearing the
+  // store and remounting the socket left the transcript, the turn count and the
+  // persona state on the API, so the next connect replayed all of it and the
+  // whole conversation reappeared a second later — the button looked broken
+  // precisely because it did something.
+  //
+  // A training product already has the right word for this: another attempt.
+  // Creating a fresh session of the same scenario is the only reset that is
+  // actually clean, and it keeps the finished attempt intact for review.
   const handleRestart = useCallback(() => {
     voice.cancelTts();
     actions.resetForRestart();
     setNotices([]);
     setEpoch((n) => n + 1);
-  }, [actions, voice]);
+    const scenarioId = bootstrap?.scenario?.id;
+    if (!scenarioId) return;
+    void endpoints
+      .createSession({
+        scenario_id: scenarioId,
+        mode: bootstrap.mode,
+        voice_enabled: bootstrap.voiceEnabled ?? false,
+        score_live_enabled: bootstrap.scoreLiveEnabled ?? true,
+      })
+      .then((created) => {
+        router.push(`/simulations/${created.session.session_id}/live`);
+      })
+      .catch(() => {
+        // The local reset above already happened; say nothing rather than
+        // stranding the user on a half-reset page with an error toast.
+      });
+  }, [actions, bootstrap, router, voice]);
 
   const handleEnd = useCallback(() => {
     voice.cancelTts();
@@ -434,7 +461,12 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
     );
   }
 
-  const personaSpeaking = status === 'persona_speaking';
+  // The mouth has to move while the audio is *actually playing*, not while the
+  // socket says the persona is speaking. `persona_speaking` is set by the text
+  // stream (`agent.response.partial`) and clears when the text ends, which is
+  // before the clip starts and long before it finishes — so the lipsync ran
+  // against silence and the avatar sat still through the whole reply.
+  const personaSpeaking = status === 'persona_speaking' || voice.ttsPlaying;
   const personaListening = status === 'listening' || status === 'transcribing';
   const personaThinking = status === 'processing';
 
