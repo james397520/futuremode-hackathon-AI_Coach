@@ -532,7 +532,14 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                 <AffectNudge
                   reading={camera.reading}
                   cameraLive={camera.live}
-                  traineesTurn={status === 'listening' || status === 'idle' || status === 'ready'}
+                  // Anything except a session that is not running. Gating this
+                  // on the trainee's *turn* meant a frown during the customer's
+                  // answer — the most natural moment to look stuck — was
+                  // ignored, and the card then appeared long after the
+                  // expression had passed. Kept identical to the text page's
+                  // copy in `conversation-panel.tsx`; the two drifted, and this
+                  // one is the page the demo actually runs on.
+                  traineesTurn={status !== 'connecting' && status !== 'error'}
                   onAskHint={isTraining ? () => socket.requestHint() : undefined}
                 />
 

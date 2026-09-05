@@ -21,7 +21,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 
-import type { AffectReading } from '../lib/affect';
+import { FACE_TO_AFFECT_LABEL, type AffectReading } from '../lib/affect';
 import { insetSurface, toneText } from '../lib/tone';
 import { LightbulbIcon } from './icons';
 import { cn } from './kit';
@@ -32,10 +32,14 @@ const NEGATIVE = new Set(['angry', 'sad', 'fearful', 'disgusted', 'contempt']);
 // would be offered help for an expression the customer never reacted to; if it
 // were lower, the reverse.
 const MIN_CONFIDENCE = 0.42;
-// How long the expression has to be held. Long enough not to fire on a blink
-// or a glance away, short enough that someone frowning at a demo sees the card
-// while they are still frowning.
-const SUSTAIN_MS = 1200;
+// How long the expression has to be held before help is offered. Three seconds
+// is a decision, not a flicker: long enough that a glance away or a moment of
+// concentration is not read as being stuck.
+const SUSTAIN_MS = 3000;
+// The detection itself is acknowledged much sooner. Seeing that the system
+// noticed is worth something on its own — and without it, the three seconds
+// before the offer look like nothing is happening.
+const NOTICE_MS = 800;
 // Between cards. 30 s was long enough that a second frown in the same exchange
 // simply produced nothing, which reads as the feature having broken rather than
 // as restraint.
@@ -54,6 +58,8 @@ export interface AffectNudgeProps {
 
 export function AffectNudge({ reading, cameraLive, traineesTurn, onAskHint, className }: AffectNudgeProps) {
   const [visible, setVisible] = useState(false);
+  // The quiet half: "we can see it", shown while the offer is not (yet) due.
+  const [noticed, setNoticed] = useState(false);
   // Forces the effect below to look again while a frown is still being held.
   const [recheck, setRecheck] = useState(0);
   const sinceRef = useRef<number | null>(null);
@@ -62,35 +68,43 @@ export function AffectNudge({ reading, cameraLive, traineesTurn, onAskHint, clas
   const hideTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const negative =
+    // Detection is independent of whose turn it is: the face is the face.
+    const detected =
       cameraLive &&
-      traineesTurn &&
       reading !== null &&
       NEGATIVE.has(reading.label) &&
       reading.confidence >= MIN_CONFIDENCE;
 
-    if (!negative) {
+    if (!detected) {
       // The expression cleared: re-arm. A fresh frown later is a new signal.
       sinceRef.current = null;
       armedRef.current = true;
+      setNoticed(false);
       return;
     }
     if (sinceRef.current === null) sinceRef.current = Date.now();
     const held = Date.now() - sinceRef.current;
+
+    // The analyser only emits when the label changes or the confidence moves
+    // (`shouldEmit`), so *holding* a frown produces no further readings — and
+    // this effect, which only runs on a new reading, would never see that the
+    // time had elapsed. A steady frown therefore never opened anything, which
+    // is exactly the way anyone frowns at a demo. Come back when the next
+    // threshold is due instead of waiting for a signal that will not arrive.
+    const next = held < NOTICE_MS ? NOTICE_MS : held < SUSTAIN_MS ? SUSTAIN_MS : null;
+    if (next !== null) {
+      const timer = window.setTimeout(() => setRecheck((n) => n + 1), next - held + 50);
+      if (held >= NOTICE_MS) setNoticed(true);
+      return () => window.clearTimeout(timer);
+    }
+    setNoticed(true);
+
+    // Offering help is the part that needs the floor: a card asking whether you
+    // want a hand is noise while the customer is still talking.
+    if (!traineesTurn) return;
     // `armedRef` is the important guard: one continuous frown gets one card,
     // however long it lasts. Without it the cooldown alone re-showed the card
     // every 30s to someone who had already answered it.
-    if (held < SUSTAIN_MS) {
-      // The analyser only emits when the label changes or the confidence moves
-      // (`shouldEmit`), so *holding* a frown produces no further readings — and
-      // this effect, which only runs on a new reading, never got to see that
-      // the 1.5 s had elapsed. A steady frown therefore never opened the card,
-      // which is exactly the way anyone actually frowns at a demo. Come back
-      // when the time is up instead of waiting for a signal that will not
-      // arrive.
-      const timer = window.setTimeout(() => setRecheck((n) => n + 1), SUSTAIN_MS - held + 50);
-      return () => window.clearTimeout(timer);
-    }
     if (visible || !armedRef.current || Date.now() - lastShownRef.current < COOLDOWN_MS) return;
 
     armedRef.current = false;
@@ -106,12 +120,31 @@ export function AffectNudge({ reading, cameraLive, traineesTurn, onAskHint, clas
     [],
   );
 
-  // Hand the floor back the moment the trainee starts talking.
-  useEffect(() => {
-    if (!traineesTurn && visible) setVisible(false);
-  }, [traineesTurn, visible]);
-
-  if (!visible || !onAskHint) return null;
+  if (!visible || !onAskHint) {
+    // Not offering help, but the expression was seen. Saying so is the whole
+    // difference between a system that is watching and one that looks broken.
+    if (!noticed || !cameraLive || reading === null) return null;
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className={cn(
+          'sim-card-enter mx-1.5 mb-2 flex items-center gap-2 rounded-pill px-3 py-1.5',
+          className,
+        )}
+        style={insetSurface('violet', 8)}
+      >
+        <span
+          aria-hidden
+          className="inline-block size-1.5 rounded-pill"
+          style={{ backgroundColor: toneText('violet') }}
+        />
+        <span className="text-tiny text-text-secondary">
+          偵測到你的情緒：{FACE_TO_AFFECT_LABEL[reading.label] ?? reading.label}
+        </span>
+      </div>
+    );
+  }
 
   const dismiss = (): void => {
     if (hideTimerRef.current !== null) window.clearTimeout(hideTimerRef.current);
