@@ -34,6 +34,9 @@ cat > "$APP/Contents/Info.plist" <<'PL'
   <string>AI Coach 在本機將學員的語音轉為文字，音訊不會離開這台電腦。</string>
 </dict></plist>
 PL
+# Sidecar: voice inventory with quality tier (no TCC needed, plain binary is fine).
+xcrun swiftc -O -target arm64-apple-macos13.0 Sources/voices.swift -o bin/mac-voices \
+  -framework AVFoundation -framework Foundation
 codesign --force --sign - "$APP" >/dev/null
 # Register with LaunchServices so TCC / tccutil can resolve the bundle id.
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP" >/dev/null 2>&1 || true
