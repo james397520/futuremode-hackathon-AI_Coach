@@ -405,7 +405,7 @@
   <div class="wrap">
     <div class="eyebrow">System Architecture</div>
     <h2>系統架構</h2>
-    <p class="lead">前端負責語音擷取與 3D 渲染；後端統籌對話狀態、RAG 檢索與評估流程；模型層可替換，資料層保存知識庫向量與訓練紀錄。</p>
+    <p class="lead">前端負責語音擷取與 3D 渲染；後端統籌對話狀態、RAG 檢索與評估流程；模型層可替換，資料層保存企業知識庫與訓練紀錄。</p>
     <div class="arch">
       <svg viewBox="0 0 920 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI Coach 系統架構圖">
         <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5 0 10z" fill="#555"/></marker></defs>
@@ -430,10 +430,9 @@
         <rect class="box" x="510" y="220" width="160" height="60" rx="8"/><text x="524" y="244">Embedding</text><text class="sub" x="524" y="264">知識向量化</text>
         <rect class="box" x="510" y="300" width="160" height="60" rx="8"/><text x="524" y="324">Avatar 驅動</text><text class="sub" x="524" y="344">音素 → 表情參數</text>
         <!-- data -->
-        <rect class="box" x="730" y="60" width="160" height="60" rx="8"/><text x="744" y="84">向量資料庫</text><text class="sub" x="744" y="104">企業知識索引</text>
-        <rect class="box" x="730" y="140" width="160" height="60" rx="8"/><text x="744" y="164">關聯式資料庫</text><text class="sub" x="744" y="184">使用者 · 對練紀錄 · 評分</text>
-        <rect class="box" x="730" y="220" width="160" height="60" rx="8"/><text x="744" y="244">物件儲存</text><text class="sub" x="744" y="264">文件原檔 · 錄音</text>
-        <rect class="box" x="730" y="300" width="160" height="60" rx="8"/><text x="744" y="324">企業文件來源</text><text class="sub" x="744" y="344">PDF · Docs · FAQ</text>
+        <rect class="box" x="730" y="60" width="160" height="60" rx="8"/><text x="744" y="84">關聯式資料庫</text><text class="sub" x="744" y="104">使用者 · 對練紀錄 · 評分</text>
+        <rect class="box" x="730" y="140" width="160" height="60" rx="8"/><text x="744" y="164">物件儲存</text><text class="sub" x="744" y="184">文件原檔 · 錄音</text>
+        <rect class="box" x="730" y="220" width="160" height="60" rx="8"/><text x="744" y="244">企業文件來源</text><text class="sub" x="744" y="264">PDF · Docs · FAQ</text>
         <!-- arrows: orthogonal only, routed through the empty gutters between lanes -->
         <line x1="190" y1="90" x2="250" y2="90"/>
         <path d="M190,250 L220,250 L220,170 L250,170"/>
@@ -441,7 +440,7 @@
         <line x1="450" y1="170" x2="510" y2="170"/>
         <line x1="350" y1="200" x2="350" y2="220"/>
         <line x1="450" y1="250" x2="510" y2="250"/>
-        <path d="M730,330 L700,330 L700,290 L474,290 L474,240 L450,240"/>
+        <path d="M730,250 L700,250 L700,290 L478,290 L478,260 L450,260"/>
         <path d="M450,340 L480,340 L480,90 L510,90"/>
       </svg>
     </div>
