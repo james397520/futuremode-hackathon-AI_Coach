@@ -29,7 +29,7 @@ curl http://127.0.0.1:8000/health
 
 ## 3. 改用現有本機模型
 
-本機 adapter 使用 Ollama 格式 `/api/chat`，模型 `qwen2.5:1.5b`。若已安裝 Ollama：
+本機 adapter 使用 Ollama 格式 `/api/chat`，模型 `qwen3:8b`。若已安裝 Ollama：
 
 ```bash
 # 終端機 A，已由應用程式啟動服務者不必重複執行
@@ -37,11 +37,11 @@ ollama serve
 
 # 終端機 B，確認已下載模型；缺少時才執行 pull
 ollama list
-ollama pull qwen2.5:1.5b
+ollama pull qwen3:8b
 ```
 
 模型服務位址固定在 `app/local_model.py` 的 `create_test_ai_provider()`，預設 `http://localhost:11434/api/chat`。
-模型名稱在 `build_test_request()` 的 payload，目前問答與角色扮演分支各有一處，修改時需同步。
+模型名稱统一讀取 `OLLAMA_MODEL` 環境變數，預設 `qwen3:8b`，問答、客戶與評估共用此設定。CLI 也可傳 `--model`。
 
 關閉 mock API，再啟動：
 
@@ -72,13 +72,14 @@ def create_provider():
 
 此段是介面範本，不能直接執行；request／response 必須按自己的模型服務格式轉換。完整可執行範例是 `app/local_model.py`。
 
-三種 task 的要求：
+四種 task 的要求：
 
 | task | 輸入 payload | 回傳 AIResponse |
 | --- | --- | --- |
 | answer | question、sources | text、citation_ids、insufficient_evidence |
 | roleplay | message、history、persona、sources | text（只扮演客戶） |
 | evaluate | history、sources、compliance、phase | report（五維分數與證據） |
+| emotion | current_message、context | emotion（文字語氣 label、intensity、evidence_quote、reason、suggestion） |
 
 保留 `request.instructions`，history 中 user 是學員、assistant 是客戶。模型若使用 S1 等來源別名，回傳前需轉回真正 chunk id；現有 local adapter 已示範轉換。
 評分缺少觀察用 null；有分數須附學員逐字引用，專業準確度／風險揭露數值另須附文件來源。錯誤轉為不含金鑰與原始 payload 的 `ProviderError`。

@@ -1,5 +1,14 @@
 # 前端串接：持續對練
 
+## 學員文字情緒分析
+
+每輪 POST turns 另回 `emotion_status: pending`；GET session 的 `emotions` 保存每輪 `{turn, status, analysis, error}`，`latest_emotion` 為回合號最大的已完成分析。分析與分數可能落後客戶對話，畫面須顯示回合號。
+
+`analysis` 包含 `label`（平穩／緊張／不耐煩／挫折／正向／不明確）、`intensity`（low／medium／high／unknown）、`evidence_quote`、`reason`、`suggestion`、`is_mock`。
+只分析學員本輪文字，客戶話語僅作上下文；不明確時顯示資料不足，不強行分類。這是文字語氣推測，不是內心狀態、心理診斷或語音情緒辨識，不直接影響五維分數。
+
+每輪背景工作先分析文字語氣，再做能力評分；兩者獨立記錄失敗。Mock 固定回不明確且清楚標示未執行模型分析。CLI `/finish` JSON 紀錄包含 emotions 全歷史。
+
 Base URL：`http://127.0.0.1:8000`。CORS 已允許 localhost／127.0.0.1 的 3000、5173 埠。
 完整型別看 [openapi.json](openapi.json) 或執行中的 `/docs`。
 
@@ -12,7 +21,7 @@ Base URL：`http://127.0.0.1:8000`。CORS 已允許 localhost／127.0.0.1 的 30
 5. `POST /sessions/{id}/finish` 結束，繼續 GET 到 `finished` 或 `final_failed`。
 6. 顯示 `final_report`，停止輪詢；元件離開時也要清除計時器。
 
-角色另有 `fee_sensitive`（質疑費用）、`short_term`（短期資金需求）。
+主要角色為 `cautious`（保守型）、`aggressive`（積極型）；相容角色另有 `fee_sensitive`（質疑費用）、`short_term`（短期資金需求）。
 
 ## 最小呼叫範例
 
@@ -86,3 +95,5 @@ POST `/documents/demo` 明確匯入範例手冊。
 POST `/search` 傳 `{query, top_k}`，POST `/ask` 傳 `{question}`。
 
 舊版 POST `/chat` 和 `/evaluate` 是單次、無 session 的介面；完整對練請用 `/sessions` 系列，不要同時自行呼叫 `/evaluate` 重複評分。
+
+`response_mode` 區分 `model`（模型自由生成）、`profile_script`（mock 人設腳本）、`mock`（其他模擬回覆）。POST /sessions 的 persona 可選 aggressive；既有 cautious 仍有效。

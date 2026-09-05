@@ -814,6 +814,7 @@
             "type": "string",
             "enum": [
               "cautious",
+              "aggressive",
               "fee_sensitive",
               "short_term"
             ],
@@ -967,6 +968,104 @@
           "chunks"
         ],
         "title": "DocumentInfo"
+      },
+      "EmotionAnalysis": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "enum": [
+              "平穩",
+              "緊張",
+              "不耐煩",
+              "挫折",
+              "正向",
+              "不明確"
+            ],
+            "title": "Label"
+          },
+          "intensity": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "unknown"
+            ],
+            "title": "Intensity"
+          },
+          "evidence_quote": {
+            "type": "string",
+            "title": "Evidence Quote"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "suggestion": {
+            "type": "string",
+            "title": "Suggestion"
+          },
+          "is_mock": {
+            "type": "boolean",
+            "title": "Is Mock"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "intensity",
+          "evidence_quote",
+          "reason",
+          "suggestion",
+          "is_mock"
+        ],
+        "title": "EmotionAnalysis"
+      },
+      "EmotionSnapshot": {
+        "properties": {
+          "turn": {
+            "type": "integer",
+            "title": "Turn"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "analysis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmotionAnalysis"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "turn",
+          "status",
+          "analysis",
+          "error"
+        ],
+        "title": "EmotionSnapshot"
       },
       "ErrorResponse": {
         "properties": {
@@ -1232,6 +1331,7 @@
             "type": "string",
             "enum": [
               "cautious",
+              "aggressive",
               "fee_sensitive",
               "short_term"
             ],
@@ -1321,6 +1421,23 @@
               }
             ],
             "title": "Final Error"
+          },
+          "emotions": {
+            "items": {
+              "$ref": "#/components/schemas/EmotionSnapshot"
+            },
+            "type": "array",
+            "title": "Emotions"
+          },
+          "latest_emotion": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmotionSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -1334,7 +1451,9 @@
           "evaluations",
           "latest_evaluation",
           "final_report",
-          "final_error"
+          "final_error",
+          "emotions",
+          "latest_emotion"
         ],
         "title": "SessionResponse"
       },
@@ -1389,6 +1508,15 @@
             "type": "boolean",
             "title": "Is Mock"
           },
+          "response_mode": {
+            "type": "string",
+            "enum": [
+              "profile_script",
+              "mock",
+              "model"
+            ],
+            "title": "Response Mode"
+          },
           "rag_used": {
             "type": "boolean",
             "title": "Rag Used"
@@ -1412,6 +1540,7 @@
           "answer",
           "sources",
           "is_mock",
+          "response_mode",
           "rag_used",
           "evidence_status",
           "turn"
@@ -1435,6 +1564,15 @@
             "type": "boolean",
             "title": "Is Mock"
           },
+          "response_mode": {
+            "type": "string",
+            "enum": [
+              "profile_script",
+              "mock",
+              "model"
+            ],
+            "title": "Response Mode"
+          },
           "rag_used": {
             "type": "boolean",
             "title": "Rag Used"
@@ -1454,6 +1592,7 @@
           "answer",
           "sources",
           "is_mock",
+          "response_mode",
           "rag_used",
           "evidence_status"
         ],
@@ -1492,6 +1631,15 @@
             "type": "boolean",
             "title": "Is Mock"
           },
+          "response_mode": {
+            "type": "string",
+            "enum": [
+              "profile_script",
+              "mock",
+              "model"
+            ],
+            "title": "Response Mode"
+          },
           "rag_used": {
             "type": "boolean",
             "title": "Rag Used"
@@ -1524,6 +1672,11 @@
             "type": "string",
             "const": "pending",
             "title": "Evaluation Status"
+          },
+          "emotion_status": {
+            "type": "string",
+            "const": "pending",
+            "title": "Emotion Status"
           }
         },
         "type": "object",
@@ -1531,12 +1684,14 @@
           "answer",
           "sources",
           "is_mock",
+          "response_mode",
           "rag_used",
           "evidence_status",
           "session_id",
           "turn",
           "compliance",
-          "evaluation_status"
+          "evaluation_status",
+          "emotion_status"
         ],
         "title": "TurnResponse"
       },

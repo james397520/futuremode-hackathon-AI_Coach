@@ -26,7 +26,7 @@ class AskRequest(RequestModel):
 
 class ChatRequest(RequestModel):
     message: NonemptyText
-    persona: Literal["cautious", "fee_sensitive", "short_term"] = "cautious"
+    persona: Literal["cautious", "aggressive", "fee_sensitive", "short_term"] = "cautious"
     history: list[Message] = Field(default_factory=list, max_length=24)
 
 
@@ -53,6 +53,7 @@ class ChatResponse(BaseModel):
 
 
 class TurnChatResponse(ChatResponse):
+    response_mode: Literal["profile_script", "mock", "model"]
     rag_used: bool
     evidence_status: Literal["not_needed", "retrieved_context", "missing"]
 
@@ -100,7 +101,7 @@ class ErrorResponse(BaseModel):
 
 
 class SessionRequest(RequestModel):
-    persona: Literal["cautious", "fee_sensitive", "short_term"] = "cautious"
+    persona: Literal["cautious", "aggressive", "fee_sensitive", "short_term"] = "cautious"
 
 
 class TurnRequest(RequestModel):
@@ -124,6 +125,26 @@ class TurnResponse(TurnChatResponse):
     turn: int
     compliance: list[ComplianceFlag]
     evaluation_status: Literal["pending"]
+    emotion_status: Literal["pending"]
+
+
+class EmotionContent(BaseModel):
+    label: Literal["平穩", "緊張", "不耐煩", "挫折", "正向", "不明確"]
+    intensity: Literal["low", "medium", "high", "unknown"]
+    evidence_quote: str
+    reason: str
+    suggestion: str
+
+
+class EmotionAnalysis(EmotionContent):
+    is_mock: bool
+
+
+class EmotionSnapshot(BaseModel):
+    turn: int
+    status: Literal["pending", "completed", "failed"]
+    analysis: EmotionAnalysis | None
+    error: str | None
 
 
 class EvaluationSnapshot(BaseModel):
@@ -148,3 +169,5 @@ class SessionResponse(BaseModel):
     latest_evaluation: EvaluationSnapshot | None
     final_report: EvaluateResponse | None
     final_error: str | None
+    emotions: list[EmotionSnapshot]
+    latest_emotion: EmotionSnapshot | None

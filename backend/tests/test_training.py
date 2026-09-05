@@ -135,3 +135,27 @@ class TrainingTests(TestCase):
         self.assertEqual(messages[1:3], history)
         self.assertEqual(messages[-1]["content"], "建議你買我們的基金")
         self.assertIn("user 是業務員", messages[0]["content"])
+
+    def test_evaluation_schema_limits_quotes_and_citations(self):
+        request = AIRequest("evaluate", "rules", dict(history=[
+            dict(role="user", content="您能承受多少損失？"),
+            dict(role="assistant", content="5%")], sources=[dict(id="real-id", text="risk")]))
+        body = build_test_request(request)
+        self.assertFalse(body["think"])
+        fields = body["format"]["$defs"]["DimensionScore"]["properties"]
+        self.assertEqual(fields["evidence_quote"]["enum"], ["", "您能承受多少損失？"])
+        self.assertEqual(fields["citation_ids"]["items"]["enum"], ["S1"])
+
+    def test_cli_displays_failure_even_when_older_report_exists(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from demo import show_evaluation
+        state = dict(evaluations=[dict(turn=1, status="completed"),
+            dict(turn=2, status="failed", error="AI 評分面向不完整。"), dict(turn=3, status="pending")],
+            latest_evaluation=dict(turn=1, report=dict(scores=[])))
+        output = StringIO()
+        with redirect_stdout(output):
+            show_evaluation(state)
+        self.assertIn("第 2 輪評估失敗", output.getvalue())
+        self.assertIn("AI 評分面向不完整", output.getvalue())
+        self.assertIn("目前共 3 輪", output.getvalue())

@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from threading import RLock
 from uuid import uuid4
+from .providers import ProviderError
 
 from .service import PERSONAS
 from .training import screen_compliance
@@ -29,7 +30,7 @@ class TrainingSessions:
         sid = uuid4().hex
         with self.lock:
             self.sessions[sid] = dict(id=sid, persona=persona, status="active", history=[], turns=[],
-                compliance=[], evaluations=[], final_report=None, final_error=None, busy=False)
+                compliance=[], evaluations=[], emotions=[], final_report=None, final_error=None, busy=False)
         return self.get(sid)
 
     def _session(self, sid):
@@ -43,6 +44,8 @@ class TrainingSessions:
         state.pop("busy")
         completed = [e for e in state["evaluations"] if e["status"] == "completed"]
         state["latest_evaluation"] = max(completed, key=lambda e: e["turn"]) if completed else None
+        emotions = [e for e in state["emotions"] if e["status"] == "completed"]
+        state["latest_emotion"] = max(emotions, key=lambda e: e["turn"]) if emotions else None
         return state
 
     def turn(self, sid, message):
@@ -64,9 +67,11 @@ class TrainingSessions:
                 session["turns"].append(dict(turn=turn, **reply))
                 session["compliance"].extend(flags)
                 session["evaluations"].append(dict(turn=turn, status="pending", report=None, error=None))
+                session["emotions"].append(dict(turn=turn, status="pending", analysis=None, error=None))
                 snapshot = deepcopy(session)
                 self.pool.submit(self._evaluate, sid, snapshot, False)
-            return dict(session_id=sid, turn=turn, **reply, compliance=flags, evaluation_status="pending")
+            return dict(session_id=sid, turn=turn, **reply, compliance=flags,
+                        evaluation_status="pending", emotion_status="pending")
         finally:
             with self.lock:
                 session["busy"] = False
@@ -85,10 +90,14 @@ class TrainingSessions:
         return self.get(sid)
 
     def _evaluate(self, sid, snapshot, final):
+        if not final:
+            self._emotion(sid, snapshot)
         report, error = None, None
         try:
             sources = {h["id"]: h for t in snapshot["turns"] for h in t["sources"]}
             report = self.service.evaluate(snapshot["history"], list(sources.values()), snapshot["compliance"], final)
+        except ProviderError as exc:
+            error = str(exc)
         except Exception:
             # Never expose provider payloads or fabricate fallback scores.
             error = "評估未完成，請確認模型輸出格式或模型服務；已保留對話。"
@@ -101,6 +110,19 @@ class TrainingSessions:
             else:
                 evaluation = session["evaluations"][len(snapshot["turns"])-1]
                 evaluation.update(status="failed" if error else "completed", report=report, error=error)
+
+    def _emotion(self, sid, snapshot):
+        analysis, error = None, None
+        try:
+            history = snapshot["history"]
+            analysis = self.service.analyze_emotion(history[-2]["content"], history[:-2])
+        except ProviderError as exc:
+            error = str(exc)
+        except Exception:
+            error = "情緒分析未完成，已保留對話。"
+        with self.lock:
+            item = self._session(sid)["emotions"][len(snapshot["turns"])-1]
+            item.update(status="failed" if error else "completed", analysis=analysis, error=error)
 
     def close(self):
         self.pool.shutdown(wait=True)
