@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI Coach — 企業級 AI 角色扮演訓練平台 | BUILDMODE 2026</title>
-<meta name="description" content="AI Coach：結合自適應角色扮演、即時語音與 3D 虛擬人、企業知識 RAG 與實證績效評估的 AI 訓練平台。FUTUREMODE 2026 BUILDMODE 黑客松參賽作品。">
-<meta property="og:title" content="AI Coach — 企業級 AI 角色扮演訓練平台">
+<title>SkillCoach AI — 基於 Multi-Agent 之企業與教育全情境模擬培訓平台 | BUILDMODE 2026</title>
+<meta name="description" content="SkillCoach AI：基於 Multi-Agent 之企業與教育全情境模擬培訓平台。結合情境擬真動態引導智能體、擬真語音與情緒交互、企業知識庫 RAG 與科學化評估。FUTUREMODE 2026 BUILDMODE 黑客松參賽作品。">
+<meta property="og:title" content="SkillCoach AI — 企業與教育全情境模擬培訓平台">
 <meta property="og:description" content="自適應角色扮演 × 即時語音 3D 虛擬人 × 企業知識 RAG × 實證績效評估">
 <meta property="og:type" content="website">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23000'/%3E%3Ctext x='32' y='42' font-family='Arial' font-weight='700' font-size='30' fill='%23fff' text-anchor='middle'%3EAC%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23000'/%3E%3Ctext x='32' y='42' font-family='Arial' font-weight='700' font-size='30' fill='%23fff' text-anchor='middle'%3ESC%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
@@ -140,6 +140,52 @@
   .fm{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:8px 12px;color:var(--fg-2)}
   .fm b{color:#fff;letter-spacing:.06em}
 
+  /* pain points */
+  .pain{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:1000px){.pain{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:600px){.pain{grid-template-columns:1fr}}
+  .pain .card{position:relative;padding-top:56px}
+  .pain .card::before{content:attr(data-n);position:absolute;top:22px;left:28px;font-family:var(--mono);font-size:12px;color:var(--fg-3)}
+  .pain .card h3{font-size:18px}
+  .pain .card p{color:var(--fg-2);font-size:14px;margin-top:10px}
+
+  /* three-up */
+  .three{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:900px){.three{grid-template-columns:1fr}}
+  .three .card h3{font-size:19px;line-height:1.35}
+  .three .card .en{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--fg-3);margin-bottom:14px;text-transform:uppercase}
+  .three .card p{color:var(--fg-2);font-size:15px;margin-top:12px}
+  .three.big h3{font-size:22px}
+
+  /* ecosystem */
+  .eco{margin-top:48px;display:grid;grid-template-columns:1fr auto 1fr auto 1.4fr;gap:16px;align-items:center}
+  @media(max-width:900px){.eco{grid-template-columns:1fr}.eco .arrow{transform:rotate(90deg);justify-self:center}}
+  .eco .node{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r);padding:24px;text-align:center}
+  .eco .node.core{background:#fff;color:#000;border-color:#fff}
+  .eco .node.core small{color:#555}
+  .eco .node b{display:block;font-size:17px}
+  .eco .node small{display:block;color:var(--fg-3);font-size:12px;margin-top:6px;font-family:var(--mono)}
+  .eco .arrow{color:var(--fg-3);font-size:22px;text-align:center}
+  .eco .stack{display:grid;gap:12px}
+  .eco .stack .node{text-align:left;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px}
+  .eco .stack .node b{font-size:15px}
+  .partner{font-family:var(--mono);font-size:11px;letter-spacing:.06em;border:1px solid var(--line);border-radius:6px;padding:4px 8px;color:var(--fg-2);white-space:nowrap}
+  .eco .node.core .partner{border-color:#ccc;color:#333}
+  .eco-foot{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media(max-width:900px){.eco-foot{grid-template-columns:1fr}}
+  .eco-foot .node{display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:left;padding:18px 22px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r)}
+  .eco-foot .node b{font-size:15px}
+
+  /* vision + impact */
+  .vision{grid-template-columns:1fr 1fr}
+  @media(max-width:860px){.vision{grid-template-columns:1fr}}
+  .vision .card{padding:36px}
+  .vision ol{margin:24px 0 0;padding:0;list-style:none;display:grid;gap:18px;counter-reset:v}
+  .vision ol li{display:grid;grid-template-columns:40px 1fr;gap:14px;align-items:start}
+  .vision ol li::before{counter-increment:v;content:"0" counter(v);font-family:var(--mono);font-size:13px;color:var(--fg-3);padding-top:4px}
+  .vision ol li b{display:block;font-size:17px}
+  .vision ol li span{color:var(--fg-2);font-size:14px}
+
   .todo{outline:1px dashed #444;outline-offset:2px;border-radius:4px}
 </style>
 </head>
@@ -147,15 +193,16 @@
 
 <nav>
   <div class="wrap">
-    <a class="logo" href="#top"><i>AC</i>AI Coach</a>
+    <a class="logo" href="#top"><i>SC</i>SkillCoach AI</a>
     <ul>
-      <li><a href="#problem">問題</a></li>
+      <li><a href="#problem">痛點</a></li>
+      <li><a href="#innovation">創新</a></li>
       <li><a href="#features">功能</a></li>
+      <li><a href="#eco">生態系</a></li>
       <li><a href="#arch">架構</a></li>
       <li><a href="#tech">技術</a></li>
       <li><a href="#demo">展示</a></li>
       <li><a href="#team">團隊</a></li>
-      <li><a href="#future">限制</a></li>
     </ul>
     <a class="btn" href="https://github.com/james397520/futuremode-hackathon-AI_Coach" target="_blank" rel="noopener">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.7 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3z"/></svg>
@@ -168,7 +215,7 @@
   <div class="wrap">
     <div class="badge"><b>BUILDMODE 2026</b> FUTUREMODE 台灣未來祭 · 黑客松參賽作品</div>
     <h1>讓每一次練習，<br>都像面對<span>真實的客戶</span>。</h1>
-    <p class="lead">AI Coach 是企業級 AI 訓練平台：以自適應角色扮演、即時語音與 3D 虛擬人對練，接上企業知識庫 RAG，並用可追溯證據的評估模型，把「訓練成效」變成看得見的數據。</p>
+    <p class="lead"><b style="color:var(--fg)">SkillCoach AI</b> 是基於 Multi-Agent 的企業與教育全情境模擬培訓平台：以情境擬真與動態引導智能體對練，接上擬真語音與情緒交互、企業知識庫 RAG，並用科學化評估把「訓練成效」變成看得見的數據。</p>
     <div class="cta">
       <a class="btn primary" href="#demo">觀看 Demo</a>
       <a class="btn" href="https://github.com/james397520/futuremode-hackathon-AI_Coach" target="_blank" rel="noopener">查看程式碼</a>
@@ -183,29 +230,39 @@
 
 <section id="problem">
   <div class="wrap">
-    <div class="eyebrow">Problem &amp; Goal</div>
-    <h2>企業訓練的老問題：貴、慢、看不見成效</h2>
-    <div class="grid two" style="margin-top:48px">
+    <div class="eyebrow">Pain Points</div>
+    <h2>產業痛點</h2>
+    <p class="lead">企業與教育現場的培訓，卡在四個結構性問題。</p>
+    <div class="grid pain" style="margin-top:48px">
+      <div class="card" data-n="01"><h3>企業培訓困難</h3><p>角色扮演與實戰演練高度依賴資深人員陪練，成本高、排程難、難以規模化。</p></div>
+      <div class="card" data-n="02"><h3>企業知識傳遞</h3><p>產品知識、SOP 與經驗散落在文件與資深員工腦中，隨人員流動而流失。</p></div>
+      <div class="card" data-n="03"><h3>填鴨式學習成效不彰</h3><p>固定腳本與單向講授，學員背得起來卻用不出來，面對真實情境仍然生疏。</p></div>
+      <div class="card" data-n="04"><h3>傳統 Agent 皆為一問一答</h3><p>既有 AI 助理只能被動應答，無法主導情境、引導學習，也不會評估表現。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="innovation">
+  <div class="wrap">
+    <div class="eyebrow">Innovation</div>
+    <h2>創新</h2>
+    <div class="grid three big" style="margin-top:48px">
       <div class="card">
-        <h3>現況痛點</h3>
-        <ul class="problem-list" style="margin-top:20px">
-          <li>業務、客服、銷售新人的角色扮演訓練依賴資深同事陪練，人力成本高、排程困難。</li>
-          <li>訓練腳本固定，學員很快「背起來」，缺乏面對真實客戶時的臨場變化。</li>
-          <li>企業產品知識、SOP 散落在文件裡，訓練內容與最新政策脫節。</li>
-          <li>評估靠主管印象打分，沒有一致標準，也無法指出「哪一句說錯」。</li>
-        </ul>
+        <span class="en">Dynamic Scenario Agent</span>
+        <h3>情境擬真與動態引導智能體</h3>
+        <p>不是一問一答的聊天機器人，而是能主導情境、隨學員表現動態調整劇本與難度、主動引導的智能體。</p>
       </div>
       <div class="card">
-        <h3>AI Coach 的目標</h3>
-        <ul class="problem-list solve-list" style="margin-top:20px">
-          <li>24/7 可用的 AI 對練對手，隨時開練、不佔用同事時間。</li>
-          <li>對手根據學員表現即時調整難度與情緒，每一次對話都不一樣。</li>
-          <li>回答與評分都以企業自己的知識庫為依據，答案有出處。</li>
-          <li>每次對練產出可追溯的評估報告：分數、依據、改進建議，一目了然。</li>
-        </ul>
+        <span class="en">Knowledge Reuse</span>
+        <h3>企業知識庫再利用</h3>
+        <p>把企業既有的文件、SOP、FAQ 直接轉化為訓練情境與標準答案，讓沉睡的知識庫成為培訓資產。</p>
+      </div>
+      <div class="card">
+        <span class="en">Personalized &amp; Scientific</span>
+        <h3>個人化學習與科學化評估</h3>
+        <p>依每位學員的弱點調整訓練路徑，並以可量化、可追溯的評估準則取代主觀印象打分。</p>
       </div>
     </div>
-    <p class="lead" style="margin-top:40px"><b style="color:var(--fg)">目標使用者：</b>需要大量對話技巧訓練的企業團隊——業務、客服、金融理專、醫療衛教、內部講師——以及負責訓練成效的 HR / L&amp;D 主管。</p>
   </div>
 </section>
 
@@ -246,6 +303,77 @@
       <div><h3>知識檢索</h3><p>AI 回應與追問全程引用企業文件。</p></div>
       <div><h3>逐句評估</h3><p>依 rubric 產出分數、證據與建議。</p></div>
       <div><h3>追蹤成長</h3><p>個人與團隊儀表板呈現趨勢與弱點。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="ux">
+  <div class="wrap">
+    <div class="eyebrow">User Experience</div>
+    <h2>使用者體驗</h2>
+    <div class="grid three" style="margin-top:48px">
+      <div class="card">
+        <span class="en">Intent Inference</span>
+        <h3>模糊意圖自動推論與追問</h3>
+        <p>Agent 能基於上下文推論意圖，主動反問補齊關鍵資訊。</p>
+      </div>
+      <div class="card">
+        <span class="en">Scope Guidance</span>
+        <h3>超綱範疇智能收斂與引導</h3>
+        <p>當提問偏離主題或超出既有知識庫邊界時，Agent 自動溫和收斂邊界，並主動推薦貼近企業標準的提問方向。</p>
+      </div>
+      <div class="card">
+        <span class="en">Natural Interaction</span>
+        <h3>自然互動</h3>
+        <p>透過鏡頭 / 文字感受使用者情緒，提供引導評估規範。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="eco">
+  <div class="wrap">
+    <div class="eyebrow">Ecosystem</div>
+    <h2>生態系與技術夥伴</h2>
+    <p class="lead">使用者透過平台進入情境；平台背後由三個引擎驅動，並以企業知識庫與合規審計為基礎。</p>
+    <div class="eco">
+      <div class="node"><b>使用者</b><small>USER</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node core"><b>平台</b><small>SKILLCOACH AI</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="stack">
+        <div class="node"><b>智能情緒化感知</b><span class="partner">GMI</span></div>
+        <div class="node"><b>擬真語音與情緒交互</b><span class="partner">ElevenLabs</span></div>
+        <div class="node"><b>對話大腦與評測引擎</b><span class="partner">EastRouter</span></div>
+      </div>
+    </div>
+    <div class="eco-foot">
+      <div class="node"><b>企業知識庫導入（RAG）</b><span class="partner">國泰金控 Cathay Financial Holdings</span></div>
+      <div class="node"><b>合規審計</b><span class="partner">CertiK</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="execution">
+  <div class="wrap">
+    <div class="eyebrow">Execution</div>
+    <h2>執行力</h2>
+    <div class="grid three big" style="margin-top:48px">
+      <div class="card">
+        <span class="en">Production-grade</span>
+        <h3>生產級端到端架構</h3>
+        <p>從前端互動、對話編排、RAG 檢索到評估與紀錄完整打通，而非單點 demo。</p>
+      </div>
+      <div class="card">
+        <span class="en">Multimodal Emotion</span>
+        <h3>多模態情緒引導</h3>
+        <p>結合鏡頭、語音與文字的情緒感知，讓 Agent 依學員狀態調整語氣、節奏與引導策略。</p>
+      </div>
+      <div class="card">
+        <span class="en">Dynamic Knowledge Ingestion</span>
+        <h3>企業知識庫動態萃取導入</h3>
+        <p>企業文件更新即時反映到訓練情境與評估標準，不需重新設計課程。</p>
+      </div>
     </div>
   </div>
 </section>
@@ -305,13 +433,38 @@
     <table>
       <thead><tr><th>類型</th><th>技術／服務</th><th>用途</th></tr></thead>
       <tbody>
-        <tr><td>AI 模型</td><td><span class="tag todo">LLM 供應商待填</span><span class="tag todo">STT/TTS 待填</span><span class="tag todo">Embedding 待填</span></td><td>角色扮演對話生成、評估推理、語音辨識合成、知識向量化</td></tr>
+        <tr><td>AI 模型</td><td><span class="tag">EastRouter</span><span class="tag">ElevenLabs</span><span class="tag">GMI</span><span class="tag todo">Embedding 待填</span></td><td>對話大腦與評測引擎、擬真語音與情緒交互、智能情緒化感知、知識向量化</td></tr>
         <tr><td>前端</td><td><span class="tag">React</span><span class="tag">Vite</span><span class="tag">Three.js</span><span class="tag">WebRTC</span></td><td>對練介面、3D 虛擬人渲染與口型同步、低延遲語音串流</td></tr>
         <tr><td>後端</td><td><span class="tag">Python</span><span class="tag">FastAPI</span><span class="tag">WebSocket</span></td><td>對話編排、RAG 檢索、評估引擎、API 與即時通道</td></tr>
         <tr><td>資料</td><td><span class="tag todo">向量 DB 待填</span><span class="tag">PostgreSQL</span></td><td>企業知識索引、使用者與對練紀錄</td></tr>
-        <tr><td>Sponsor 技術</td><td><span class="tag todo">依實際採用填寫</span></td><td>例：Google Cloud（部署 / Vertex AI）等</td></tr>
+        <tr><td>Sponsor 技術</td><td><span class="tag">GMI</span><span class="tag">ElevenLabs</span><span class="tag">EastRouter</span><span class="tag">CertiK</span><span class="tag">國泰金控</span></td><td>情緒感知、語音交互、對話與評測引擎、合規審計、企業知識庫導入（RAG）</td></tr>
       </tbody>
     </table>
+    </div>
+  </div>
+</section>
+
+<section id="vision">
+  <div class="wrap">
+    <div class="eyebrow">Vision &amp; Impact</div>
+    <h2>產品願景與影響力</h2>
+    <div class="grid vision" style="margin-top:48px">
+      <div class="card">
+        <h3>產品願景</h3>
+        <ol>
+          <li><div><b>運用多模態導引達到具有溫度的 Agent 引擎</b><span>不只是答對，而是能感受、引導、陪伴學習的智能體。</span></div></li>
+          <li><div><b>釋放企業知識庫價值</b><span>讓沉睡在文件裡的知識，成為每位員工都能練習與內化的資產。</span></div></li>
+          <li><div><b>個性化教學引導</b><span>依每個人的節奏與弱點，給出不同的路徑與回饋。</span></div></li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>影響力</h3>
+        <ol>
+          <li><div><b>降低人才培育斷層</b><span>新人不再只能等資深同事有空，隨時可練、隨時有回饋。</span></div></li>
+          <li><div><b>知識民主化、企業化</b><span>專家經驗從少數人腦中，變成組織共同可用的訓練資源。</span></div></li>
+          <li><div><b>傳遞保留企業知識力</b><span>人員流動不再等於知識流失，經驗被結構化保存並持續傳承。</span></div></li>
+        </ol>
+      </div>
     </div>
   </div>
 </section>
@@ -379,7 +532,7 @@
 
 <footer>
   <div class="wrap">
-    <div>© 2026 AI Coach Team · <a href="https://github.com/james397520/futuremode-hackathon-AI_Coach" target="_blank" rel="noopener" style="color:var(--fg-2)">GitHub</a></div>
+    <div>© 2026 SkillCoach AI Team · <a href="https://github.com/james397520/futuremode-hackathon-AI_Coach" target="_blank" rel="noopener" style="color:var(--fg-2)">GitHub</a></div>
     <a class="fm" href="https://www.futuremode.xyz/" target="_blank" rel="noopener"><b>FUTUREMODE</b> 2026 · BUILDMODE Hackathon</a>
   </div>
 </footer>
