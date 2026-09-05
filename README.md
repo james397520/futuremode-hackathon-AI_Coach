@@ -212,4 +212,8 @@ python -m http.server 8765 --directory docs
 
 ## License
 
-尚未加入 `LICENSE` 檔案，待團隊決定授權方式後補上。
+本專案的原創程式碼與文件採用 [Apache License 2.0](LICENSE) 授權。
+
+Copyright 2026 SkillCoach contributors.
+
+第三方套件、模型權重、企業文件、資料集與影音素材仍適用各自的授權條款，不因本專案採用 Apache License 2.0 而變更。
