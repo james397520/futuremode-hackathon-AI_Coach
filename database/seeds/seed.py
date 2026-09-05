@@ -47,6 +47,7 @@ Run it from anywhere; paths are resolved from this file.
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import sys
 import uuid
@@ -724,6 +725,66 @@ EXTRA_SCENARIOS: list[dict[str, Any]] = [
         "created_at": NOW, "updated_at": NOW,
     },
 ]
+
+
+# -----------------------------------------------------------------------------
+# 保障缺口對談的女性版本（陳映蓉）
+#
+# 為什麼是複製而不是重寫一份：這一場的難度必須跟陳先生那場**完全相同**——同樣的
+# traits、同樣的異議、同樣的成功條件——差別只有性別。手寫第二份會漂移，一漂移它
+# 就不再是同一個練習，示範時也不能拿來對照。所以 deepcopy 之後只覆寫「性別真的
+# 會改變」的欄位：姓名、稱謂、配偶、指涉那個人的代名詞。
+#
+# 為什麼不直接把陳先生改成女性：「陳先生」這個名字本身是男性稱謂，改了名實不符；
+# 而且已經有數場 session 綁著他的 persona_id，動他會讓那些逐字稿跟現在的人設對不上。
+#
+# 語音：`voice_id` 留空，由 apps/api/app/ws/voice_catalog.py 依 gender + age 選
+# （38 歲女性 → Yui）。本地引擎只有一個女聲，所以本地與雲端在這一場是一致的。
+# -----------------------------------------------------------------------------
+PERSONA_GAP_F_ID = sid("persona", "gap-female")
+SCENARIO_GAP_F_ID = sid("scenario", "gap-female")
+
+
+def _female_gap_persona() -> dict[str, Any]:
+    persona = copy.deepcopy(PERSONA)
+    persona.update({
+        "id": PERSONA_GAP_F_ID,
+        "name": "陳映蓉",
+        "gender": "female",
+        "voice": _voice("reserved_analytical", 1.05),
+    })
+    hidden = persona["hidden"]
+    hidden["trigger_points"] = [
+        "用她自己的數字做保障缺口試算" if t.startswith("用他自己") else t
+        for t in hidden["trigger_points"]
+    ]
+    hidden["objections"] = [
+        "我要跟我先生討論一下，你先給我資料。" if "太太" in o else o
+        for o in hidden["objections"]
+    ]
+    return persona
+
+
+def _female_gap_scenario() -> dict[str, Any]:
+    scenario = copy.deepcopy(SCENARIO)
+    scenario.update({
+        "id": SCENARIO_GAP_F_ID,
+        "name": "已有保障客戶的保障缺口對談——陳映蓉",
+        "persona_id": PERSONA_GAP_F_ID,
+        "opening_context": (
+            "陳映蓉是你的既有客戶轉介。你們約在她公司附近的咖啡廳，她只給你 20 分鐘。"
+            "她坐下來第一句話是：「我已經有保險了，為什麼還要多買？」"
+        ),
+    })
+    scenario["key_objections"] = [
+        "我要跟我先生討論一下。" if "太太" in o else o for o in scenario["key_objections"]
+    ]
+    return scenario
+
+
+EXTRA_PERSONAS.append(_female_gap_persona())
+EXTRA_SCENARIOS.append(_female_gap_scenario())
+
 
 SKILL_WEIGHTS: dict[str, int] = {
     "needs_discovery": 16,
