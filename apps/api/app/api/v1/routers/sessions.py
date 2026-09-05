@@ -1,0 +1,307 @@
+"""``/sessions`` — Live Simulation lifecycle plus the §68 WebSocket mount.
+
+Route shapes follow §69::
+
+    POST /api/v1/sessions
+    GET  /api/v1/sessions/{id}
+    POST /api/v1/sessions/{id}/message
+    POST /api/v1/sessions/{id}/end
+
+Two transports, one state machine
+---------------------------------
+The WebSocket at ``/sessions/{id}/ws`` is the primary transport (§55 streaming events).
+``POST /{id}/message`` is the degraded, request/response fallback for environments that
+cannot hold a socket; both funnel into ``SessionService`` so the §92 state machine has a
+single implementation.
+
+Assessment mode (§8.4 / §24): ``POST /{id}/hint`` is rejected by the service with
+``assessment_mode_restricted``. The router does not try to guess — the session's pinned
+mode is authoritative.
+
+Version pinning (§54): the client cannot choose ``scenario_version`` /
+``persona_version``; the service resolves and pins them at creation.
+"""
+
+from __future__ import annotations
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query, WebSocket, status
+
+from app.core.deps import (
+    AuditDep,
+    Ctx,
+    Permission,
+    WsCtx,
+    provide_service,
+    require_permission,
+)
+from app.core.rate_limit import rate_limit
+from app.db.session import get_sessionmaker
+from app.domain.audit import AuditAction
+from app.domain.common import Page, PageParams
+from app.domain.enums import SessionState
+from app.domain.evaluation import Evaluation
+from app.domain.events import StreamingEvent
+from app.domain.request_response import (
+    CoachHintRequest,
+    EvaluationOverrideRequest,
+    SessionCreateRequest,
+    SessionEndRequest,
+    SessionEndResponse,
+    SessionMessageRequest,
+    SessionMessageResponse,
+    SessionResponse,
+    SessionTranscriptResponse,
+)
+from app.domain.session import CoachInsight, TrainingSession
+from app.services.evaluation_service import EvaluationService
+from app.services.session_service import SessionService
+from app.ws.gateway import session_ws_endpoint
+
+router = APIRouter(prefix="/sessions", tags=["sessions"])
+
+SessionDep = Annotated[SessionService, Depends(provide_service(SessionService))]
+EvaluationDep = Annotated[EvaluationService, Depends(provide_service(EvaluationService))]
+
+CanStart = Annotated[Ctx, Depends(require_permission(Permission.SESSION_START))]
+CanParticipate = Annotated[Ctx, Depends(require_permission(Permission.SESSION_PARTICIPATE))]
+CanReadOwn = Annotated[Ctx, Depends(require_permission(Permission.RESULT_VIEW_OWN))]
+CanReview = Annotated[Ctx, Depends(require_permission(Permission.TRANSCRIPT_REVIEW))]
+CanOverride = Annotated[Ctx, Depends(require_permission(Permission.EVALUATION_OVERRIDE))]
+
+
+@router.post(
+    "",
+    response_model=SessionResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Start a training session (§69)",
+    dependencies=[Depends(rate_limit("sessions.create", per_minute=12, burst=4))],
+)
+async def create_session(
+    payload: SessionCreateRequest,
+    service: SessionDep,
+    ctx: CanStart,
+    audit: AuditDep,
+) -> SessionResponse:
+    """Pins scenario/persona versions and returns the WebSocket URL to connect to."""
+    result = await service.create_session(payload)
+    await audit(
+        AuditAction.SESSION_START,
+        f"session:{result.session.session_id}",
+        detail={
+            "scenario_id": result.session.scenario_id,
+            "scenario_version": result.session.scenario_version,
+            "persona_version": result.session.persona_version,
+            "mode": result.session.mode.value,
+            "runtime": result.session.runtime.value,
+        },
+    )
+    return result
+
+
+@router.get(
+    "",
+    response_model=Page[TrainingSession],
+    summary="List sessions (own history, or the workspace with review rights)",
+    dependencies=[Depends(rate_limit("sessions.read", per_minute=120))],
+)
+async def list_sessions(
+    service: SessionDep,
+    ctx: CanReadOwn,
+    params: Annotated[PageParams, Depends()],
+    user_id: Annotated[str | None, Query(description="Requires transcript.review")] = None,
+    scenario_id: Annotated[str | None, Query()] = None,
+    session_status: Annotated[SessionState | None, Query(alias="status")] = None,
+) -> Page[TrainingSession]:
+    """Without ``transcript.review`` the service forces ``user_id`` to the caller (§9.1)."""
+    return await service.list_sessions(
+        params=params, user_id=user_id, scenario_id=scenario_id, status=session_status
+    )
+
+
+@router.get(
+    "/{session_id}",
+    response_model=SessionResponse,
+    summary="Read a session, its persona state and resume point (§69)",
+)
+async def get_session(
+    session_id: str, service: SessionDep, ctx: CanReadOwn
+) -> SessionResponse:
+    return await service.get_session(session_id)
+
+
+@router.post(
+    "/{session_id}/message",
+    response_model=SessionMessageResponse,
+    summary="Send a trainee turn (HTTP fallback for the WebSocket, §69)",
+    dependencies=[Depends(rate_limit("sessions.message", per_minute=60, burst=10, cost=2))],
+)
+async def post_message(
+    session_id: str,
+    payload: SessionMessageRequest,
+    service: SessionDep,
+    ctx: CanParticipate,
+) -> SessionMessageResponse:
+    """Runs one orchestration turn.
+
+    Deliberately **not** audited per turn: an audit row per utterance would duplicate
+    the transcript into the audit log, which §40.2 forbids. Session start and end are
+    audited instead, and the transcript itself is the record of the conversation.
+    """
+    return await service.post_message(session_id, payload)
+
+
+@router.post(
+    "/{session_id}/hint",
+    response_model=CoachInsight,
+    summary="Request a coach hint (rejected in assessment mode, §8.4/§24)",
+    dependencies=[Depends(rate_limit("sessions.hint", per_minute=20, burst=5, cost=2))],
+)
+async def request_hint(
+    session_id: str,
+    payload: CoachHintRequest,
+    service: SessionDep,
+    ctx: CanParticipate,
+) -> CoachInsight:
+    return await service.request_hint(session_id, payload)
+
+
+@router.post(
+    "/{session_id}/pause",
+    response_model=TrainingSession,
+    summary="Pause a live session (§24)",
+    dependencies=[Depends(rate_limit("sessions.control", per_minute=60))],
+)
+async def pause_session(
+    session_id: str, service: SessionDep, ctx: CanParticipate
+) -> TrainingSession:
+    return await service.pause_session(session_id)
+
+
+@router.post(
+    "/{session_id}/resume",
+    response_model=TrainingSession,
+    summary="Resume a paused session (§24)",
+    dependencies=[Depends(rate_limit("sessions.control", per_minute=60))],
+)
+async def resume_session(
+    session_id: str, service: SessionDep, ctx: CanParticipate
+) -> TrainingSession:
+    return await service.resume_session(session_id)
+
+
+@router.post(
+    "/{session_id}/end",
+    response_model=SessionEndResponse,
+    summary="End a session and trigger evaluation (§29 / §69)",
+    dependencies=[Depends(rate_limit("sessions.end", per_minute=30))],
+)
+async def end_session(
+    session_id: str,
+    payload: SessionEndRequest,
+    service: SessionDep,
+    ctx: CanParticipate,
+    audit: AuditDep,
+) -> SessionEndResponse:
+    """Evaluation may be returned inline or reported as pending (§29)."""
+    result = await service.end_session(session_id, payload)
+    await audit(
+        AuditAction.SESSION_END,
+        f"session:{session_id}",
+        detail={
+            "turn_count": result.session.turn_count,
+            "evaluation_pending": result.evaluation_pending,
+            "passed": bool(result.evaluation.passed) if result.evaluation else None,
+        },
+    )
+    return result
+
+
+@router.get(
+    "/{session_id}/transcript",
+    response_model=SessionTranscriptResponse,
+    summary="Full transcript, insights and state timeline (§25 / §30 / §31)",
+    dependencies=[Depends(rate_limit("sessions.transcript", per_minute=60))],
+)
+async def get_transcript(
+    session_id: str, service: SessionDep, ctx: CanReadOwn
+) -> SessionTranscriptResponse:
+    """A trainee may read their own transcript; reviewing others needs ``transcript.review``."""
+    return await service.get_transcript(session_id)
+
+
+@router.get(
+    "/{session_id}/events",
+    response_model=list[StreamingEvent],
+    summary="Replay streaming events from a sequence number (§68 gap fill)",
+    dependencies=[Depends(rate_limit("sessions.events", per_minute=120))],
+)
+async def list_events(
+    session_id: str,
+    service: SessionDep,
+    ctx: CanReadOwn,
+    since_seq: Annotated[int, Query(ge=0, description="Exclusive lower bound")] = 0,
+    limit: Annotated[int, Query(ge=1, le=500)] = 200,
+) -> list[StreamingEvent]:
+    """Used by a reconnecting client to fill the gap before resuming the socket."""
+    return await service.list_events(session_id, since_seq=since_seq, limit=limit)
+
+
+@router.get(
+    "/{session_id}/evaluation",
+    response_model=Evaluation,
+    summary="Read the evaluation of a completed session (§26)",
+)
+async def get_evaluation(
+    session_id: str, service: EvaluationDep, ctx: CanReadOwn
+) -> Evaluation:
+    return await service.get_evaluation(session_id)
+
+
+@router.post(
+    "/{session_id}/evaluation/override",
+    response_model=Evaluation,
+    summary="Coach override of the AI score (§28 Rubric Calibration)",
+    dependencies=[Depends(rate_limit("sessions.override", per_minute=30))],
+)
+async def override_evaluation(
+    session_id: str,
+    payload: EvaluationOverrideRequest,
+    service: EvaluationDep,
+    ctx: CanOverride,
+    audit: AuditDep,
+) -> Evaluation:
+    """The override is stored alongside the AI score, never replacing it (§28)."""
+    evaluation = await service.override_evaluation(session_id, payload)
+    await audit(
+        AuditAction.EVALUATION_OVERRIDE,
+        f"session:{session_id}/evaluation:{evaluation.id}",
+        detail={"score": float(payload.score)},
+    )
+    return evaluation
+
+
+# ---------------------------------------------------------------------------
+# WebSocket (§55 / §68)
+# ---------------------------------------------------------------------------
+
+
+@router.websocket("/{session_id}/ws")
+async def session_socket(websocket: WebSocket, session_id: str, ctx: WsCtx) -> None:
+    """Authenticate the upgrade, then hand the socket to the gateway.
+
+    Authentication happens here (cookie or bearer, plus an ``Origin`` allowlist check —
+    browsers do not enforce same-origin for WebSockets). The gateway owns the protocol:
+    it emits the §55 ``StreamingEvent`` union and consumes ``ClientCommand`` frames.
+
+    A long-lived request transaction would pin a pooled connection for the whole
+    session, so the gateway is handed the *session factory* and opens short-lived
+    transactions per turn instead of a single request-scoped session.
+    """
+    await session_ws_endpoint(
+        websocket,
+        session_id,
+        ctx=ctx,
+        session_factory=get_sessionmaker(),
+    )

@@ -1,0 +1,189 @@
+'use client';
+
+/**
+ * The right-hand persona column — spec §14.1, §20–§23, §91.
+ *
+ * A stack of *floating* cards (not a panel): each card enters with the §43
+ * translateX 12 → 0 motion, lifts 1px on hover, and the column is allowed to
+ * overflow the container by 8–16px on large screens (see `TrainingGrid`) to get
+ * the reference layout's floating depth.
+ *
+ * Order follows §14.1 / §91: Scenario → Persona stage → Objective → Live state
+ * → Coach → Timeline.
+ */
+import type { ReactNode } from 'react';
+import type {
+  CoachInsight,
+  Difficulty,
+  PersonaSimulationState,
+  ScenarioPhase,
+  SessionMode,
+  TranscriptTurn,
+} from '@ai-coach/shared';
+
+import type { AvatarBodyGender } from '@/features/avatar';
+
+import type { PersonaStateSnapshot, TimelineMarker } from '../lib/types';
+import { CoachCard } from './coach-card';
+import { cn } from './kit';
+import { PersonaObjectiveCard } from './persona-objective-card';
+import { PersonaStage } from './persona-stage';
+import { PersonaStateCard } from './persona-state-card';
+import { ScenarioCard } from './scenario-card';
+import { StateTimeline } from './state-timeline';
+
+export interface PersonaColumnProps {
+  mode: SessionMode;
+
+  /** Training session id — scopes the Avatar Runtime session on the persona stage. */
+  sessionId?: string;
+  /** Timestamp of the last trainee barge-in; each increase interrupts the avatar (§44). */
+  bargeInAtMs?: number;
+
+  scenarioName: string;
+  category?: string;
+  industry?: string;
+  trainingType?: string;
+  difficulty: Difficulty;
+  learningObjectives: string[];
+  restrictedTopics?: string[];
+
+  personaName: string;
+  personaGender?: AvatarBodyGender;
+  personaSubtitle?: string;
+  personaAvatarUrl?: string;
+
+  speaking: boolean;
+  listening: boolean;
+  thinking: boolean;
+  waveform?: ReactNode;
+  onOpenProfile?: () => void;
+
+  requiredTalkingPoints: string[];
+  keyObjections: string[];
+  successCondition: string;
+  timeLimitSeconds?: number;
+  remainingMs: number | null;
+  overtime: boolean;
+  scenarioPhase?: ScenarioPhase;
+  turns: TranscriptTurn[];
+
+  personaState: PersonaSimulationState | null;
+  personaStateUpdating: boolean;
+  personaHistory: PersonaStateSnapshot[];
+  timelineMarkers: TimelineMarker[];
+  startedAtMs: number | null;
+  elapsedMs: number;
+
+  coachInsights: CoachInsight[];
+  suppressedCoachCount: number;
+  /** Training Mode only — absent for assessments so the control cannot exist. */
+  onAskCoach?: () => void;
+
+  className?: string;
+}
+
+export function PersonaColumn(props: PersonaColumnProps) {
+  const {
+    mode,
+    sessionId,
+    bargeInAtMs,
+    scenarioName,
+    category,
+    industry,
+    trainingType,
+    difficulty,
+    learningObjectives,
+    restrictedTopics,
+    personaName,
+    personaGender,
+    personaSubtitle,
+    personaAvatarUrl,
+    speaking,
+    listening,
+    thinking,
+    waveform,
+    onOpenProfile,
+    requiredTalkingPoints,
+    keyObjections,
+    successCondition,
+    timeLimitSeconds,
+    remainingMs,
+    overtime,
+    scenarioPhase,
+    turns,
+    personaState,
+    personaStateUpdating,
+    personaHistory,
+    timelineMarkers,
+    startedAtMs,
+    elapsedMs,
+    coachInsights,
+    suppressedCoachCount,
+    onAskCoach,
+    className,
+  } = props;
+
+  return (
+    <aside
+      className={cn('sim-scroll grid h-full min-h-0 content-start gap-4 overflow-y-auto overflow-x-hidden pb-4 pr-1', className)}
+      aria-label="AI 模擬人物"
+    >
+      <ScenarioCard
+        scenarioName={scenarioName}
+        category={category}
+        industry={industry}
+        trainingType={trainingType}
+        difficulty={difficulty}
+        mode={mode}
+        learningObjectives={learningObjectives}
+        restrictedTopics={restrictedTopics}
+      />
+
+      <PersonaStage
+        personaName={personaName}
+        personaGender={personaGender}
+        subtitle={personaSubtitle}
+        avatarUrl={personaAvatarUrl}
+        speaking={speaking}
+        listening={listening}
+        thinking={thinking}
+        waveform={waveform}
+        onOpenProfile={onOpenProfile}
+        // The avatar reads the same persona state the cards below render (§20).
+        personaState={personaState}
+        sessionId={sessionId}
+        bargeInAtMs={bargeInAtMs}
+      />
+
+      <PersonaObjectiveCard
+        requiredTalkingPoints={requiredTalkingPoints}
+        keyObjections={keyObjections}
+        successCondition={successCondition}
+        timeLimitSeconds={timeLimitSeconds}
+        remainingMs={remainingMs}
+        overtime={overtime}
+        scenarioPhase={scenarioPhase}
+        turns={turns}
+      />
+
+      <PersonaStateCard state={personaState} updating={personaStateUpdating} />
+
+      <CoachCard
+        mode={mode}
+        insights={coachInsights}
+        suppressedCount={suppressedCoachCount}
+        startedAtMs={startedAtMs}
+        onAskCoach={onAskCoach}
+      />
+
+      <StateTimeline
+        markers={timelineMarkers}
+        history={personaHistory}
+        current={personaState}
+        startedAtMs={startedAtMs}
+        elapsedMs={elapsedMs}
+      />
+    </aside>
+  );
+}

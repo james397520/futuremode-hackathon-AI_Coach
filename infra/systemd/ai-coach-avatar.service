@@ -1,0 +1,29 @@
+[Unit]
+Description=AI Coach Avatar Runtime (LivePortrait + MuseTalk)
+Documentation=file:///opt/ai-coach/services/avatar-runtime/README.md
+After=network-online.target
+Wants=network-online.target
+# Deliberately NOT a dependency of ai-coach-api: an avatar failure must never take
+# down a training session (avatar spec §53 / ADR-0010).
+
+[Service]
+Type=exec
+User=ai-coach
+Group=ai-coach
+WorkingDirectory=/opt/ai-coach/services/avatar-runtime
+EnvironmentFile=/etc/ai-coach/ai-coach.env
+# Loopback only (avatar spec §39). Public access goes through nginx /avatar/.
+# Single worker: the model sessions and the expression state bank are process-local
+# caches, so a second worker would double GPU/unified-memory residency for no gain.
+ExecStart=/opt/ai-coach/services/avatar-runtime/.venv/bin/uvicorn app.main:app \
+    --host 127.0.0.1 --port 8765 --workers 1
+Restart=always
+RestartSec=5
+# Model load plus warmup can exceed the default start timeout on a cold cache.
+TimeoutStartSec=180
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

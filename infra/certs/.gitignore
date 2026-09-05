@@ -1,0 +1,6 @@
+# Local self-signed certificates minted by `scripts/bootstrap.sh --with-proxy`.
+# Never commit a private key.
+*.pem
+*.key
+*.crt
+*.csr

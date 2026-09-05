@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "moduleResolution": "Bundler",
+    "module": "ESNext",
+    "jsx": "preserve",
+    "noEmit": true,
+    "declaration": false,
+    "allowJs": true,
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@ai-coach/shared": ["../../packages/shared/src/index.ts"],
+      "@ai-coach/design-tokens": ["../../packages/design-tokens/src/index.ts"],
+      "@ai-coach/design-tokens/tailwind-preset": ["../../packages/design-tokens/src/tailwind-preset.ts"],
+      "@ai-coach/ui": ["../../packages/ui/src/index.ts"],
+      "@ai-coach/ai-runtime": ["../../packages/ai-runtime/src/index.ts"]
+    }
+  },
+  "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

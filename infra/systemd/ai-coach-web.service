@@ -1,0 +1,21 @@
+[Unit]
+Description=AI Coach Next.js web
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=ai-coach
+Group=ai-coach
+WorkingDirectory=/opt/ai-coach
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/ai-coach/ai-coach-web.env
+ExecStart=/usr/bin/env pnpm --filter @ai-coach/web start --port 3000
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

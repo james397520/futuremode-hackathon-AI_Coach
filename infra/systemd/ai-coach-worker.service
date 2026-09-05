@@ -1,0 +1,20 @@
+[Unit]
+Description=AI Coach Celery worker
+After=network-online.target ai-coach-api.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=ai-coach
+Group=ai-coach
+WorkingDirectory=/opt/ai-coach/apps/api
+EnvironmentFile=/etc/ai-coach/ai-coach.env
+ExecStart=/opt/ai-coach/apps/api/.venv/bin/celery -A app.workers.queue:get_celery worker --loglevel=INFO --queues=documents,evaluation,mining,maintenance
+Restart=always
+RestartSec=5
+TimeoutStopSec=60
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

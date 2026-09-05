@@ -1,0 +1,78 @@
+# Apple Silicon, 8 GB unified memory.
+#
+# The upstream MuseTalk model card benchmarks q4 at ~34 generated 256px faces/sec
+# with batch 8 — at roughly 7 GB peak. That does not fit here alongside macOS, so
+# this profile is NOT the published benchmark configuration and must not be
+# compared against it.
+#
+# What changes, and why:
+#   batch_size 8 -> 1     the 7 GB peak is the whole budget on this machine
+#   fp16 -> q4            1.51 GB of weights instead of ~4 GB
+#   LivePortrait OFF      expression comes from prerendered loops, so only one
+#                         model is ever resident and only the mouth is generated
+#   512x512 -> 384x512    the persona card renders around 320x450; generating
+#                         more than the card shows is pure waste
+#   25 -> 20 fps          stable sync at 20 beats 25 that swaps memory
+backend: mac_mlx
+
+canvas:
+  width: 384
+  height: 512
+  fps: 20
+
+liveportrait:
+  # ADR-003 / §3.1: the state bank already means LivePortrait need not run per
+  # frame. At 8 GB we go further and do not load it at runtime at all — the
+  # expression loops are generated offline, once, by build_expression_bank.py.
+  runtime_enabled: false
+  engine: fasterliveportrait_mlx
+
+musetalk:
+  # MEASURED, not assumed: on this machine class (M3 base, 10 GPU cores, 8 GB)
+  # q4 at batch 1 runs 62.6 s/frame against a 50 ms budget — ~1250x short. See
+  # BENCHMARK.md. The runtime probes the host and switches this off by itself;
+  # the settings below are what it uses on hardware that clears the budget.
+  engine: musetalk_mlx
+  variant: q4
+  precision: q4
+  batch_size: 1
+  # MuseTalk generates a 256px face region and pastes it back (§22). Background,
+  # body, clothing and most of the hair are untouched source pixels.
+  face_size: 256
+  preload: true
+
+expression:
+  # Switching expression is a crossfade between two prerendered loops, not an
+  # inference pass. The browser can do it on the GPU for free.
+  mode: prerendered_loop
+  crossfade_ms: 300
+  # Six is enough to read as a reactive customer (§69). The other six are P1.
+  loops:
+    - neutral
+    - listening
+    - skeptical
+    - concerned
+    - frustrated
+    - interested
+  loop_seconds: 4
+  loop_fps: 20
+
+encoder:
+  engine: videotoolbox
+  codec: h264
+
+stream:
+  # Phase 1 (§37) until the WebRTC path has been soaked; aiortc is installed and
+  # the Phase-2 track works, but frames-over-WS is the debuggable default.
+  transport: websocket_frames
+  frame_format: jpeg
+  quality: 82
+
+memory:
+  # §65: degrade rather than OOM. Each step is tried in order.
+  degrade_ladder:
+    - "batch_size -> 1"
+    - "fps 20 -> 15"
+    - "musetalk off -> static portrait mouth"
+    - "static portrait only"
+  max_active_avatars: 1

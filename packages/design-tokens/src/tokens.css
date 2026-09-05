@@ -1,0 +1,244 @@
+/* ChatCore Soft Lavender Workspace — shared design tokens. */
+
+:root {
+  --bg-canvas: #ccc8fe;
+  --bg-canvas-soft: #f3f1fc;
+  --workspace-background: #fbfafe;
+  --sidebar-background: #fafafc;
+  --surface-purple: #f3f1fc;
+
+  /* ---- Glass surfaces (§3) ---- */
+  /* More transparent (was .44): with a deeper canvas behind it the outermost
+   * shell should let the aurora through rather than washing it out. */
+  --glass-shell: #ffffff;
+  /* 0.68 -> 0.30: at 68% white the panel was a tinted rectangle you could not
+   * see through. Legibility now comes from the heavier blur beneath it, not
+   * from an opaque fill. */
+  --glass-card: rgba(255, 255, 255, 0.78);
+  --glass-card-strong: #ffffff;
+
+  /* 0.82 -> 0.55: a near-opaque white hairline on a 30% panel read as a hard
+   * outline, and it doubled the liquid-glass rim's own 1px top highlight. */
+  --border-glass: rgba(40, 40, 60, 0.07);
+  /* Was rgba(184,199,225,.25). Composited on the 52% strong surface that came
+   * to ~1.1:1 — inputs, rows and separators had no visible edge. Derived from
+   * the text-secondary hue instead so it reads as a line, not a glow. */
+  --border-soft: #e8e8ed;
+
+  /* Raised with the alpha drop: blur is what keeps text readable on a
+   * see-through panel, by flattening whatever is behind it. */
+  --blur-shell: 18px;
+  --blur-card: 16px;
+  --saturate-shell: 110%;
+
+  /* ---- Text — 深海軍藍，不使用純黑（§7） ---- */
+  --text-primary: #303035;
+  --text-secondary: #66676f;
+  /* Darkened from #8791a5 when the canvas deepened to #d9e3f3. The old grey
+   * was tuned for a near-white ground and fell to a 2.5:1 ratio against the new
+   * one — below AA for small text, which is most of what uses this token
+   * (timestamps, attempt counts, placeholders). #5a6272 clears 4.5:1 on both
+   * the card glass and the bare canvas. */
+  --text-tertiary: #6b6c74;
+  /* Text drawn over media — the persona stage's photo and aurora. It follows the
+   * *media*, not the theme, so it stays light in both. Using `--bg-canvas-soft`
+   * for this (as the stage originally did) inverts in dark mode and paints dark
+   * text onto a dark stage. */
+  --text-on-media: #f8faff;
+  --text-on-media-dim: rgba(248, 250, 255, 0.78);
+  /* Text on a solid accent fill (primary / danger button, count badge). */
+  --text-on-accent: #ffffff;
+  /* Text on the pastel status gradients (blue → cyan → mint). The pills are
+   * pastel, so the ink is navy: white on the blue stop measured 2.6:1. */
+  --text-on-pastel: #18233c;
+
+  /* ---- Accents ---- */
+  --accent-indigo: #7067e8;
+  --accent-blue: #6e8fe8;
+  --accent-cyan: #62b8c5;
+  --accent-mint: #5ab89c;
+  --accent-violet: #9c92f5;
+
+  --success: #46a889;
+  --warning: #c58b31;
+  --danger: #d45d70;
+  --info: #5b8ed1;
+
+  /* Solid fills that carry --text-on-accent. The display accents above are
+   * tuned to sit *on* the glass; under white text they measure 4.4:1 (indigo)
+   * and 3.1:1 (danger), so fills get their own, one-step-deeper value. */
+  --accent-solid: #373739;
+  --danger-solid: #c43d54;
+  /* "Ink" = the semantic colour when it is *text* on the glass. The display
+   * values are pastel and land at 1.6–2.7:1 against the light canvas; these
+   * clear 4.5:1 on canvas, card and strong, and on their own 16% tint. */
+  --success-ink: #0b6b52;
+  --warning-ink: #85500a;
+  --danger-ink: #a52639;
+  --info-ink: #1d5fa3;
+  --accent-ink: #554bc9;
+  --action-dark: #373739;
+  --action-dark-hover: #29292b;
+  /* The one genuinely solid surface: switch / slider knobs. */
+  --surface-solid: #ffffff;
+
+  /* ---- Elevation ----
+   * One light source, top-left: the liquid-glass rim is lit top-left, so the
+   * shadow falls down-right. Each level is two terms — a tight contact shadow
+   * where the slab meets what is under it, and a wide, faint ambient term.
+   * Alpha is scaled to how solid the surface is: a 30% glass card cannot cast
+   * the shadow of a painted panel, and the old straight-down 18px/50px at 10%
+   * made the see-through cards look pasted on. */
+  --shadow-soft:
+    0 1px 2px rgba(30, 30, 45, 0.025),
+    0 4px 12px rgba(30, 30, 45, 0.04);
+  --shadow-floating:
+    0 2px 5px rgba(30, 30, 45, 0.03),
+    0 8px 20px rgba(30, 30, 45, 0.06);
+  --shadow-shell: 0 20px 60px rgba(70, 60, 130, 0.14);
+  /* Coloured elevation for the flat accent fills — same geometry, accent hue.
+   * Declared with var() so it follows --accent-solid in either theme (the
+   * theme attribute is on <html>, i.e. this same :root element). */
+  --shadow-accent: 0 1px 2px rgba(30, 30, 35, 0.12);
+  --shadow-accent-hover: 0 3px 9px rgba(30, 30, 35, 0.18);
+  /* Top-edge highlight for small controls that are not `.liquid-glass`
+   * (buttons, active tabs). Panels get their rim from the liquid-glass ::after
+   * instead — do not stack both. */
+  --shadow-inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+
+  /* ---- Radius ----
+   * Deliberately tighter than spec §9 (30/24/22px) and than the §99 "no 8px
+   * radius" rule: the product owner asked for a 4-8px scale. Kept as one
+   * coherent ramp rather than only shrinking cards, because an 8px card inside
+   * a 30px shell reads as a mistake.
+   * Pills stay fully round — they are pills, not cards.
+   */
+  --radius-shell: 14px;
+  --radius-panel: 12px;
+  --radius-card: 10px;
+  --radius-card-sm: 7px;
+  --radius-input: 7px;
+  --radius-button: 6px;
+  --radius-avatar: 7px;
+  --radius-pill: 999px;
+
+  /* ---- Spacing (§8) 8px base ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---- Layout (§10 / §11) ---- */
+  --shell-safe-area: 20px;
+  --shell-max-width: 1800px;
+  --rail-width: 64px;
+  --rail-width-expanded: 248px;
+  --header-height: 54px;
+  --content-width: 680px;
+
+  /* ---- Typography (§7) ----
+   * Lifted one step across the whole ramp (tiny 11→12, body 14→15, display
+   * 32→36) with looser leading. The UI is Traditional Chinese: CJK glyphs fill
+   * their box edge to edge with no ascender/descender whitespace, so at the
+   * same nominal size they read smaller and denser than Latin. 11–13px carried
+   * ~70% of all text (198× tiny, 310× body-sm, 360× body) and was reported as
+   * "too small, too much text". Keep in step with tailwind-preset.ts fontSize. */
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --text-display: 36px/44px;
+  --text-page-title: 22px/30px;
+  --text-section: 18px/27px;
+  --text-card-title: 16px/24px;
+  --text-body: 15px/24px;
+  --text-body-sm: 14px/22px;
+  --text-meta: 13px/19px;
+  --text-tiny: 12px/18px;
+  --tracking-display: -0.02em;
+  --tracking-heading: -0.015em;
+
+  /* ---- Motion (§6 / §43) ---- */
+  --dur-theme: 200ms;
+  --dur-hover: 140ms;
+  --dur-card-enter: 180ms;
+  --ease-out-soft: ease;
+
+  color-scheme: light;
+}
+
+/* Dark mode 不是把白換成黑，要保留玻璃 + Aurora 感（§5） */
+[data-theme='dark'] {
+  --bg-canvas: #17151f;
+  --bg-canvas-soft: #211e2d;
+  --workspace-background: #1d1b24;
+  --sidebar-background: #19181f;
+  --surface-purple: #2a2736;
+
+  --glass-shell: #211f28;
+  --glass-card: rgba(255, 255, 255, 0.045);
+  --glass-card-strong: #292631;
+  --blur-shell: 40px;
+  --blur-card: 36px;
+
+  --border-glass: rgba(232, 228, 245, 0.08);
+  --border-soft: rgba(232, 228, 245, 0.11);
+
+  --text-primary: #f1eff5;
+  --text-secondary: #b2aebb;
+  --text-tertiary: #8d8898;
+  /* Deliberately the same as light: see the note above. */
+  --text-on-media: #f8faff;
+  --text-on-media-dim: rgba(248, 250, 255, 0.78);
+  --text-on-accent: #ffffff;
+  /* The pastel gradients are as light in dark mode as in light, so the same
+   * navy ink. */
+  --text-on-pastel: #18233c;
+
+  --accent-indigo: #8e84f1;
+  --accent-blue: #5db8f4;
+  --accent-cyan: #4cd3df;
+  --accent-mint: #63d7b8;
+  --accent-violet: #b59aff;
+
+  /* The dark display accents are lifted to read on a dark canvas, which puts
+   * white text on them at 3.3:1 — fills stay at the deeper light-mode step. */
+  --accent-solid: #f0edf5;
+  --action-dark: #f0edf5;
+  --action-dark-hover: #ffffff;
+  --text-on-accent: #242229;
+  --danger-solid: #c8455b;
+  /* Inks invert: on a dark glass the text-safe step is *lighter* than the
+   * display value, not darker. */
+  --success-ink: #63d7b8;
+  --warning-ink: #f5c169;
+  --danger-ink: #f28b97;
+  --info-ink: #7cc0f5;
+  --accent-ink: #ab9fff;
+  --surface-solid: #e8edf7;
+
+  /* Not the light values recoloured: on a #07101e canvas a wide black shadow
+   * is invisible, so depth here comes from the rim; the shadow is only the
+   * contact term plus a tighter, closer ambient. */
+  --shadow-soft:
+    0 1px 2px rgba(0, 0, 0, 0.24),
+    4px 12px 32px -8px rgba(0, 0, 0, 0.36);
+  --shadow-floating:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    8px 24px 56px -10px rgba(0, 0, 0, 0.5);
+  --shadow-shell: 0 20px 60px rgba(0, 0, 0, 0.34);
+  --shadow-inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-theme: 1ms;
+    --dur-hover: 1ms;
+    --dur-card-enter: 1ms;
+  }
+}

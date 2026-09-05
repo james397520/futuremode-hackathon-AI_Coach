@@ -1,0 +1,8 @@
+import type { Metadata } from 'next';
+import { RuntimeSettingsPage } from '@/features/settings';
+
+export const metadata: Metadata = { title: 'AI runtime' };
+
+export default function Page() {
+  return <RuntimeSettingsPage />;
+}
