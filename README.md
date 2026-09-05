@@ -296,7 +296,9 @@ python -m http.server 8765 --directory docs
 ## 作品展示
 
 - 線上網站：<https://james397520.github.io/futuremode-hackathon-AI_Coach/>
-- 評選影片：待補
+- Demo 影片：[在專案網站上播放](https://james397520.github.io/futuremode-hackathon-AI_Coach/#demo)（39 秒，720p），或直接下載 [`docs/media/demo.mp4`](docs/media/demo.mp4)
+
+https://github.com/james397520/futuremode-hackathon-AI_Coach/raw/main/docs/media/demo.mp4
 
 ## 第三方服務、資料與素材
 

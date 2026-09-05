@@ -116,7 +116,7 @@
 
   /* demo */
   .video{aspect-ratio:16/9;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r);display:grid;place-items:center;margin-top:48px;overflow:hidden;position:relative}
-  .video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .video iframe,.video video{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
   .video .ph{text-align:center;color:var(--fg-3);padding:24px}
   .video .ph .play{width:64px;height:64px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;margin:0 auto 16px}
 
@@ -764,18 +764,14 @@
   <div class="wrap">
     <div class="eyebrow">Demo</div>
     <h2>作品展示</h2>
-    <p class="lead">兩分鐘評選影片：從選擇情境、語音對練到評估報告的完整流程。</p>
+    <p class="lead">實際操作錄影：從選擇情境、語音對練到評估報告的流程。</p>
     <div class="video">
-      <!-- 影片就緒後，把下面 .ph 換成：
-      <iframe src="https://www.youtube.com/embed/VIDEO_ID" title="AI Coach Demo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-      -->
-      <div class="ph">
-        <div class="play"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div>
-        評選影片即將上線
-      </div>
+      <video controls preload="metadata" playsinline poster="" src="media/demo.mp4">
+        您的瀏覽器不支援內嵌影片，<a href="media/demo.mp4">請直接下載觀看</a>。
+      </video>
     </div>
     <div class="cta">
-      <a class="btn todo" href="#" aria-disabled="true">線上 Demo（即將開放）</a>
+      <a class="btn primary" href="media/demo.mp4" target="_blank" rel="noopener">下載影片</a>
       <a class="btn" href="https://github.com/james397520/futuremode-hackathon-AI_Coach#安裝與執行" target="_blank" rel="noopener">安裝與執行說明</a>
     </div>
   </div>
