@@ -10,25 +10,22 @@
  * inlines it at build time.
  */
 
-const DEFAULT_HTTP = 'http://127.0.0.1:8765';
-const DEFAULT_WS = 'ws://127.0.0.1:8765';
+/*
+ * The two origins come from the single source of truth (`@/lib/runtime-env`) so
+ * they cannot drift from what `next.config.mjs` pins in `connect-src`. Only the
+ * avatar-specific knobs below live here.
+ */
+import { AVATAR_BASE_URL, AVATAR_WS_BASE_URL } from '@/lib/runtime-env';
 
 function trimmed(value: string | undefined): string {
   return typeof value === 'string' ? value.trim().replace(/\/+$/, '') : '';
 }
 
 /** `NEXT_PUBLIC_AVATAR_BASE_URL` — HTTP origin of the Avatar Runtime. */
-export const AVATAR_BASE_URL: string =
-  trimmed(process.env.NEXT_PUBLIC_AVATAR_BASE_URL) || DEFAULT_HTTP;
+export { AVATAR_BASE_URL };
 
 /** `NEXT_PUBLIC_AVATAR_WS_URL` — WebSocket origin; derived from the HTTP one when unset. */
-export const AVATAR_WS_URL: string =
-  trimmed(process.env.NEXT_PUBLIC_AVATAR_WS_URL) ||
-  (AVATAR_BASE_URL.startsWith('https://')
-    ? AVATAR_BASE_URL.replace(/^https:/, 'wss:')
-    : AVATAR_BASE_URL.startsWith('http://')
-      ? AVATAR_BASE_URL.replace(/^http:/, 'ws:')
-      : DEFAULT_WS);
+export const AVATAR_WS_URL: string = AVATAR_WS_BASE_URL;
 
 /** `NEXT_PUBLIC_AVATAR_ID` — the prepared avatar asset (§7). */
 export const AVATAR_ID: string = trimmed(process.env.NEXT_PUBLIC_AVATAR_ID) || 'customer_001';

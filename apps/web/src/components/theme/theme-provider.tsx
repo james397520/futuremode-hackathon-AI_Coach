@@ -74,7 +74,7 @@ export function ThemeProvider({
    * (1) beats (2) only until the user toggles locally — after that the local
    * choice wins, otherwise the toggle would appear to do nothing.
    */
-  const [mode, setModeState] = useState<ThemeMode>(profilePreference ?? 'system');
+  const [mode, setModeState] = useState<ThemeMode>(profilePreference ?? 'light');
   const [resolved, setResolved] = useState<ResolvedTheme>('light');
   const [hydrated, setHydrated] = useState(false);
   const explicitLocalChoice = useRef(false);
@@ -83,7 +83,7 @@ export function ThemeProvider({
   useEffect(() => {
     const stored = readStoredMode();
     if (stored) explicitLocalChoice.current = true;
-    const initial = stored ?? profilePreference ?? 'system';
+    const initial = stored ?? profilePreference ?? 'light';
     setModeState(initial);
     setResolved(resolve(initial));
     setHydrated(true);
@@ -107,13 +107,12 @@ export function ThemeProvider({
     el.style.colorScheme = resolved;
   }, [resolved, hydrated]);
 
-  // Keep following the OS while in `system`.
   useEffect(() => {
-    if (mode !== 'system' || typeof window === 'undefined' || !window.matchMedia) return;
-    const mql = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = () => setResolved(mql.matches ? 'dark' : 'light');
-    mql.addEventListener('change', onChange);
-    return () => mql.removeEventListener('change', onChange);
+    if (mode !== 'system' || !window.matchMedia) return;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => setResolved(media.matches ? 'dark' : 'light');
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
   }, [mode]);
 
   const setMode = useCallback((next: ThemeMode) => {

@@ -105,7 +105,7 @@ export function VoiceSettingsPage() {
           {['AI speaking', 'Voice detected', 'Cancel synthesis', 'Listening', 'Transcribe', 'Continue context'].map(
             (stage, index, all) => (
               <li key={stage} className="flex items-center gap-2">
-                <span className="rounded-pill bg-glass-strong px-2.5 py-1">{stage}</span>
+                <span className="rounded-pill bg-glass-card px-2.5 py-1">{stage}</span>
                 {index < all.length - 1 ? <span aria-hidden className="text-text-tertiary">→</span> : null}
               </li>
             ),

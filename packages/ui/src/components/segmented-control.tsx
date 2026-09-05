@@ -1,8 +1,9 @@
 /**
  * SegmentedControl — spec §6 Theme Mode（Light / Dark / System）與各種二三選一切換。
  *
- * 用 radiogroup 語意 + 鍵盤方向鍵操作；選中的段是小面積柔和漸層（§86），
- * 不用實心高飽和色塊（§99）。
+ * 用 radiogroup 語意 + 鍵盤方向鍵操作；選中的段是 flat 的 --accent-solid
+ * （與 Button primary 同一套）：原本的 indigo→blue 漸層讓白字落在 #47a9ed 上只有
+ * 2.6:1，不到 AA。
  */
 import * as React from 'react';
 
@@ -67,7 +68,7 @@ export function SegmentedControl<T extends string = string>({
         // `max-w-full` + `min-w-0`: as a bare `inline-flex` this sized to its
         // content and refused to shrink, so in a narrow panel the last option
         // ("System" in the appearance switcher) was clipped by the container.
-        'inline-flex max-w-full min-w-0 items-center gap-0.5 rounded-pill border border-border-soft p-0.5',
+        'inline-flex max-w-full min-w-0 items-center gap-0.5 rounded-input border border-border-soft p-0.5',
         'bg-[color:color-mix(in_srgb,var(--text-tertiary)_8%,transparent)]',
         className,
       )}
@@ -87,18 +88,14 @@ export function SegmentedControl<T extends string = string>({
             className={cn(
               // `min-w-0` lets an option give up width; the label truncates
               // instead of pushing its siblings out of the track.
-              'inline-flex min-w-0 select-none items-center justify-center gap-1.5 rounded-pill font-medium',
+              'inline-flex min-w-0 select-none items-center justify-center gap-1.5 rounded-button font-medium',
               'transition-colors duration-[var(--dur-hover)] ease-out-soft motion-reduce:transition-none',
               'disabled:pointer-events-none disabled:opacity-50',
               '[&_svg]:size-4 [&_svg]:shrink-0',
               size === 'sm' ? 'h-7 text-body-sm' : 'h-8 text-body',
               iconOnly ? (size === 'sm' ? 'w-7' : 'w-8') : 'px-3',
               selected
-                ? [
-                    'text-white',
-                    '[background-image:linear-gradient(120deg,var(--accent-indigo),var(--accent-blue))]',
-                    '[box-shadow:0_4px_12px_color-mix(in_srgb,var(--accent-indigo)_22%,transparent)]',
-                  ].join(' ')
+                ? 'bg-glass-strong text-text-primary shadow-sm'
                 : 'text-text-secondary hover:bg-glass-card hover:text-text-primary',
               focusRingTight,
             )}

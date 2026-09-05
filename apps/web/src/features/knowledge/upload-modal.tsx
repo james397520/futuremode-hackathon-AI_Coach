@@ -90,7 +90,7 @@ export function UploadModal({
         {files.length > 0 ? (
           <ul className="space-y-1.5 text-body-sm">
             {files.map((file) => (
-              <li key={file} className="glass-strong truncate rounded-card-sm px-3 py-2">
+              <li key={file} className="truncate rounded-card-sm border border-border-soft bg-glass-card px-3 py-2">
                 {file}
               </li>
             ))}

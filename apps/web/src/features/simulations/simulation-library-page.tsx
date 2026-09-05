@@ -6,7 +6,8 @@ import { Clock, Play, Search, Users } from 'lucide-react';
 import { Button, EmptyState, GlassCard, Input, Pill, Tabs } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';
 import { ContentStatusPill, DifficultyPill, ModePill } from '@/components/status';
-import { MOCK_SCENARIOS } from '@/lib/fixtures/scenarios';
+import { useQuery } from '@tanstack/react-query';
+import { endpoints } from '@/lib/api-client';
 import { personaById } from '@/lib/fixtures/personas';
 import { SCENARIO_MASTERY } from '@/lib/fixtures/reports';
 import { useCan } from '@/lib/auth-context';
@@ -20,9 +21,21 @@ export function SimulationLibraryPage() {
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
 
+  /*
+   * Real scenarios, from the API. These used to come from `MOCK_SCENARIOS`,
+   * whose ids (`scn_already_insured`) do not exist in the database — so the
+   * setup page linked to a scenario the backend had never heard of and the
+   * session could never be created.
+   */
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['scenarios', 'library'],
+    queryFn: () => endpoints.listScenarios({ limit: 100 }),
+  });
+  const allScenarios = data?.items ?? [];
+
   const scenarios = useMemo(() => {
     const term = query.trim().toLowerCase();
-    return MOCK_SCENARIOS.filter((scenario) => {
+    return allScenarios.filter((scenario) => {
       if (filter === 'training' && (scenario.mode !== 'training' || scenario.status !== 'published')) return false;
       if (filter === 'assessment' && scenario.mode !== 'assessment') return false;
       if (filter === 'draft' && scenario.status === 'published') return false;
@@ -31,7 +44,7 @@ export function SimulationLibraryPage() {
         .filter(Boolean)
         .some((field) => field!.toLowerCase().includes(term));
     });
-  }, [filter, query]);
+  }, [allScenarios, filter, query]);
 
   const masteryFor = (scenarioId: string) =>
     SCENARIO_MASTERY.find((entry) => entry.scenario_id === scenarioId);
@@ -55,7 +68,7 @@ export function SimulationLibraryPage() {
           value={filter}
           onValueChange={(value: string) => setFilter(value as Filter)}
           items={[
-            { value: 'all', label: '全部', count: MOCK_SCENARIOS.length },
+            { value: 'all', label: '全部', count: allScenarios.length },
             { value: 'training', label: '訓練' },
             { value: 'assessment', label: '評測' },
             { value: 'draft', label: '尚未發布' },

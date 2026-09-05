@@ -92,7 +92,7 @@ export function SkillReportPage() {
             {TEAM_LEADERBOARD.filter((row) => row.weakest_skill === weakest || row.overall_score < 80).map((row) => (
               <li key={row.user_id} className="flex items-center justify-between gap-3 py-2.5">
                 <div className="min-w-0">
-                  <Link href={`/performance/${row.user_id}`} className="text-body-sm hover:text-accent-indigo">
+                  <Link href={`/performance/${row.user_id}`} className="text-body-sm hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]">
                     {row.display_name}
                   </Link>
                   <p className="text-tiny text-text-tertiary">{row.team_name}</p>

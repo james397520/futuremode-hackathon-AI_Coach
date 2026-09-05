@@ -37,9 +37,9 @@ export function PersonaStateCard({ state, updating = false, className }: Persona
   if (!state) {
     return (
       <GlassCard className={cn('sim-float-in p-5', className)}>
-        <CardTitle eyebrow="Current state">Waiting for the persona</CardTitle>
+        <CardTitle eyebrow="目前狀態">等待模擬人物回應中</CardTitle>
         <p className="mt-2 text-body-sm text-text-secondary">
-          Trust, interest, resistance and patience appear as soon as the simulation reports them.
+          信任度、興趣、抗拒與耐心會在模擬引擎回報後立即顯示。
         </p>
         <div className="mt-4 grid gap-3">
           <Skeleton className="h-3 w-full rounded-pill" />
@@ -56,7 +56,7 @@ export function PersonaStateCard({ state, updating = false, className }: Persona
   return (
     <GlassCard className={cn('sim-float-in sim-lift p-5', className)}>
       <CardTitle
-        eyebrow="Current state"
+        eyebrow="目前狀態"
         action={
           <TonePill tone={riskTone} fill={16} icon={<ShieldIcon size={11} />}>
             {COMPLIANCE_RISK_LABEL[state.compliance_risk] ?? state.compliance_risk}
@@ -73,19 +73,19 @@ export function PersonaStateCard({ state, updating = false, className }: Persona
         <TonePill tone="indigo" fill={14}>
           {PHASE_LABEL[state.scenario_phase] ?? state.scenario_phase}
         </TonePill>
-        <TonePill tone="blue" fill={13} title="Intent detected in the last turn">
+        <TonePill tone="blue" fill={13} title="上一輪偵測到的意圖">
           {humaniseSlug(state.intent)}
         </TonePill>
       </div>
 
       {/* §22 — four hairline meters, value always the last received number. */}
       <div className="mt-4 grid gap-3.5">
-        <Meter label="Trust" value={state.trust} tone="mint" live={updating} />
-        <Meter label="Interest" value={state.interest} tone="blue" live={updating} />
-        <Meter label="Resistance" value={state.resistance} tone="warning" live={updating} />
-        <Meter label="Patience" value={state.patience} tone="cyan" live={updating} />
+        <Meter label="信任度" value={state.trust} tone="mint" live={updating} />
+        <Meter label="興趣" value={state.interest} tone="blue" live={updating} />
+        <Meter label="抗拒程度" value={state.resistance} tone="warning" live={updating} />
+        <Meter label="耐心" value={state.patience} tone="cyan" live={updating} />
         {typeof state.time_pressure === 'number' ? (
-          <Meter label="Time pressure" value={state.time_pressure} tone="violet" live={updating} />
+          <Meter label="時間壓力" value={state.time_pressure} tone="violet" live={updating} />
         ) : null}
       </div>
 
@@ -101,30 +101,29 @@ export function PersonaStateCard({ state, updating = false, className }: Persona
         </span>
         <div className="min-w-0">
           <p className="text-body-sm font-medium text-text-primary">
-            {state.hidden_need_revealed ? 'Hidden need revealed' : 'Hidden need not surfaced yet'}
+            {state.hidden_need_revealed ? '隱藏需求已揭露' : '隱藏需求尚未浮現'}
           </p>
           <p className="mt-0.5 text-tiny text-text-tertiary">
             {state.hidden_need_revealed
-              ? 'The customer has voiced what actually worries them — build on it.'
-              : 'Keep exploring: the stated objection is probably not the real concern.'}
+              ? '客戶已說出真正在意的事——順著這點繼續發展。'
+              : '繼續探索：客戶提出的異議通常不是真正的顧慮。'}
           </p>
         </div>
       </div>
 
       <dl className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border-soft)' }}>
         <KeyValue
-          label="Current goal"
+          label="目前目標"
           value={<span className="max-w-[60%] text-right">{state.current_goal || '—'}</span>}
         />
         {typeof state.budget === 'number' ? (
-          <KeyValue label="Budget in mind" value={`${state.budget.toLocaleString()} / month`} mono />
+          <KeyValue label="心中預算" value={`${state.budget.toLocaleString()} / 月`} mono />
         ) : null}
       </dl>
 
       <p className="mt-3 flex items-start gap-1.5 text-tiny text-text-tertiary">
         <SparkleIcon size={11} className="mt-[2px] shrink-0" />
-        Simulated persona state produced by the scenario engine from the conversation. It is not an
-        inference about a real person&apos;s emotions.
+        此為情境引擎依對話產生的模擬人物狀態，並非對真實人物情緒的推斷。
       </p>
     </GlassCard>
   );

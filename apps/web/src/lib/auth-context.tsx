@@ -139,29 +139,18 @@ function useSessionSource(): AuthState & {
     }
 
     void (async () => {
-      if (await adoptApiSession()) {
-        if (!cancelled) setLoading(false);
-        return;
-      }
-      if (cancelled) return;
-      // MOCK: fixtures, so every page is reviewable with no backend running.
-      const overrideRole = readMockRole();
-      const resolvedUser =
-        overrideRole
-          ? { ...MOCK_CURRENT_USER, roles: [overrideRole] }
-          : MOCK_CURRENT_USER;
-      setUser(resolvedUser);
-    try {
-      const stored = window.localStorage.getItem(MOCK_WORKSPACE_KEY);
-      if (stored && MOCK_WORKSPACES.some((w) => w.id === stored)) setWorkspaceId(stored);
-      const storedRole = window.localStorage.getItem(ACTIVE_ROLE_KEY);
-      if (VALID_ROLES.includes(storedRole as Role) && resolvedUser.roles.includes(storedRole as Role)) {
-        setActiveRole(storedRole as Role);
-      }
-    } catch {
-      /* ignore */
-    }
-      setLoading(false);
+      /*
+       * The API is part of the deployment, so it is the ONLY source of identity.
+       *
+       * This used to fall back to `MOCK_CURRENT_USER` when `me()` failed, which
+       * meant a browser holding no session cookie still rendered a fully
+       * signed-in workspace — with a fixture user who had every role. Every real
+       * request behind that UI 401'd, and the simulation quietly swapped in a
+       * scripted persona, so a completely unauthenticated page looked like a
+       * working product. No signed-in state without a real session.
+       */
+      await adoptApiSession();
+      if (!cancelled) setLoading(false);
     })();
 
     return () => {

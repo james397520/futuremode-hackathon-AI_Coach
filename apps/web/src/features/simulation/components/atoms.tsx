@@ -7,7 +7,7 @@
 import type { ReactNode } from 'react';
 
 import { clampPercent } from '../lib/format';
-import { insetSurface, meterGradient, pillSurface, tint, toneText, type ToneKey } from '../lib/tone';
+import { insetSurface, meterGradient, pillSurface, tint, toneText, toneVar, type ToneKey } from '../lib/tone';
 import { cn } from './kit';
 
 // ---------------------------------------------------------------------------
@@ -43,15 +43,27 @@ export function TonePill({ tone = 'blue', children, icon, fill = 16, className, 
 export interface LiveDotProps {
   tone?: ToneKey;
   pulsing?: boolean;
+  /**
+   * Dot sits on an ink scrim over the persona portrait. The card mix
+   * (`toneText`) is tuned to be dark-ish on light glass, so on a dark scrim it
+   * would vanish; the raw accent is bright on ink in both themes.
+   */
+  onMedia?: boolean;
   className?: string;
 }
 
-export function LiveDot({ tone = 'mint', pulsing = false, className }: LiveDotProps) {
+export function LiveDot({ tone = 'mint', pulsing = false, onMedia = false, className }: LiveDotProps) {
   return (
     <span
       aria-hidden="true"
       className={cn('inline-block h-1.5 w-1.5 rounded-pill', pulsing && 'sim-listening-dot', className)}
-      style={{ backgroundColor: toneText(tone) }}
+      style={{
+        backgroundColor: onMedia
+          ? tone === 'neutral'
+            ? 'var(--text-on-media)'
+            : toneVar(tone)
+          : toneText(tone),
+      }}
     />
   );
 }
@@ -142,7 +154,9 @@ export function Bullet({ tone = 'blue', children, done = false }: BulletProps) {
         className="mt-[7px] inline-block h-1.5 w-1.5 shrink-0 rounded-pill"
         style={{ backgroundColor: done ? toneText('success') : toneText(tone) }}
       />
-      <span className={cn(done && 'line-through decoration-1 opacity-70')}>{children}</span>
+      {/* A ticked-off point is struck through and stepped down one text token —
+          not faded: `opacity-70` took `--text-secondary` to 2.9:1 in light mode. */}
+      <span className={cn(done && 'line-through decoration-1 text-text-tertiary')}>{children}</span>
     </li>
   );
 }

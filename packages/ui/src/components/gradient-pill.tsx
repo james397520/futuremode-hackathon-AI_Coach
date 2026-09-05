@@ -4,10 +4,14 @@
  * 設計約束：
  *  - **只做小面積漸層**。§99 禁止大面積 purple gradient 與 gradient text，
  *    所以這個元件刻意沒有 lg / block 尺寸，也不吃 children 以外的版面。
- *  - `ai` / `success` 使用 indigo → cyan → mint 漸層（§82）。
- *  - `warning` / `danger` 依 §82 使用「淡 amber / 淡紅」的低透明度 tint + 有色文字，
- *    不做滿版紅，維持 AA 對比。
+ *  - `ai` / `success` 使用 violet → cyan → mint 漸層（§82 的 pastel gradient）。
+ *    文字是 `--text-on-pastel`（navy）：pastel 上放白字只有 1.9–2.6:1；ai 的起點
+ *    從 indigo 換成 violet，是因為 navy 字在 indigo 上只有 3.5:1，在 violet 上 5.8。
+ *  - `warning` / `danger` 依 §82 使用「淡 amber / 淡紅」的低透明度 tint + `--*-ink`
+ *    文字（display 色直接當字只有 1.6 / 2.7:1），不做滿版紅。
  *  - `neutral` 落回 glass strong surface，避免「每張卡片不同顏色」（§99）。
+ *  - 沒有描邊、沒有投影：product-owner 的 borderless-chip 方向；一顆 20px 的 pill
+ *    拖著 16px 的模糊陰影只會像貼上去的。
  */
 import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
@@ -22,21 +26,13 @@ export const gradientPillVariants = cva(
   {
     variants: {
       tone: {
-        ai:
-          'text-white [background-image:linear-gradient(120deg,var(--accent-indigo),var(--accent-cyan)_54%,var(--accent-mint))] ' +
-          '[box-shadow:0_6px_16px_color-mix(in_srgb,var(--accent-indigo)_22%,transparent)]',
-        success:
-          'text-white [background-image:linear-gradient(120deg,var(--accent-mint),var(--accent-cyan))] ' +
-          '[box-shadow:0_6px_16px_color-mix(in_srgb,var(--accent-mint)_22%,transparent)]',
+        ai: 'bg-[color:color-mix(in_srgb,var(--accent-indigo)_14%,transparent)] text-accent-ink',
+        success: 'bg-[color:color-mix(in_srgb,var(--success)_16%,transparent)] text-state-success-ink',
         warning:
-          'border text-[color:var(--warning)] ' +
-          'bg-[color:color-mix(in_srgb,var(--warning)_16%,transparent)] ' +
-          'border-[color:color-mix(in_srgb,var(--warning)_30%,transparent)]',
+          'text-state-warning-ink bg-[color:color-mix(in_srgb,var(--warning)_16%,transparent)]',
         danger:
-          'border text-[color:var(--danger)] ' +
-          'bg-[color:color-mix(in_srgb,var(--danger)_14%,transparent)] ' +
-          'border-[color:color-mix(in_srgb,var(--danger)_28%,transparent)]',
-        neutral: 'border border-border-soft bg-glass-strong text-text-secondary',
+          'text-state-danger-ink bg-[color:color-mix(in_srgb,var(--danger)_16%,transparent)]',
+        neutral: 'bg-glass-strong text-text-secondary',
       },
       size: {
         xs: 'h-5 px-2 text-tiny',

@@ -92,10 +92,15 @@ export function QuestionEditorPage({ questionId, reviewMode }: { questionId: str
 
       {/* Review gate (§15 / §38) */}
       {needsReview ? (
-        <GlassCard tone="strong" className="p-5">
+        <GlassCard className="p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-start gap-3">
-              <AlertTriangle size={18} strokeWidth={1.8} aria-hidden className="mt-0.5 text-state-warning" />
+              <AlertTriangle
+                size={18}
+                strokeWidth={1.8}
+                aria-hidden
+                className="mt-0.5 text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]"
+              />
               <div>
                 <h2 className="text-card-title">Human review required before publish</h2>
                 <p className="mt-1 max-w-2xl text-body-sm text-text-secondary">
@@ -283,7 +288,7 @@ export function QuestionEditorPage({ questionId, reviewMode }: { questionId: str
 
         <div className="space-y-4">
           {draft.citations && draft.citations.length > 0 ? (
-            <GlassCard tone="strong" className="p-5">
+            <GlassCard className="p-5">
               <h2 className="text-card-title">Source citations</h2>
               <p className="mt-1 text-body-sm text-text-secondary">
                 Every AI-generated item carries the chunks it was derived from. Verify the claim against
@@ -337,7 +342,10 @@ export function QuestionEditorPage({ questionId, reviewMode }: { questionId: str
 
           <p className="text-tiny text-text-tertiary">
             {MOCK_QUESTIONS.length} questions in this workspace ·{' '}
-            <Link href="/questions" className="text-accent-indigo hover:underline">
+            <Link
+              href="/questions"
+              className="text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))] hover:underline"
+            >
               back to the bank
             </Link>
           </p>

@@ -28,8 +28,11 @@ export const inputVariants = cva(
         lg: 'h-12 px-4 text-body',
       },
       invalid: {
-        true: 'border-[color:color-mix(in_srgb,var(--danger)_46%,transparent)]',
-        false: 'border-border-soft hover:border-border-glass',
+        // ink-based so the error edge is visible on light glass (display red @46% ≈ 1.6:1)
+        true: 'border-[color:color-mix(in_srgb,var(--danger-ink)_55%,transparent)]',
+        // hover darkens the edge a step; the old hover to a *white* border
+        // inverted once --border-soft became a visible line
+        false: 'border-border-soft hover:border-[color:color-mix(in_srgb,var(--text-tertiary)_45%,transparent)]',
       },
     },
     defaultVariants: { inputSize: 'md', invalid: false },

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { GlassCard, Pill } from '@/components/ui';
+import { Pill } from '@/components/ui';
 import { PageHeader, type Crumb } from '@/components/app-shell';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
@@ -44,7 +44,7 @@ export function SettingsShell({
       />
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,240px)_minmax(0,1fr)]">
-        <GlassCard className="h-fit p-3">
+        <aside className="h-fit border-r border-border-soft pr-3 max-md:border-b max-md:border-r-0 max-md:pb-3 max-md:pr-0">
           <nav aria-label="Settings sections">
             <ul className="flex gap-1.5 overflow-x-auto md:flex-col md:overflow-visible">
               {sections.map((section) => {
@@ -56,7 +56,9 @@ export function SettingsShell({
                       aria-current={active ? 'page' : undefined}
                       className={cn(
                         'flex items-center gap-2.5 rounded-input px-3 py-2.5 text-body-sm transition-colors duration-150 ease-out-soft',
-                        active ? 'bg-glass-strong font-medium shadow-soft' : 'text-text-secondary hover:text-text-primary',
+                        active
+                          ? 'bg-glass-card font-medium text-text-primary'
+                          : 'text-text-secondary hover:bg-glass-card hover:text-text-primary',
                       )}
                     >
                       <section.icon size={16} strokeWidth={1.7} aria-hidden className="shrink-0" />
@@ -72,7 +74,7 @@ export function SettingsShell({
               })}
             </ul>
           </nav>
-        </GlassCard>
+        </aside>
 
         <div className="min-w-0 space-y-4">{children}</div>
       </div>

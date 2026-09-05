@@ -68,7 +68,9 @@ export function ChunkViewerPage({ kbId }: { kbId: string }) {
                     aria-current={active ? 'true' : undefined}
                     className={cn(
                       'w-full rounded-card-sm px-3.5 py-3 text-left transition-colors duration-150 ease-out-soft',
-                      active ? 'bg-glass-strong shadow-soft' : 'hover:bg-glass-card',
+                      active
+                        ? 'bg-glass-card [box-shadow:inset_0_0_0_1px_color-mix(in_srgb,var(--accent-indigo)_35%,transparent)]'
+                        : 'hover:bg-glass-card',
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -154,7 +156,7 @@ export function ChunkViewerPage({ kbId }: { kbId: string }) {
                     <button
                       type="button"
                       onClick={() => setSelectedId(selected.parent_chunk_id!)}
-                      className="rounded-button text-accent-indigo hover:underline"
+                      className="rounded-button text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))] hover:underline"
                     >
                       {selected.parent_chunk_id}
                     </button>
@@ -194,7 +196,10 @@ export function ChunkViewerPage({ kbId }: { kbId: string }) {
 
             <p className="mt-4 text-tiny text-text-tertiary">
               Need to see how this chunk actually scores?{' '}
-              <Link href={`/knowledge/${kbId}/playground`} className="text-accent-indigo hover:underline">
+              <Link
+                href={`/knowledge/${kbId}/playground`}
+                className="text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))] hover:underline"
+              >
                 Try it in the retrieval playground
               </Link>
               .

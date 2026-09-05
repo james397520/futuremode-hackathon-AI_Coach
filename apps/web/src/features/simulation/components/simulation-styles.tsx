@@ -6,8 +6,12 @@
  * feature does not own `apps/web/src/styles` or the global CSS entry point.
  * Only design tokens are referenced — no colour literal appears here (§99).
  */
+import { TONE_CSS } from '../lib/tone';
 
 const CSS = `
+/* Theme-conditional ink + tone-text mixes (see lib/tone.ts). */
+${TONE_CSS}
+
 /* §43 Card enter: opacity 0→1, translateY 8→0, 280ms */
 @keyframes sim-card-enter {
   from { opacity: 0; transform: translateY(8px); }
@@ -87,12 +91,16 @@ const CSS = `
   overflow-wrap: anywhere;
 }
 
-/* §42.2 Persona portrait: warm, never crushed in dark mode. */
-.sim-portrait {
-  box-shadow: 0 24px 55px color-mix(in srgb, var(--text-primary) 22%, transparent),
-              0 0 0 1px var(--border-glass);
-}
+/* §42.2 Persona portrait: warm, never crushed in dark mode.
+   One token shadow. The previous rule stacked a hand-rolled 22% text-primary
+   drop shadow (which flips to a *light* glow in dark mode, where text-primary is
+   near white) on top of a 1px rim ring, doubling the card's own elevation. */
+.sim-portrait { box-shadow: var(--shadow-floating); }
 [data-theme='dark'] .sim-portrait { filter: saturate(1.04) brightness(1.06); }
+
+/* Popover menu rows — a tokenised hover wash instead of bg-black/5. */
+.sim-menu-item { transition: background-color var(--dur-hover, 140ms) var(--ease-out-soft); }
+.sim-menu-item:hover { background-color: color-mix(in srgb, var(--text-tertiary) 12%, transparent); }
 
 /* Focus ring built from tokens (accessibility, §50). */
 .sim-focusable:focus-visible {

@@ -132,9 +132,8 @@ export function VoiceControls({
           disabled={starting || ended}
           className="sim-focusable sim-lift flex h-9 items-center gap-1.5 rounded-input px-3 text-meta font-medium disabled:opacity-50"
           style={{
-            background:
-              'linear-gradient(120deg, var(--accent-indigo), var(--accent-blue) 58%, var(--accent-mint))',
-            color: 'var(--text-on-media)',
+            background: 'var(--action-dark)',
+            color: 'var(--text-on-accent)',
           }}
         >
           <MicIcon size={17} />

@@ -131,9 +131,10 @@ export function Composer({
   return (
     <div className={cn('shrink-0', className)}>
       <div
-        className="glass-strong flex items-end gap-2 rounded-card border p-2.5 shadow-soft"
-        style={{ borderColor: tint('neutral', 18) }}
+        className="relative flex items-end gap-2 overflow-hidden rounded-panel border bg-[color:color-mix(in_srgb,var(--glass-card-strong)_94%,transparent)] p-2.5 pt-3.5 shadow-soft"
+        style={{ borderColor: 'color-mix(in srgb, var(--accent-indigo) 18%, var(--border-soft))' }}
       >
+        <span className="absolute inset-x-0 top-0 h-1 bg-[color:color-mix(in_srgb,var(--accent-indigo)_16%,transparent)]" aria-hidden />
         <div className="min-w-0 flex-1">
           <Textarea
             value={value}
@@ -155,7 +156,7 @@ export function Composer({
             onClick={onToggleMic}
             aria-pressed={micLive && !muted}
             aria-label={micLive && !muted ? '靜音麥克風' : '啟用麥克風'}
-            className="sim-focusable sim-lift flex h-10 w-10 shrink-0 items-center justify-center rounded-input"
+            className="sim-focusable flex h-9 w-9 shrink-0 items-center justify-center rounded-input"
             style={insetSurface(vadActive ? 'mint' : micLive && !muted ? 'blue' : 'neutral', 14)}
           >
             {micLive && !muted ? (
@@ -172,7 +173,7 @@ export function Composer({
             onClick={onRequestHint}
             disabled={blocked}
           aria-label="向教練詢問提示"
-            className="sim-focusable sim-lift flex h-10 w-10 shrink-0 items-center justify-center rounded-input disabled:opacity-50"
+            className="sim-focusable flex h-9 w-9 shrink-0 items-center justify-center rounded-input disabled:opacity-50"
             style={insetSurface('violet', 13)}
           >
             <LightbulbIcon size={17} style={{ color: toneText('violet') }} />
@@ -183,10 +184,10 @@ export function Composer({
           type="button"
           onClick={submit}
           disabled={!canSend}
-          className="sim-focusable sim-lift flex h-10 shrink-0 items-center gap-2 rounded-input px-4 text-body font-medium disabled:cursor-not-allowed disabled:opacity-45"
+          className="sim-focusable flex h-9 shrink-0 items-center gap-2 rounded-button px-3.5 text-body-sm font-medium transition-[background-color,transform,box-shadow] duration-150 ease-out-soft hover:-translate-y-px hover:shadow-soft disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
           style={{
-            background: 'linear-gradient(120deg, var(--accent-indigo), var(--accent-blue) 62%, var(--accent-cyan))',
-            color: 'var(--text-on-media)',
+            background: 'var(--action-dark)',
+            color: 'var(--text-on-accent)',
           }}
         >
           <SendIcon size={16} />

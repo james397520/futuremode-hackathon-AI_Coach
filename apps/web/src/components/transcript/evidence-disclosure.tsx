@@ -32,13 +32,15 @@ export function EvidenceDisclosure({
   const panelId = `evidence-${String(skill.skill)}`;
 
   return (
-    <div className={cn('glass-strong rounded-card-sm', className)}>
+    // Card glass, borderless: the strong fill plus hairline border made every
+    // score row an opaque strip inside its report card.
+    <div className={cn('rounded-card-sm bg-glass-card', className)}>
       <button
         type="button"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center gap-4 rounded-card-sm px-4 py-3 text-left transition-colors duration-150 ease-out-soft hover:bg-glass-card"
+        className="flex w-full items-center gap-4 rounded-card-sm px-4 py-3 text-left transition-colors duration-150 ease-out-soft hover:bg-glass-strong"
       >
         <div className="min-w-0 flex-1">
           <ScoreBar label={label} score={skill.score} threshold={threshold} confidence={skill.confidence} />
@@ -80,7 +82,7 @@ export function EvidenceDisclosure({
                       key={turnId}
                       type="button"
                       onClick={() => onJumpToTurn?.(turnId)}
-                      className="rounded-button text-accent-indigo hover:underline"
+                      className="ink-indigo rounded-button hover:underline"
                     >
                       Jump to turn
                     </button>
@@ -94,14 +96,16 @@ export function EvidenceDisclosure({
 
                 {evidence.issue ? (
                   <p className="mt-2 text-body-sm">
-                    <span className="meta-label mr-2 text-state-warning">Issue</span>
+                    {/* 11px labels: raw warning is 1.6:1 and raw success 1.7:1 on
+                        the light glass; the ink mixes measure 4.9:1 / 4.9:1. */}
+                    <span className="meta-label ink-warning mr-2">Issue</span>
                     <span className="text-text-secondary">{evidence.issue}</span>
                   </p>
                 ) : null}
 
                 {evidence.better_approach ? (
                   <p className="mt-1.5 text-body-sm">
-                    <span className="meta-label mr-2 text-state-success">Better approach</span>
+                    <span className="meta-label ink-success mr-2">Better approach</span>
                     <span className="text-text-secondary">{evidence.better_approach}</span>
                   </p>
                 ) : null}

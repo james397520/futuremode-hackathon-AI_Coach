@@ -12,7 +12,14 @@
  * `prefers-reduced-motion` collapses every one of them; the stage stays fully
  * legible because none of them carries information on their own.
  */
+import { TONE_CSS } from '../lib/tone';
+
 const CSS = `
+/* Theme-conditional ink + tone-text mixes — the badge and preflight list can be
+   mounted on their own (settings, setup), so they must not depend on the
+   simulation feature's stylesheet for AA text. */
+${TONE_CSS}
+
 /* Chest/shoulder breathing — 4.5s, ~0.6% scale. Barely perceptible by design. */
 @keyframes avatar-breathe {
   0%, 100% { transform: scale(1) translateY(0); }

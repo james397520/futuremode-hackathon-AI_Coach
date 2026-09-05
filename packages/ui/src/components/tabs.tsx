@@ -29,7 +29,7 @@ export const TabsList = React.forwardRef<
       className={cn(
         'inline-flex max-w-full items-center gap-1 overflow-x-auto',
         appearance === 'inset' &&
-          'rounded-pill border border-border-soft bg-glass-strong p-1 backdrop-blur-card',
+          'rounded-input border border-border-soft bg-[color:color-mix(in_srgb,var(--text-tertiary)_7%,transparent)] p-0.5',
         className,
       )}
       {...props}
@@ -46,12 +46,11 @@ export const TabsTrigger = React.forwardRef<
       ref={ref}
       className={cn(
         'inline-flex h-8 shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap',
-        'rounded-pill px-3.5 text-body-sm font-medium text-text-secondary',
+        'rounded-button px-3.5 text-body-sm font-medium text-text-secondary',
         'transition-[background-color,color,box-shadow] duration-[var(--dur-hover)] ease-out-soft',
         'motion-reduce:transition-none',
         'hover:text-text-primary',
-        'data-[state=active]:bg-glass-card data-[state=active]:text-text-primary',
-        'data-[state=active]:[box-shadow:var(--shadow-soft),var(--shadow-inset-hi)]',
+        'data-[state=active]:bg-glass-strong data-[state=active]:text-text-primary data-[state=active]:shadow-sm',
         'disabled:pointer-events-none disabled:opacity-50',
         '[&_svg]:size-4 [&_svg]:shrink-0',
         focusRingTight,

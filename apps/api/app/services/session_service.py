@@ -491,7 +491,7 @@ class SessionService(BaseService):
     # ------------------------------------------------------------------
     async def replay(self, session_id: str) -> ReplayPayload:
         row = await self._require(session_id, read_only=True)
-        pinned = PinnedSnapshot.model_validate(field(row, "pinned_snapshot") or {})
+        pinned = await self._pinned_for_row(row)
         turns = await self.repo.list(
             "TranscriptTurn", filters={"session_id": session_id}, order_by="timestamp_ms"
         )
@@ -561,11 +561,43 @@ class SessionService(BaseService):
             self.require_role(*roles, action="access another user's session")
         return row
 
+    async def _pinned_for_row(self, row: Any) -> PinnedSnapshot:
+        """Rebuild the §54 pinned snapshot for an existing session.
+
+        `TrainingSession` has no `pinned_snapshot` column — `create` writes that
+        key and the repository silently drops it — so reading it back always
+        yielded `{}` and `PinnedSnapshot.model_validate({})` raised
+        "4 validation errors ... Field required" on every turn. The persona could
+        therefore never answer in a session that outlived the in-process runtime
+        cache (i.e. any session after an API restart).
+
+        The pinning *identity* is on the row itself (`scenario_id`,
+        `scenario_version`, `persona_id`, `persona_version`), so the snapshot is
+        rebuilt from those. Content is re-read from the current rows: versions are
+        immutable in this model, so the same version yields the same content.
+        """
+        stored = field(row, "pinned_snapshot") or None
+        if stored:
+            return PinnedSnapshot.model_validate(stored)
+
+        scenario = await self.repo.get("Scenario", str(field(row, "scenario_id", "")))
+        persona = await self.repo.get("Persona", str(field(row, "persona_id", "")))
+        if scenario is None or persona is None:
+            # Content was deleted; keep the identity so the turn can still fail
+            # with a domain error rather than a validation crash.
+            return PinnedSnapshot(
+                scenario_id=str(field(row, "scenario_id", "")),
+                scenario_version=int(field(row, "scenario_version", 1) or 1),
+                persona_id=str(field(row, "persona_id", "")),
+                persona_version=int(field(row, "persona_version", 1) or 1),
+            )
+        return self.pin(scenario, persona)
+
     async def _runtime_state(self, session_id: str, row: Any) -> SessionRuntimeState:
         runtime = self._runtime.get(session_id)
         if runtime is not None:
             return runtime
-        pinned = PinnedSnapshot.model_validate(field(row, "pinned_snapshot") or {})
+        pinned = await self._pinned_for_row(row)
         persisted_state = field(row, "persona_state")
         persisted_director = field(row, "director_state")
         runtime = SessionRuntimeState(
@@ -786,11 +818,31 @@ async def _create_session(self: SessionService, payload: Any) -> Any:
     return await _session_response(self, view)
 
 
+async def _get_session(self: SessionService, session_id: str) -> Any:
+    """GET /sessions/{id} returns the same envelope as POST /sessions.
+
+    `SessionService.get` yields a bare `SessionView`, but the router declares
+    `response_model=SessionResponse`, which also requires `scenario`, `persona`,
+    `runtime_policy` and `websocket_url`. Binding `get` straight through made
+    every read fail with `ResponseValidationError: 5 validation errors` -> 500,
+    which the browser surfaced only as "Could not reach the AI service".
+    """
+    return await _session_response(self, await self.get(session_id))
+
+
 async def _list_events(
     self: SessionService, session_id: str, *, since_seq: int = 0, limit: int = 200
 ) -> list[dict[str, Any]]:
-    """Replay buffered stream events (§55 gap recovery over HTTP)."""
-    emitter = self.emitters.get(session_id)
+    """Replay buffered stream events (§55 gap recovery over HTTP).
+
+    `EventEmitterRegistry.get` is async and takes the tenant scope; calling it
+    without `await` returned a coroutine, so this raised
+    `AttributeError: 'coroutine' object has no attribute 'replay_since'` -> 500
+    on every gap-recovery request.
+    """
+    emitter = await self.emitters.get(
+        session_id, tenant_id=self.tenant_id, workspace_id=self.workspace_id
+    )
     if emitter is None:
         return []
     events = await emitter.replay_since(since_seq)
@@ -825,7 +877,7 @@ async def _request_hint(self: SessionService, session_id: str, payload: Any = No
 
 SessionService.create_session = _create_session          # type: ignore[attr-defined]
 SessionService.end_session = SessionService.end          # type: ignore[attr-defined]
-SessionService.get_session = SessionService.get          # type: ignore[attr-defined]
+SessionService.get_session = _get_session                 # type: ignore[attr-defined]
 SessionService.get_transcript = SessionService.transcript  # type: ignore[attr-defined]
 async def _list_sessions(
     self: SessionService,

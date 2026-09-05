@@ -26,7 +26,7 @@ import {
   type RuntimeSnapshot,
   type RuntimeTelemetryDetail,
 } from '@ai-coach/ai-runtime';
-import { API_BASE_URL } from '@/lib/api-client';
+import { csrfHeader, API_BASE_URL } from '@/lib/api-client';
 
 /**
  * Wraps `@ai-coach/ai-runtime` capability detection and publishes it through
@@ -124,6 +124,10 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
       // workspace forces acceleration on.
       enableLocal: override === 'on' || consent === 'granted',
       apiBaseUrl: API_BASE_URL,
+      // Telemetry POSTs go through the runtime's own fetch, so they need the
+      // double-submit CSRF header the API requires on every mutating request —
+      // without it the report is rejected 403 even with a valid session cookie.
+      authHeaders: () => csrfHeader(),
       onWarning: (message) => {
         // Not user-facing: §94 says the learner sees "your session will continue".
         console.warn('[ai-runtime]', message);

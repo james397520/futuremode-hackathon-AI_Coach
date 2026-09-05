@@ -13,6 +13,7 @@
  */
 import { useMemo } from 'react';
 import type {
+  AgentName,
   CoachInsight,
   ComplianceFinding,
   ID,
@@ -40,6 +41,8 @@ export interface TranscriptFeedProps {
   personaAvatarUrl?: string;
   traineeName?: string;
   status: SessionState;
+  /** Which agent is currently working, so the persona indicator is not shown for the coach. */
+  activeAgent?: AgentName | null;
   openingContext?: string;
   className?: string;
 }
@@ -84,7 +87,10 @@ export function buildTranscriptItems(input: {
   }));
 
   const finalisedIds = new Set(turns.map((t) => t.id));
-  const lastAt = turns.length > 0 ? (turns[turns.length - 1]?.timestamp_ms ?? 0) : 0;
+  // Max, not the last element: `turns` is merged and re-sorted below, so the
+  // array order is not guaranteed to be chronological. Taking the tail could
+  // anchor the in-flight bubble *before* an existing turn and make it jump.
+  const lastAt = turns.reduce((max, turn) => Math.max(max, turn.timestamp_ms ?? 0), 0);
 
   for (const insight of coachInsights) {
     items.push({
@@ -169,6 +175,7 @@ export function TranscriptFeed({
   personaAvatarUrl,
   traineeName,
   status,
+  activeAgent = null,
   openingContext,
   className,
 }: TranscriptFeedProps) {
@@ -244,7 +251,14 @@ export function TranscriptFeed({
           </ol>
         </div>
 
-        {status === 'processing' && streamingItems.length === 0 ? (
+        {/*
+          * Only while the *customer* agent is the one working. The orchestrator
+          * emits `agent.thinking` for `compliance` and `coach` immediately after
+          * the persona's reply is final, and each of those moves the session
+          * back to `processing` — so gating on status alone kept "陳先生 正在思考…"
+          * on screen after the customer had already answered.
+          */}
+        {status === 'processing' && activeAgent === 'customer' && streamingItems.length === 0 ? (
           <p className="mt-2 flex items-center gap-2 px-3.5 text-meta text-text-tertiary">
             <LiveDot tone="indigo" pulsing />
             {personaName} 正在思考…
@@ -256,9 +270,12 @@ export function TranscriptFeed({
         <button
           type="button"
           onClick={() => scrollToBottom()}
-          className="sim-focusable absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-pill px-3 py-1.5 text-tiny shadow-soft backdrop-blur"
+          className="sim-focusable absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-pill px-3 py-1.5 text-tiny shadow-soft backdrop-blur-card"
+          // Glass, not paint: the card token with the card blur is enough for a
+          // pill that floats over the transcript, and `toneText('blue')` is
+          // ≥4.6:1 on it in both themes.
           style={{
-            backgroundColor: 'var(--glass-card-strong)',
+            backgroundColor: 'var(--glass-card)',
             borderColor: tint('neutral', 24),
             color: toneText('blue'),
           }}

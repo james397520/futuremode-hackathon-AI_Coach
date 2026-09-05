@@ -40,7 +40,7 @@ const twMerge = extendTailwindMerge({
         },
       ],
       // §3 Elevation
-      shadow: [{ shadow: ['soft', 'floating', 'shell'] }],
+      shadow: [{ shadow: ['soft', 'floating', 'shell', 'accent', 'accent-hover'] }],
       // §10 Shell
       'max-w': [{ 'max-w': ['shell'] }],
       // §43 Motion

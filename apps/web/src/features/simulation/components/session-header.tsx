@@ -153,13 +153,13 @@ export function SessionHeader({
         <span
           className="flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-tiny tabular-nums"
           style={insetSurface(overtime ? 'warning' : 'neutral', 9)}
-          title={remainingMs === null ? 'Elapsed time' : 'Elapsed / remaining'}
+          title={remainingMs === null ? '經過時間' : '經過時間 / 剩餘時間'}
         >
           <ClockIcon size={12} className="text-text-tertiary" />
           <span className="text-text-primary">{formatTimer(elapsedMs)}</span>
           {remainingMs !== null ? (
             <span style={{ color: toneText(overtime ? 'warning' : 'neutral') }}>
-              {overtime ? `+${formatTimer(Math.abs(remainingMs))}` : `· ${formatTimer(remainingMs)} left`}
+              {overtime ? `+${formatTimer(Math.abs(remainingMs))}` : `· 剩餘 ${formatTimer(remainingMs)}`}
             </span>
           ) : null}
         </span>
@@ -167,16 +167,16 @@ export function SessionHeader({
         <span
           className="rounded-pill px-2.5 py-1 text-tiny tabular-nums text-text-secondary"
           style={insetSurface('neutral', 9)}
-          title="Turns exchanged"
+          title="已交流回合數"
         >
-          {maxTurns ? `${turnCount} / ${maxTurns} turns` : `${turnCount} turns`}
+          {maxTurns ? `${turnCount} / ${maxTurns} 回合` : `${turnCount} 回合`}
         </span>
 
         {/* §15 runtime badge + §94 quiet fallback notice */}
         <Tooltip
           content={
             runtime.degraded && runtime.fallbackReason
-              ? `${badge.label} — ${runtime.fallbackReason}. Your session continues normally.`
+              ? `${badge.label} — ${runtime.fallbackReason}。你的練習不受影響，會繼續正常進行。`
               : `${badge.label} · ${badge.sub}`
           }
         >
@@ -196,7 +196,7 @@ export function SessionHeader({
             role="status"
           >
             <LiveDot tone="warning" pulsing />
-            <span style={{ color: toneText('warning') }}>Offline</span>
+            <span style={{ color: toneText('warning') }}>離線</span>
           </span>
         ) : null}
       </div>

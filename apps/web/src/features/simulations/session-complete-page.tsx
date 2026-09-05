@@ -100,11 +100,11 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
 
             <dl className="mt-5 space-y-3">
               <div>
-                <dt className="meta-label text-state-success">What worked</dt>
+                <dt className="meta-label text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]">What worked</dt>
                 <dd className="mt-1 text-body-sm text-text-secondary">{evaluation.key_strength}</dd>
               </div>
               <div>
-                <dt className="meta-label text-state-warning">The one thing to change</dt>
+                <dt className="meta-label text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]">The one thing to change</dt>
                 <dd className="mt-1 text-body-sm text-text-secondary">{evaluation.main_improvement}</dd>
               </div>
             </dl>
@@ -147,7 +147,7 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
           <h2 className="text-card-title">Post-session coaching</h2>
           <ul className="mt-3 space-y-2.5">
             {MOCK_COACH_INSIGHTS.filter((insight) => insight.kind === 'post_session').map((insight) => (
-              <li key={insight.id} className="glass-strong rounded-card-sm p-4">
+              <li key={insight.id} className="border border-border-soft bg-glass-card rounded-card-sm p-4">
                 <p className="text-body-sm font-medium">{insight.title}</p>
                 <p className="mt-1 text-body-sm text-text-secondary">{insight.body}</p>
               </li>
@@ -164,7 +164,7 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
 
           <ul className="mt-4 space-y-2.5">
             {DEMO_RECOMMENDATION.next_scenario_id ? (
-              <li className="glass-strong flex items-center justify-between gap-3 rounded-card-sm p-4">
+              <li className="border border-border-soft bg-glass-card flex items-center justify-between gap-3 rounded-card-sm p-4">
                 <div className="min-w-0">
                   <p className="text-body-sm font-medium">
                     {scenarioById(DEMO_RECOMMENDATION.next_scenario_id)?.name ?? DEMO_RECOMMENDATION.next_scenario_id}
@@ -180,7 +180,7 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
             ) : null}
 
             {DEMO_RECOMMENDATION.knowledge_material.map((material) => (
-              <li key={material.document_id} className="glass-strong rounded-card-sm p-4">
+              <li key={material.document_id} className="border border-border-soft bg-glass-card rounded-card-sm p-4">
                 <div className="flex items-start gap-2.5">
                   <BookOpen size={15} strokeWidth={1.8} aria-hidden className="mt-0.5 shrink-0 text-accent-blue" />
                   <div className="min-w-0">
@@ -194,12 +194,12 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
             ))}
 
             {DEMO_RECOMMENDATION.question_set_ids.length > 0 ? (
-              <li className="glass-strong rounded-card-sm p-4">
+              <li className="border border-border-soft bg-glass-card rounded-card-sm p-4">
                 <p className="text-body-sm font-medium">Practice questions</p>
                 <ul className="mt-1.5 space-y-1 text-body-sm text-text-secondary">
                   {DEMO_RECOMMENDATION.question_set_ids.map((questionId) => (
                     <li key={questionId}>
-                      <Link href={`/questions/${questionId}/edit`} className="hover:text-accent-indigo">
+                      <Link href={`/questions/${questionId}/edit`} className="hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]">
                         {questionById(questionId)?.title ?? questionId}
                       </Link>
                     </li>

@@ -1,35 +1,26 @@
-/*
- * Aurora 背景 + Dot Matrix + Glass utility — spec §1.1 / §2 / §3 / §5
- * 禁止純白、純灰、飽和藍紫、cyberpunk neon（§1.1 / §99）
- */
+/* Soft lavender stage and restrained workspace surfaces. */
 
 .aurora-canvas {
   background:
-    radial-gradient(circle at 18% 22%, rgba(116, 185, 255, 0.42), transparent 34%),
-    radial-gradient(circle at 40% 12%, rgba(125, 231, 197, 0.32), transparent 30%),
-    radial-gradient(circle at 76% 14%, rgba(190, 198, 255, 0.36), transparent 34%),
-    radial-gradient(circle at 50% 80%, rgba(209, 219, 255, 0.32), transparent 44%),
-    /* Base ramp deepened with --bg-canvas; the near-white original sat on top
-     * of the canvas colour and cancelled it out. */
-    linear-gradient(135deg, #dbe4f5 0%, #e4ebf8 42%, #dce0f6 100%);
+    radial-gradient(circle at 20% 12%, rgba(255, 255, 255, 0.32), transparent 34%),
+    radial-gradient(circle at 84% 88%, rgba(112, 103, 232, 0.12), transparent 34%),
+    var(--bg-canvas);
   background-attachment: fixed;
 }
 
+/* Pure black (product decision): no bloom in dark — a lavender wash over black
+   is exactly the tint the "background must be pure black" call ruled out. */
 [data-theme='dark'] .aurora-canvas {
-  background:
-    radial-gradient(circle at 16% 18%, rgba(55, 118, 201, 0.2), transparent 33%),
-    radial-gradient(circle at 38% 8%, rgba(48, 164, 139, 0.13), transparent 30%),
-    radial-gradient(circle at 79% 14%, rgba(104, 87, 193, 0.2), transparent 35%),
-    linear-gradient(135deg, #07101e 0%, #0b1424 48%, #0c1020 100%);
+  background: var(--bg-canvas);
   background-attachment: fixed;
 }
 
 /* 只用在左上背景 / Hero / 空狀態 / processing，禁止整頁鋪滿（§2） */
 .dot-matrix {
-  background-image: radial-gradient(circle, rgba(99, 154, 221, 0.16) 3px, transparent 3.5px);
-  background-size: 25px 25px;
-  -webkit-mask-image: linear-gradient(to bottom right, black, transparent 68%);
-  mask-image: linear-gradient(to bottom right, black, transparent 68%);
+  background-image: radial-gradient(circle, rgba(105, 96, 170, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 
 [data-theme='dark'] .dot-matrix {
@@ -69,26 +60,16 @@
 
 /* The rim: a light-catching bevel rather than a border. Two inset highlights
  * (top-left) and two inset shadows (bottom-right) give the edge thickness, and
- * the two coloured hairlines are the dispersion fringe. */
+ * the two coloured hairlines are the dispersion fringe.
+ *
+ * z-index -1 inside the element's own stacking context (`isolation: isolate`
+ * above, and backdrop-filter creates one regardless) paints the pseudo above
+ * the element's background but *below* its in-flow content. A positive or
+ * zero z-index would paint it over plain text — pseudo-elements are
+ * positioned, text is not — so the rim and sheen must both be negative. */
 .glass-shell::after,
 .glass-card::after,
-.liquid-glass::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 1;
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
-    inset 1px 0 0 0 rgba(255, 255, 255, 0.55),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
-    inset 0 -1px 0 0 rgba(9, 20, 44, 0.14),
-    inset -1px 0 0 0 rgba(9, 20, 44, 0.09),
-    /* dispersion: cool on one edge, warm on the other */
-    inset 0 2px 3px -2px rgba(120, 220, 255, 0.5),
-    inset 0 -2px 3px -2px rgba(220, 130, 255, 0.35);
-}
+.liquid-glass::after { content: none; }
 
 .glass-shell {
   background: var(--glass-shell);
@@ -96,12 +77,10 @@
     brightness(1.06);
   -webkit-backdrop-filter: blur(var(--blur-shell)) saturate(var(--saturate-shell))
     brightness(1.06);
-  border: 0;
+  border: 1px solid var(--border-glass);
   border-radius: var(--radius-shell);
-  box-shadow:
-    var(--shadow-shell),
-    /* the slab has depth: a soft contact shadow under the bottom edge */
-    0 1px 2px rgba(9, 20, 44, 0.06);
+  /* contact + ambient terms both live in the token */
+  box-shadow: var(--shadow-shell);
 }
 
 /* §3.2 內層玻璃卡 */
@@ -109,30 +88,18 @@
   background: var(--glass-card);
   backdrop-filter: blur(var(--blur-card)) saturate(150%) brightness(1.04);
   -webkit-backdrop-filter: blur(var(--blur-card)) saturate(150%) brightness(1.04);
-  border: 0;
+  border: 1px solid var(--border-glass);
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-soft), 0 1px 2px rgba(9, 20, 44, 0.05);
+  box-shadow: var(--shadow-soft);
 }
 
-/* A sheen across the top third — light entering the slab and scattering. Kept
- * under the content (`z-index: 0` vs the rim's 1) so it never veils text. */
+/* A sheen across the top third — light entering the slab and scattering.
+ * z-index -1 (see the rim note): at 0 this was a 26% white veil painted *over*
+ * every heading in the top third of every card. Under the text it only
+ * brightens the ground, which for dark-on-light text raises contrast. */
 .glass-shell::before,
 .glass-card::before,
-.liquid-glass::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    linear-gradient(
-      168deg,
-      rgba(255, 255, 255, 0.26) 0%,
-      rgba(255, 255, 255, 0.06) 34%,
-      transparent 62%
-    );
-}
+.liquid-glass::before { content: none; }
 
 [data-theme='dark'] .glass-shell::after,
 [data-theme='dark'] .glass-card::after,
@@ -150,11 +117,13 @@
 [data-theme='dark'] .glass-shell::before,
 [data-theme='dark'] .glass-card::before,
 [data-theme='dark'] .liquid-glass::before {
+  /* .10 -> .06: in dark mode the sheen brightens the ground under *light*
+   * text, and at .10 --text-tertiary fell to 4.0:1 in the top third. */
   background:
     linear-gradient(
       168deg,
-      rgba(255, 255, 255, 0.1) 0%,
-      rgba(255, 255, 255, 0.03) 34%,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.02) 34%,
       transparent 62%
     );
 }
@@ -170,7 +139,8 @@
 .gradient-pill {
   border-radius: var(--radius-pill);
   background: linear-gradient(120deg, var(--accent-blue), var(--accent-cyan) 48%, var(--accent-mint));
-  color: #fff;
+  /* pastel gradient → navy ink; white measured 1.9–2.6:1 across the stops */
+  color: var(--text-on-pastel);
 }
 
 /* Theme 切換要柔和，禁止整頁 flash（§6） */

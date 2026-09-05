@@ -59,12 +59,9 @@ export function Drawer({
   return (
     <DrawerRoot open={open} onOpenChange={handleOpenChange}>
       <DialogPrimitive.Portal>
+        {/* same scrim as Modal (was a hardcoded #000 mix); lighter blur so the page behind a side panel stays readable */}
         <DialogPrimitive.Overlay
-          className={cn(
-            'fixed inset-0 z-50 backdrop-blur-[2px]',
-            'bg-[color:color-mix(in_srgb,var(--text-primary)_18%,transparent)]',
-            'dark:bg-[color:color-mix(in_srgb,#000_44%,transparent)]',
-          )}
+          className={cn('fixed inset-0 z-50', glassSurface.scrim, 'backdrop-blur-[4px]')}
         />
         <DialogPrimitive.Content
           style={{ width: typeof width === 'number' ? `${width}px` : width }}

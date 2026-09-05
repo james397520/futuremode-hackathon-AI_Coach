@@ -51,18 +51,18 @@ export interface ToastContextValue {
 const ToastContext = React.createContext<ToastContextValue | null>(null);
 
 const toneAccent: Record<ToastTone, string> = {
-  info: '[background-image:linear-gradient(180deg,var(--accent-blue),var(--accent-cyan))]',
-  success:
-    '[background-image:linear-gradient(180deg,var(--accent-indigo),var(--accent-cyan)_52%,var(--accent-mint))]',
+  info: 'bg-state-info',
+  success: 'bg-state-success',
   warning: 'bg-[color:var(--warning)]',
   danger: 'bg-[color:var(--danger)]',
 };
 
+/* icons are 3:1 graphics; --accent-mint on light glass was 1.7:1 → inks */
 const toneIconClass: Record<ToastTone, string> = {
-  info: 'text-[color:var(--info)]',
-  success: 'text-[color:var(--accent-mint)]',
-  warning: 'text-[color:var(--warning)]',
-  danger: 'text-[color:var(--danger)]',
+  info: 'text-state-info-ink',
+  success: 'text-state-success-ink',
+  warning: 'text-state-warning-ink',
+  danger: 'text-state-danger-ink',
 };
 
 function defaultToneIcon(tone: ToastTone): React.ReactElement {

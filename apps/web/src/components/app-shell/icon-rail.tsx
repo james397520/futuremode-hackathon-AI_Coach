@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { ChevronsLeft, HelpCircle, LogOut, PanelLeftOpen, Sparkles } from 'lucide-react';
+import { ChevronsLeft, HelpCircle, LogOut, PanelLeftOpen } from 'lucide-react';
+import Image from 'next/image';
 import { Avatar, Tooltip } from '@/components/ui';
 import { RuntimeBadge } from '@/components/runtime';
 import { useAuth } from '@/lib/auth-context';
@@ -14,11 +15,9 @@ import { NAV_ITEMS, ROLE_NAV_IDS, isNavItemActive } from './nav';
 const RAIL_PIN_KEY = 'ai-coach:rail-pinned';
 
 /**
- * §11 Sidebar — a 64px glass icon rail, expanding to 232px.
- *
- * Explicitly NOT a permanent 240px sidebar (forbidden by §99). Collapsed is the
- * default and the resting state; expansion is transient (hover / focus) unless
- * the user pins it. Labels only exist in the expanded state.
+ * Compact workspace sidebar. It rests at 248px on large screens, can still be
+ * collapsed by the user, becomes icon-only on tablets and a bottom strip on
+ * mobile.
  *
  * Items are filtered by RBAC (§9) — a role that cannot use a section does not
  * see a disabled icon, it sees nothing.
@@ -26,7 +25,7 @@ const RAIL_PIN_KEY = 'ai-coach:rail-pinned';
 export function IconRail() {
   const pathname = usePathname();
   const { user, activeRole, can, signOut } = useAuth();
-  const [pinned, setPinned] = useState(false);
+  const [pinned, setPinned] = useState(true);
   const [hovered, setHovered] = useState(false);
   const [focusWithin, setFocusWithin] = useState(false);
   const navLabelId = useId();
@@ -34,7 +33,8 @@ export function IconRail() {
 
   useEffect(() => {
     try {
-      setPinned(window.localStorage.getItem(RAIL_PIN_KEY) === '1');
+      const stored = window.localStorage.getItem(RAIL_PIN_KEY);
+      setPinned(stored == null ? true : stored === '1');
     } catch {
       /* ignore */
     }
@@ -62,13 +62,15 @@ export function IconRail() {
       aria-labelledby={navLabelId}
       data-expanded={expanded}
       className={cn(
-        'relative z-20 flex shrink-0 flex-col gap-2 border-r border-border-soft/70 px-2.5 py-4',
+        'workspace-sidebar relative z-20 flex shrink-0 flex-col gap-2 border-r border-border-soft bg-[var(--sidebar-background)] px-2.5 py-3',
         'transition-[width] duration-200 ease-out-soft',
         expanded ? 'w-rail-expanded' : 'w-rail',
         // < 768px the rail becomes a bottom-anchored icon strip (§46).
-        'max-sm:absolute max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:h-16 max-sm:w-full',
-        'max-sm:flex-row max-sm:items-center max-sm:justify-around max-sm:overflow-x-auto',
-        'max-sm:border-r-0 max-sm:border-t max-sm:bg-glass-strong max-sm:py-2',
+        'max-md:absolute max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:h-16 max-md:w-full',
+        'max-md:flex-row max-md:items-center max-md:justify-around max-md:overflow-x-auto',
+        // Card glass + blur, not the strong fill: the strip overlays scrolling
+        // content and must still read as part of the shell.
+        'max-md:border-r-0 max-md:border-t max-md:bg-glass-card max-md:backdrop-blur-card max-md:py-2',
       )}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -82,30 +84,34 @@ export function IconRail() {
       </h2>
 
       {/* Logo / pin toggle — §11 "click logo → expand". */}
-      <div className="flex items-center gap-2 px-1 pb-2 max-sm:hidden">
+      <div className="flex h-10 items-center gap-2 px-1 pb-1 max-md:hidden">
         <button
           type="button"
           onClick={togglePin}
           aria-pressed={pinned}
           aria-label={pinned ? 'Unpin navigation' : 'Pin navigation open'}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-avatar bg-glass-strong text-accent-indigo shadow-soft transition-transform duration-150 ease-out-soft hover:-translate-y-px"
+          // No drop shadow: --shadow-soft is an 18/50px card shadow and under a
+          // 32px mark on the shell glass it read as a smudge.
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] transition-shadow duration-150 ease-out-soft hover:shadow-soft"
         >
-          <Sparkles size={17} strokeWidth={1.9} aria-hidden />
+          <Image src="/brand/logo-mark.png" alt="" width={28} height={28} priority aria-hidden />
         </button>
         {expanded ? (
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-body-sm font-semibold">AI Coach</p>
+          <div className="rail-expanded-only min-w-0 flex-1">
+            <p className="truncate text-body-sm font-semibold tracking-[-0.01em]">AI Coach</p>
             <p className="truncate text-tiny text-text-tertiary">企業訓練工作區</p>
           </div>
         ) : null}
         {expanded ? (
-          <span className="text-text-tertiary" aria-hidden>
+          <span className="rail-expanded-only text-text-tertiary" aria-hidden>
             {pinned ? <ChevronsLeft size={16} strokeWidth={1.7} /> : <PanelLeftOpen size={16} strokeWidth={1.7} />}
           </span>
         ) : null}
       </div>
 
-      <ul className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto scroll-area max-sm:flex-row max-sm:items-center max-sm:overflow-x-auto">
+      {expanded ? <p className="rail-expanded-only meta-label px-2 pb-1 pt-2 max-md:hidden">工作區</p> : null}
+
+      <ul className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto scroll-area max-md:flex-row max-md:items-center max-md:gap-1 max-md:overflow-x-auto">
         {items.map((item) => {
           const active = isNavItemActive(item, pathname);
           const link = (
@@ -115,10 +121,10 @@ export function IconRail() {
               data-active={active}
               className={cn('rail-item relative w-full', expanded ? 'justify-start' : 'justify-center')}
             >
-              {active ? <span className="rail-indicator max-sm:hidden" aria-hidden /> : null}
-              <item.icon size={19} strokeWidth={1.6} aria-hidden className="shrink-0" />
+              {active ? <span className="rail-indicator max-md:hidden" aria-hidden /> : null}
+              <item.icon size={17} strokeWidth={1.6} aria-hidden className="shrink-0" />
               {expanded ? (
-                <span className="truncate text-body-sm font-medium">{item.label}</span>
+                <span className="rail-expanded-only truncate text-body-sm font-medium">{item.label}</span>
               ) : (
                 <span className="sr-only-live">{item.label}</span>
               )}
@@ -126,7 +132,7 @@ export function IconRail() {
           );
 
           return (
-            <li key={item.id} className="max-sm:shrink-0">
+            <li key={item.id} className="max-md:shrink-0">
               {expanded ? link : <Tooltip content={item.label} side="right">{link}</Tooltip>}
             </li>
           );
@@ -134,9 +140,9 @@ export function IconRail() {
       </ul>
 
       {/* Footer — runtime badge, theme, help, user (§11 bottom / §93). */}
-      <div className="mt-auto flex flex-col gap-2 border-t border-border-soft/70 pt-3 max-sm:hidden">
+      <div className="mt-auto flex flex-col gap-1.5 border-t border-border-soft pt-3 max-md:hidden">
         {expanded ? (
-          <div className="px-1">
+          <div className="rail-expanded-only px-1">
             <RuntimeBadge />
           </div>
         ) : (
@@ -150,7 +156,7 @@ export function IconRail() {
         {expanded ? (
           <Link href="/settings" className="rail-item justify-start">
             <HelpCircle size={18} strokeWidth={1.6} aria-hidden />
-            <span className="text-body-sm">說明與快速鍵</span>
+            <span className="rail-expanded-only text-body-sm">說明與快速鍵</span>
           </Link>
         ) : (
           <Tooltip content="說明與快速鍵（⌘/）" side="right">
@@ -207,7 +213,7 @@ function UserMenu({
       >
         <Avatar name={name} size="sm" />
         {expanded ? (
-          <span className="min-w-0 flex-1 text-left">
+          <span className="rail-expanded-only min-w-0 flex-1 text-left">
             <span className="block truncate text-body-sm font-medium">{name}</span>
             <span className="block truncate text-tiny text-text-tertiary">{roleLabel}</span>
           </span>
@@ -239,7 +245,8 @@ function UserMenu({
             role="menuitem"
             type="button"
             onClick={onSignOut}
-            className="rail-item w-full justify-start px-2 text-body-sm text-state-danger"
+            // `text-state-danger` measured 2.65:1 on the card glass in light.
+            className="rail-item ink-danger w-full justify-start px-2 text-body-sm"
           >
             <LogOut size={16} strokeWidth={1.7} aria-hidden />
             登出

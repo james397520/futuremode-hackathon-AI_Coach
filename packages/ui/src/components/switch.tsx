@@ -38,7 +38,7 @@ export const Switch = React.forwardRef<
         'disabled:cursor-not-allowed disabled:opacity-50',
         'data-[state=unchecked]:bg-[color:color-mix(in_srgb,var(--text-tertiary)_22%,transparent)]',
         'data-[state=checked]:border-transparent',
-        'data-[state=checked]:[background-image:linear-gradient(120deg,var(--accent-indigo),var(--accent-blue))]',
+        'data-[state=checked]:bg-accent-indigo',
         sm ? 'h-[18px] w-8' : 'h-[22px] w-10',
         focusRing,
         className,
@@ -47,8 +47,9 @@ export const Switch = React.forwardRef<
     >
       <SwitchPrimitive.Thumb
         className={cn(
-          'pointer-events-none block rounded-pill bg-white',
-          '[box-shadow:0_2px_6px_color-mix(in_srgb,var(--text-primary)_18%,transparent)]',
+          // the knob is the one solid surface; token, not `bg-white` (harsh in dark)
+          'pointer-events-none block rounded-pill bg-surface-solid',
+          '[box-shadow:1px_2px_5px_color-mix(in_srgb,var(--text-primary)_18%,transparent)]',
           'transition-transform duration-[var(--dur-hover)] ease-out-soft motion-reduce:transition-none',
           sm
             ? 'size-3.5 translate-x-0.5 data-[state=checked]:translate-x-[15px]'

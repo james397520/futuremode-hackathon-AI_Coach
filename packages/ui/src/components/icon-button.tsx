@@ -27,25 +27,24 @@ export const iconButtonVariants = cva(
     variants: {
       variant: {
         glass: [
-          'border border-border-glass bg-glass-strong text-text-secondary backdrop-blur-card',
-          'hover:text-text-primary hover:bg-glass-card',
+          // borderless, like Button glass; the inset highlight is the edge
+          'border border-border-soft bg-glass-strong text-text-secondary',
+          'hover:bg-[color:color-mix(in_srgb,var(--text-tertiary)_8%,var(--glass-card-strong))] hover:text-text-primary',
         ].join(' '),
         ghost: 'bg-transparent text-text-tertiary hover:bg-glass-card hover:text-text-primary',
-        primary: [
-          'text-white',
-          '[background-image:linear-gradient(120deg,var(--accent-indigo),var(--accent-blue))]',
-          '[box-shadow:0_10px_22px_color-mix(in_srgb,var(--accent-indigo)_24%,transparent)]',
-        ].join(' '),
+        // Flat, same as Button primary: the indigo→blue gradient put white on
+        // #47a9ed at 2.6:1, and a glyph needs 3:1.
+        primary: ['text-text-on-accent', 'bg-accent-solid', 'shadow-accent'].join(' '),
         danger:
-          'bg-transparent text-[color:var(--danger)] hover:bg-[color:color-mix(in_srgb,var(--danger)_12%,transparent)]',
+          'bg-transparent text-state-danger-ink hover:bg-[color:color-mix(in_srgb,var(--danger)_12%,transparent)]',
       },
       size: {
         /** 32px — §47 的下限，只用於密集工具列 */
         sm: 'size-8 [&_svg]:size-4',
         /** 36px — icon rail 預設 */
-        md: 'size-9 [&_svg]:size-[18px]',
+        md: 'size-8 [&_svg]:size-[17px]',
         /** 40px — header 主要動作 */
-        lg: 'size-10 [&_svg]:size-5',
+        lg: 'size-9 [&_svg]:size-[18px]',
       },
       active: {
         true: '',
@@ -56,7 +55,7 @@ export const iconButtonVariants = cva(
       {
         active: true,
         variant: 'glass',
-        class: 'bg-glass-card text-text-primary [box-shadow:var(--shadow-soft),var(--shadow-inset-hi)]',
+        class: 'bg-glass-card text-text-primary',
       },
       {
         active: true,
@@ -103,7 +102,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
           {glyph}
         </span>
         {badge != null ? (
-          <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-pill bg-state-danger px-1 text-tiny text-white">
+          <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-pill bg-state-danger-solid px-1 text-tiny text-text-on-accent">
             {badge}
           </span>
         ) : null}

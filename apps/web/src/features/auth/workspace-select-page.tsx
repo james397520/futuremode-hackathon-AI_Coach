@@ -16,10 +16,10 @@ import { cn } from '@/lib/utils';
  */
 export function WorkspaceSelectPage() {
   const router = useRouter();
-  const { workspaces, workspace, selectWorkspace, user } = useAuth();
+  const { workspaces, workspace, selectWorkspace, user, signOut } = useAuth();
 
   return (
-    <GlassCard tone="strong" className="p-8">
+    <GlassCard className="p-8">
       <h1 className="text-section">選擇工作區</h1>
       <p className="mt-1.5 text-body-sm text-text-secondary">
         {user ? `已登入：${user.display_name}。` : ''}
@@ -39,12 +39,12 @@ export function WorkspaceSelectPage() {
                 }}
                 className={cn(
                   'flex w-full items-center gap-3 rounded-card-sm border border-border-soft px-4 py-3.5 text-left',
-                  'transition-transform duration-150 ease-out-soft hover:-translate-y-px hover:shadow-soft',
+                  'transition-[transform,background-color] duration-150 ease-out-soft hover:-translate-y-px hover:bg-glass-card',
                   option.id === workspace?.id && 'bg-glass-card',
                 )}
               >
                 <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-avatar bg-glass-strong text-accent-indigo"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-avatar bg-glass-card text-accent-indigo"
                   aria-hidden
                 >
                   {isB2c ? <User size={17} strokeWidth={1.7} /> : <Building2 size={17} strokeWidth={1.7} />}
@@ -64,7 +64,7 @@ export function WorkspaceSelectPage() {
         })}
       </ul>
 
-      <Button variant="ghost" size="sm" className="mt-6" onClick={() => router.push('/login')}>
+      <Button variant="ghost" size="sm" className="mt-6" onClick={() => signOut()}>
         使用其他帳號登入
       </Button>
     </GlassCard>

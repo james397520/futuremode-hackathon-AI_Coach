@@ -173,7 +173,7 @@ function CoachInlineEvents({
           <button
             type="button"
             onClick={() => setDismissed((d) => ({ ...d, [`finding-${finding.id}`]: true }))}
-            aria-label="Dismiss compliance notice"
+            aria-label="關閉合規提醒"
             className="sim-focusable absolute right-3 top-3 text-text-tertiary hover:text-text-secondary"
           >
             <CloseIcon size={14} />
@@ -206,7 +206,7 @@ function CoachInlineEvents({
           <button
             type="button"
             onClick={() => setDismissed((d) => ({ ...d, [`insight-${insight.id}`]: true }))}
-            aria-label="Dismiss coach note"
+            aria-label="關閉教練筆記"
             className="sim-focusable shrink-0 text-text-tertiary hover:text-text-secondary"
           >
             <CloseIcon size={14} />
@@ -262,8 +262,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
 
   return (
     <section
-      className={cn('glass-strong flex min-h-0 flex-col p-4 shadow-soft', className)}
-      aria-label="Conversation"
+      className={cn('flex min-h-0 flex-col rounded-card border border-border-soft bg-[color:color-mix(in_srgb,var(--glass-card-strong)_92%,transparent)] p-4 shadow-soft', className)}
+      aria-label="對談內容"
     >
       <TranscriptHeader status={status} personaName={personaName} language={language} />
 
@@ -280,6 +280,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
         personaAvatarUrl={personaAvatarUrl}
         traineeName={traineeName}
         status={status}
+        activeAgent={activeAgent}
         openingContext={openingContext}
       />
 

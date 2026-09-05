@@ -165,7 +165,7 @@ export function QuestionGeneratorPage() {
               {TYPE_CHOICES.map((type) => (
                 <li
                   key={type}
-                  className="glass-strong flex items-center justify-between gap-3 rounded-card-sm px-4 py-3"
+                  className="flex items-center justify-between gap-3 rounded-card-sm border border-border-soft bg-glass-card px-4 py-3"
                 >
                   <span className="text-body-sm">{QUESTION_TYPE_LABEL[type]}</span>
                   <Switch
@@ -274,7 +274,7 @@ export function QuestionGeneratorPage() {
                 const decision = decisions[question.id];
                 return (
                   <li key={question.id}>
-                    <GlassCard tone="strong" className="p-5">
+                    <GlassCard className="p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="mb-2 flex flex-wrap items-center gap-1.5">

@@ -97,7 +97,7 @@ function AudioReplay({ url, label }: { url: string; label: string }) {
       style={insetSurface('neutral', 8)}
     >
       {playing ? <PauseIcon size={11} /> : <PlayIcon size={11} />}
-      <span>Audio</span>
+      <span>語音</span>
     </button>
   );
 }
@@ -196,11 +196,46 @@ export function TranscriptTurnRow({
         : (SPEAKER_LABEL[turn.speaker] ?? turn.speaker);
   const roleTag = SPEAKER_ROLE_TAG[turn.speaker] ?? turn.speaker;
   const timecode = formatClock(startedAtMs === null ? item.atMs : Math.max(0, item.atMs - startedAtMs));
-  const body = streaming ? (streamingText ?? '') : turn.text;
+  /*
+   * Trailing whitespace is trimmed while streaming: `.sim-transcript-body` is
+   * `white-space: pre-wrap`, so a partial ending in "\n" rendered an empty last
+   * line — which read as a stray blinking text cursor sitting under the
+   * customer's message.
+   */
+  const body = streaming ? (streamingText ?? '').replace(/\s+$/, '') : turn.text;
   const citations = turn.citations ?? [];
 
-  // Keep the conversation as one continuous document. Coach guidance receives
-  // only a subtle tint; individual speech turns are deliberately not cards.
+  if (turn.speaker === 'trainee') {
+    return (
+      <li className={cn('sim-card-enter flex list-none justify-end py-2 pl-12', className)}>
+        <div className="flex max-w-[72%] items-start gap-2.5 max-sm:max-w-[88%]">
+          <div className="rounded-card border border-border-soft bg-[color:color-mix(in_srgb,var(--text-tertiary)_7%,var(--glass-card-strong))] px-3.5 py-3">
+            <div className="flex items-center justify-end gap-2 text-tiny text-text-tertiary">
+              <span>{traineeName}</span>
+              <span className="tabular-nums">{timecode}</span>
+              {turn.audio_url && !streaming ? (
+                <AudioReplay url={turn.audio_url} label={`${traineeName} at ${timecode}`} />
+              ) : null}
+            </div>
+            <p className="mt-1 text-body text-text-primary">
+              {body}
+              {streaming ? (
+                <span aria-hidden className="sim-caret ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] rounded-pill bg-text-tertiary" />
+              ) : null}
+            </p>
+          </div>
+          <Avatar name={traineeName} size="sm" />
+        </div>
+      </li>
+    );
+  }
+
+  // Speech is a conversation: the trainee's turn is a bubble constrained to 72%
+  // and pushed right, so the persona's must mirror it — constrained and pushed
+  // left. It used to span the whole column as a full-bleed card, which made a
+  // two-word reply sit beside a full-width slab and read as broken layout.
+  // Coach and system rows are annotations, not speech, so they stay full-width
+  // document rows with only a subtle tint.
   const rowStyle =
     turn.speaker === 'coach'
       ? insetSurface('violet', 5)
@@ -211,8 +246,12 @@ export function TranscriptTurnRow({
   return (
     <li
       className={cn(
-        'sim-card-enter list-none border-b px-2 py-3.5 last:border-b-0',
-        rowStyle ? 'rounded-input border-x' : '',
+        'sim-card-enter list-none px-1 py-2',
+        turn.speaker === 'persona'
+          ? 'my-1 mr-auto max-w-[72%] rounded-card border border-border-glass bg-glass-card px-3.5 py-3 shadow-soft max-sm:max-w-[88%]'
+          : rowStyle
+            ? 'rounded-input border'
+            : 'border-b last:border-b-0',
         className,
       )}
       style={{ ...rowStyle, borderColor: tint('neutral', 12) }}
@@ -249,16 +288,10 @@ export function TranscriptTurnRow({
             </p>
           ) : null}
 
-          <p className="sim-transcript-body mt-1.5 text-body">
-            {body}
-            {streaming ? (
-              <span
-                aria-hidden="true"
-                className="sim-caret ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] rounded-pill"
-                style={{ backgroundColor: toneText(tone) }}
-              />
-            ) : null}
-          </p>
+          {/* No caret here: the conversation header already shows "客戶正在思考…"
+              while a reply is in flight, and a second blinking cursor inside the
+              customer's bubble reads as a stray text input. */}
+          <p className="sim-transcript-body mt-1.5 text-body">{body}</p>
 
           {citations.length > 0 ? (
             <div

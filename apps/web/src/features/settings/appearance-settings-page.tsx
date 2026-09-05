@@ -11,7 +11,7 @@ export function AppearanceSettingsPage() {
   return (
     <SettingsShell
       title="Appearance"
-      description="The interface keeps its glass, depth and aurora light in both themes — dark mode is not an inverted copy."
+      description="Choose the workspace theme and motion preferences used across the product."
       meta={
         <>
           <Pill tone="neutral" size="sm">Selected: {mode}</Pill>
@@ -33,8 +33,8 @@ export function AppearanceSettingsPage() {
           <p className="meta-label">Light</p>
           <div className="mt-3 space-y-2">
             <div className="rounded-card-sm border border-border-soft bg-glass-card p-3">
-              <p className="text-body-sm font-medium">Frosted glass, morning light</p>
-              <p className="mt-1 text-tiny text-text-tertiary">Deep navy text — never pure black</p>
+              <p className="text-body-sm font-medium">Soft lavender workspace</p>
+              <p className="mt-1 text-tiny text-text-tertiary">Quiet off-white surfaces with restrained purple accents</p>
             </div>
             <div className="flex gap-1.5">
               <span className="gradient-pill px-2.5 py-1 text-tiny">Status pill</span>
@@ -49,8 +49,8 @@ export function AppearanceSettingsPage() {
           <p className="meta-label">Dark</p>
           <div className="mt-3 space-y-2">
             <div className="rounded-card-sm border border-border-soft bg-glass-card p-3">
-              <p className="text-body-sm font-medium">Night blue-violet glass</p>
-              <p className="mt-1 text-tiny text-text-tertiary">Still translucent, still floating</p>
+              <p className="text-body-sm font-medium">Lavender charcoal workspace</p>
+              <p className="mt-1 text-tiny text-text-tertiary">Low-glare surfaces with the same compact hierarchy</p>
             </div>
             <div className="flex gap-1.5">
               <span className="gradient-pill px-2.5 py-1 text-tiny">Status pill</span>

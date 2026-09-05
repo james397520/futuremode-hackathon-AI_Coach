@@ -76,7 +76,7 @@ export function MiningReviewPage({ kbId }: { kbId: string }) {
               <span
                 className={
                   stage === 'Human review'
-                    ? 'rounded-pill bg-glass-strong px-2.5 py-1 font-medium text-text-primary'
+                    ? 'rounded-pill bg-glass-card px-2.5 py-1 font-medium text-text-primary'
                     : 'rounded-pill px-2.5 py-1'
                 }
               >
@@ -196,7 +196,10 @@ export function MiningReviewPage({ kbId }: { kbId: string }) {
 
       <p className="text-tiny text-text-tertiary">
         Approved items land in{' '}
-        <Link href="/knowledge/kb_playbook" className="text-accent-indigo hover:underline">
+        <Link
+          href="/knowledge/kb_playbook"
+          className="text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))] hover:underline"
+        >
           Top Performer Playbook
         </Link>{' '}
         and become retrievable for scenarios that select it.

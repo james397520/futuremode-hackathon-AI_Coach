@@ -234,20 +234,32 @@ def configure_logging(settings: Settings) -> None:
     """Install the structlog + stdlib logging configuration for this process."""
     level = logging.getLevelNamesMapping().get(settings.log_level, logging.INFO)
 
+    console = settings.app_env == "local"
+
     shared: list[Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso", utc=True),
         structlog.processors.StackInfoRenderer(),
-        structlog.processors.dict_tracebacks,
-        # Redaction runs last before rendering so it also covers values injected by
-        # the processors above (e.g. exception messages).
-        redact_processor,
     ]
+    if console:
+        # `dict_tracebacks` renders the exception as a *list* of frame dicts, which
+        # is what the JSON sink wants but what `ConsoleRenderer` cannot print: it
+        # does `"\n" + exc` and dies with
+        # `TypeError: can only concatenate str (not "list") to str`.
+        # The formatter then swallows the original traceback and logs its own
+        # failure instead, so every 500 in local dev arrived with no stack at all.
+        # ConsoleRenderer formats `exc_info` itself, so nothing is needed here.
+        pass
+    else:
+        shared.append(structlog.processors.dict_tracebacks)
+    # Redaction runs last before rendering so it also covers values injected by
+    # the processors above (e.g. exception messages).
+    shared.append(redact_processor)
 
     renderer: Processor = (
         structlog.dev.ConsoleRenderer(colors=True)
-        if settings.app_env == "local"
+        if console
         else structlog.processors.JSONRenderer(serializer=_orjson_dumps)
     )
 

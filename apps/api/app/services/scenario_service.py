@@ -451,6 +451,51 @@ class ScenarioService(BaseService):
 # ---------------------------------------------------------------------------
 
 
+async def _list_scenarios(
+    self: ScenarioService,
+    *,
+    params: Any = None,
+    status: Any = None,
+    difficulty: Any = None,
+    industry: str | None = None,
+    query: str | None = None,
+) -> Any:
+    """§38 library listing — the paged, filtered shape the router declares.
+
+    `ScenarioService.list` returns a plain list and takes different keyword
+    names, so the router's call raised
+    `AttributeError: 'ScenarioService' object has no attribute 'list_scenarios'`
+    and the whole simulation library 500'd (which the UI showed as an empty
+    library, indistinguishable from "no scenarios yet").
+    """
+    from app.domain.common import Page
+
+    limit = int(getattr(params, "limit", 50) or 50)
+    offset = int(getattr(params, "offset", 0) or 0)
+
+    rows = await self.list(
+        status=str(status) if status else None,
+        difficulty=str(difficulty) if difficulty else None,
+        limit=1000,
+    )
+
+    if industry:
+        rows = [r for r in rows if str(getattr(r, "industry", "") or "") == industry]
+    if query:
+        term = query.strip().lower()
+        def _matches(row: Any) -> bool:
+            haystack = " ".join(
+                str(getattr(row, key, "") or "")
+                for key in ("name", "description", "industry", "training_type")
+            )
+            return term in haystack.lower()
+        rows = [r for r in rows if _matches(r)]
+
+    return Page(
+        items=rows[offset : offset + limit], total=len(rows), limit=limit, offset=offset
+    )
+
+
 async def _list_assignments(
     self: ScenarioService, *, params: Any = None, mine_only: bool = True
 ) -> Any:
@@ -484,6 +529,11 @@ async def _get_assignment(self: ScenarioService, assignment_id: str) -> Any:
     return row
 
 
+# The routers use `<verb>_<noun>` names; the service methods are plain verbs.
+ScenarioService.get_scenario = ScenarioService.get        # type: ignore[attr-defined]
+ScenarioService.create_scenario = ScenarioService.create  # type: ignore[attr-defined]
+ScenarioService.update_scenario = ScenarioService.update  # type: ignore[attr-defined]
+ScenarioService.list_scenarios = _list_scenarios          # type: ignore[attr-defined]
 ScenarioService.list_assignments = _list_assignments      # type: ignore[attr-defined]
 ScenarioService.get_assignment = _get_assignment          # type: ignore[attr-defined]
 

@@ -36,7 +36,11 @@ import type {
 } from '@ai-coach/shared';
 import type { RuntimeTelemetry } from '@ai-coach/shared';
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
+// Single source of truth — see lib/runtime-env.ts. Imported (not just
+// re-exported) because `request()` joins paths against it below.
+import { API_BASE_URL } from './runtime-env';
+
+export { API_BASE_URL };
 
 /** Normalised failure — every call rejects with exactly this shape (§94). */
 export class ApiError extends Error {
@@ -148,7 +152,12 @@ export interface AuthSession {
 }
 
 /** Read the double-submit CSRF cookie. Returns `{}` when there is no session. */
-function csrfHeader(): Record<string, string> {
+/**
+ * Double-submit CSRF header. Exported because callers outside this module make
+ * their own mutating requests (the ai-runtime telemetry reporter has its own
+ * fetch) and would otherwise be rejected with 403 despite holding a session.
+ */
+export function csrfHeader(): Record<string, string> {
   if (typeof document === 'undefined') return {};
   const match = document.cookie.match(/(?:^|;\s*)aicoach_csrf=([^;]+)/);
   return match?.[1] ? { 'X-CSRF-Token': decodeURIComponent(match[1]) } : {};
@@ -239,6 +248,18 @@ export const api = {
 
 /* ────────────────────────── typed endpoint helpers (§69) ───────────────────── */
 
+/** Shape of `GET /api/v1/sessions/{id}` — the session plus everything pinned to it. */
+export interface SessionEnvelope {
+  session: TrainingSession;
+  scenario: Scenario;
+  persona: Persona;
+  persona_state?: unknown;
+  runtime_policy?: unknown;
+  websocket_url?: string;
+  resume_from_seq?: number;
+  coach_enabled?: boolean;
+}
+
 export interface CreateSessionInput {
   scenario_id: ID;
   mode: SessionMode;
@@ -272,7 +293,7 @@ export interface SessionReviewPayload {
 
 export const endpoints = {
   /* --- auth / workspace --- */
-  // Paths carry the `/v1` prefix the API actually mounts (`app/api/v1`).
+  // Paths carry the `/v1` prefix the API actually mounts (`app/api/v1/v1`).
   // Without it every call 404s and the app silently stays on fixtures.
   login: (email: string, password: string) =>
     api.post<AuthSession>('/api/v1/auth/login', { body: { email, password } }),
@@ -283,82 +304,90 @@ export const endpoints = {
   logout: () => api.post<void>('/api/v1/auth/logout'),
 
   /* --- sessions (§69) --- */
+  /** Returns the same envelope as `getSession` (session + pinned scenario/persona). */
   createSession: (input: CreateSessionInput) =>
-    api.post<TrainingSession>('/api/sessions', { body: input }),
-  getSession: (id: ID) => api.get<TrainingSession>(`/api/sessions/${id}`),
+    api.post<SessionEnvelope>('/api/v1/sessions', { body: input }),
+  /**
+   * Returns the *envelope*, not a bare session: the backend's `SessionResponse`
+   * carries `scenario`, `persona`, `runtime_policy` and `websocket_url` with it.
+   * That matters for trainees, who have `session.read` but not `scenario.read` —
+   * fetching the scenario separately 403s for exactly the people who run
+   * sessions.
+   */
+  getSession: (id: ID) => api.get<SessionEnvelope>(`/api/v1/sessions/${id}`),
   sendSessionMessage: (id: ID, text: string) =>
-    api.post<{ turn_id: ID }>(`/api/sessions/${id}/message`, { body: { text } }),
-  endSession: (id: ID) => api.post<{ evaluation_id?: ID }>(`/api/sessions/${id}/end`),
-  getSessionReview: (id: ID) => api.get<SessionReviewPayload>(`/api/sessions/${id}/review`),
-  listSessions: (query?: Query) => api.get<Paginated<TrainingSession>>('/api/sessions', { query }),
+    api.post<{ turn_id: ID }>(`/api/v1/sessions/${id}/message`, { body: { text } }),
+  endSession: (id: ID) => api.post<{ evaluation_id?: ID }>(`/api/v1/sessions/${id}/end`),
+  getSessionReview: (id: ID) => api.get<SessionReviewPayload>(`/api/v1/sessions/${id}/review`),
+  listSessions: (query?: Query) => api.get<Paginated<TrainingSession>>('/api/v1/sessions', { query }),
 
   /* --- personas (§69) --- */
-  listPersonas: (query?: Query) => api.get<Paginated<Persona>>('/api/personas', { query }),
-  getPersona: (id: ID) => api.get<Persona>(`/api/personas/${id}`),
-  createPersona: (body: Partial<Persona>) => api.post<Persona>('/api/personas', { body }),
+  listPersonas: (query?: Query) => api.get<Paginated<Persona>>('/api/v1/personas', { query }),
+  getPersona: (id: ID) => api.get<Persona>(`/api/v1/personas/${id}`),
+  createPersona: (body: Partial<Persona>) => api.post<Persona>('/api/v1/personas', { body }),
   updatePersona: (id: ID, body: Partial<Persona>) =>
-    api.patch<Persona>(`/api/personas/${id}`, { body }),
+    api.patch<Persona>(`/api/v1/personas/${id}`, { body }),
 
   /* --- scenarios --- */
-  listScenarios: (query?: Query) => api.get<Paginated<Scenario>>('/api/scenarios', { query }),
-  getScenario: (id: ID) => api.get<Scenario>(`/api/scenarios/${id}`),
+  listScenarios: (query?: Query) => api.get<Paginated<Scenario>>('/api/v1/scenarios', { query }),
+  getScenario: (id: ID) => api.get<Scenario>(`/api/v1/scenarios/${id}`),
   saveScenario: (id: ID | null, body: Partial<Scenario>) =>
-    id ? api.patch<Scenario>(`/api/scenarios/${id}`, { body }) : api.post<Scenario>('/api/scenarios', { body }),
+    id ? api.patch<Scenario>(`/api/v1/scenarios/${id}`, { body }) : api.post<Scenario>('/api/v1/scenarios', { body }),
 
   /* --- knowledge (§69) --- */
-  listKnowledgeBases: () => api.get<KnowledgeBase[]>('/api/knowledge'),
-  getKnowledgeBase: (id: ID) => api.get<KnowledgeBase>(`/api/knowledge/${id}`),
+  listKnowledgeBases: () => api.get<KnowledgeBase[]>('/api/v1/knowledge-bases'),
+  getKnowledgeBase: (id: ID) => api.get<KnowledgeBase>(`/api/v1/knowledge-bases/${id}`),
   listDocuments: (kbId: ID, query?: Query) =>
-    api.get<Paginated<KnowledgeDocument>>(`/api/knowledge/${kbId}/documents`, { query }),
+    api.get<Paginated<KnowledgeDocument>>(`/api/v1/knowledge-bases/${kbId}/documents`, { query }),
   /** Multipart upload; the server issues signed storage URLs (§73). */
   uploadDocuments: (kbId: ID, form: FormData) =>
-    api.post<KnowledgeDocument[]>(`/api/knowledge/${kbId}/documents`, { form }),
+    api.post<KnowledgeDocument[]>(`/api/v1/knowledge-bases/${kbId}/documents`, { form }),
   reprocessDocument: (kbId: ID, docId: ID) =>
-    api.post<KnowledgeDocument>(`/api/knowledge/${kbId}/documents/${docId}/reprocess`),
+    api.post<KnowledgeDocument>(`/api/v1/documents/${docId}/reprocess`),
   listChunks: (kbId: ID, query?: Query) =>
-    api.get<Paginated<Chunk>>(`/api/knowledge/${kbId}/chunks`, { query }),
+    api.get<Paginated<Chunk>>(`/api/v1/chunks`, { query }),
   updateChunk: (kbId: ID, chunkId: ID, body: Partial<Chunk>) =>
-    api.patch<Chunk>(`/api/knowledge/${kbId}/chunks/${chunkId}`, { body }),
+    api.patch<Chunk>(`/api/v1/chunks/${chunkId}`, { body }),
   testRetrieval: (body: RetrievalTestInput) =>
-    api.post<RetrievalTestResult>('/api/retrieval/test', { body }),
+    api.post<RetrievalTestResult>('/api/v1/retrieval/test', { body }),
 
   /* --- question bank --- */
-  listQuestions: (query?: Query) => api.get<Paginated<Question>>('/api/questions', { query }),
-  getQuestion: (id: ID) => api.get<Question>(`/api/questions/${id}`),
+  listQuestions: (query?: Query) => api.get<Paginated<Question>>('/api/v1/questions', { query }),
+  getQuestion: (id: ID) => api.get<Question>(`/api/v1/questions/${id}`),
   saveQuestion: (id: ID | null, body: Partial<Question>) =>
-    id ? api.patch<Question>(`/api/questions/${id}`, { body }) : api.post<Question>('/api/questions', { body }),
+    id ? api.patch<Question>(`/api/v1/questions/${id}`, { body }) : api.post<Question>('/api/v1/questions', { body }),
   generateQuestions: (body: {
     knowledge_base_id: ID;
     topics: string[];
     types: Question['type'][];
     difficulty: Question['difficulty'];
     count: number;
-  }) => api.post<Question[]>('/api/questions/generate', { body }),
+  }) => api.post<Question[]>('/api/v1/questions/generate', { body }),
   /** §15 / §38 — AI output cannot publish itself. */
   reviewQuestion: (id: ID, body: { decision: 'approve' | 'reject'; note?: string }) =>
-    api.post<Question>(`/api/questions/${id}/review`, { body }),
+    api.post<Question>(`/api/v1/questions/${id}/review`, { body }),
 
   /* --- assignments / training --- */
-  listAssignments: (query?: Query) => api.get<Paginated<Assignment>>('/api/assignments', { query }),
+  listAssignments: (query?: Query) => api.get<Paginated<Assignment>>('/api/v1/assignments', { query }),
   createAssignment: (body: Partial<Assignment>) =>
-    api.post<Assignment>('/api/assignments', { body }),
+    api.post<Assignment>('/api/v1/assignments', { body }),
 
   /* --- reports (§69) --- */
-  getReport: (id: ID) => api.get<Evaluation>(`/api/reports/${id}`),
-  getSkillProfile: (userId: ID) => api.get<SkillProfile>(`/api/reports/users/${userId}/skills`),
-  getTeamReport: (query?: Query) => api.get<unknown>('/api/reports/team', { query }),
+  getReport: (id: ID) => api.get<Evaluation>(`/api/v1/reports/${id}`),
+  getSkillProfile: (userId: ID) => api.get<SkillProfile>(`/api/v1/reports/skill-profile/${userId}`),
+  getTeamReport: (query?: Query) => api.get<unknown>('/api/v1/reports/team-analytics', { query }),
   getComplianceReport: (query?: Query) =>
-    api.get<Paginated<ComplianceFinding>>('/api/reports/compliance', { query }),
+    api.get<Paginated<ComplianceFinding>>('/api/v1/security/findings', { query }),
 
   /* --- team / security / audit --- */
-  listUsers: (query?: Query) => api.get<Paginated<User>>('/api/users', { query }),
-  listTeams: () => api.get<Team[]>('/api/teams'),
-  listFindings: (query?: Query) => api.get<Paginated<ComplianceFinding>>('/api/security/findings', { query }),
-  listAuditEvents: (query?: Query) => api.get<Paginated<AuditEvent>>('/api/audit', { query }),
+  listUsers: (query?: Query) => api.get<Paginated<User>>('/api/v1/users', { query }),
+  listTeams: () => api.get<Team[]>('/api/v1/teams'),
+  listFindings: (query?: Query) => api.get<Paginated<ComplianceFinding>>('/api/v1/security/findings', { query }),
+  listAuditEvents: (query?: Query) => api.get<Paginated<AuditEvent>>('/api/v1/audit/events', { query }),
 
   /* --- integrations / runtime --- */
-  listIntegrations: () => api.get<unknown[]>('/api/integrations'),
-  testIntegration: (id: ID) => api.post<{ ok: boolean; message: string }>(`/api/integrations/${id}/test`),
+  listIntegrations: () => api.get<unknown[]>('/api/v1/integrations'),
+  testIntegration: (id: ID) => api.post<{ ok: boolean; message: string }>(`/api/v1/integrations/${id}/test`),
   /** §93 — admin-only runtime telemetry. */
-  getRuntimeTelemetry: () => api.get<RuntimeTelemetry>('/api/runtime/telemetry'),
+  getRuntimeTelemetry: () => api.get<RuntimeTelemetry>('/api/v1/runtime/telemetry'),
 } as const;

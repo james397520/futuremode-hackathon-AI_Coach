@@ -71,23 +71,22 @@ export const DataRow = React.forwardRef<HTMLDivElement, DataRowProps>(function D
         'grid w-full items-center gap-3',
         dense ? 'px-3 py-2' : 'px-4 py-3',
         isHeader
-          ? 'text-meta uppercase tracking-wide text-text-tertiary'
+          ? 'border-b border-border-soft text-meta uppercase tracking-wide text-text-tertiary'
           : cn(
-              'rounded-card-sm border border-border-soft bg-glass-strong text-body text-text-secondary',
-              'transition-[transform,box-shadow,background-color] duration-[var(--dur-hover)] ease-out-soft',
+              'border-b border-border-soft bg-transparent text-body text-text-secondary last:border-b-0',
+              'transition-[background-color,color] duration-[var(--dur-hover)] ease-out-soft',
               'motion-reduce:transition-none',
             ),
         !isHeader &&
           interactive &&
           cn(
-            'cursor-pointer hover:-translate-y-px hover:bg-glass-card hover:text-text-primary',
-            'hover:[box-shadow:var(--shadow-soft),var(--shadow-inset-hi)]',
-            'motion-reduce:hover:translate-y-0',
+            'cursor-pointer hover:bg-[color:color-mix(in_srgb,var(--text-tertiary)_7%,transparent)] hover:text-text-primary',
             focusRingTight,
           ),
         !isHeader &&
           selected &&
-          '[box-shadow:inset_0_0_0_1px_color-mix(in_srgb,var(--accent-blue)_45%,transparent)]',
+          // selection outline is a 3:1 graphic; pale blue @45% on light glass was ~1.5:1
+          '[box-shadow:inset_0_0_0_1px_color-mix(in_srgb,var(--accent-ink)_80%,transparent)]',
         className,
       )}
       style={template != null ? { gridTemplateColumns: template, ...style } : style}
@@ -145,7 +144,7 @@ export function DataList<T>({
       aria-label={props['aria-label']}
       aria-rowcount={items.length}
       aria-colcount={columns.length}
-      className={cn('flex w-full flex-col gap-1.5', className)}
+      className={cn('flex w-full flex-col', className)}
     >
       {showHeader ? (
         <DataRow appearance="header" template={template} dense={dense}>

@@ -222,7 +222,19 @@ function insertTurn(turns: TranscriptTurn[], turn: TranscriptTurn): TranscriptTu
   return next;
 }
 
-function pushCapped<T>(list: T[], item: T, max: number): T[] {
+function pushCapped<T>(list: T[], item: T, max: number, dedupeKey?: (value: T) => string): T[] {
+  /*
+   * `marker()` ids are `${seq}-${kind}-${label}`. Two score events in the same
+   * emit (e.g. a compound skill update) share `seq`, and same skill + same
+   * rounded delta label collide, which handed React duplicate keys
+   * ("Encountered two children with the same key") and let one silently
+   * replace the other. Callers that carry a stable id opt in via `dedupeKey`;
+   * `PersonaStateSnapshot` has none and keeps the old append-only behaviour.
+   */
+  if (dedupeKey) {
+    const key = dedupeKey(item);
+    if (list.some((existing) => dedupeKey(existing) === key)) return list;
+  }
   const next = list.length >= max ? list.slice(list.length - max + 1) : list.slice();
   next.push(item);
   return next;
@@ -437,6 +449,7 @@ export function reduceEvent(state: SimulationData, event: StreamingEvent): Simul
             detail: previous ? `from ${EMOTION_LABEL[previous.emotion] ?? previous.emotion}` : 'simulated opening state',
           }),
           MAX_TIMELINE,
+          (m) => m.id,
         );
       }
       if (previous && previous.scenario_phase !== incoming.scenario_phase) {
@@ -447,6 +460,7 @@ export function reduceEvent(state: SimulationData, event: StreamingEvent): Simul
             emotion: incoming.emotion,
           }),
           MAX_TIMELINE,
+          (m) => m.id,
         );
       }
       return {
@@ -513,6 +527,7 @@ export function reduceEvent(state: SimulationData, event: StreamingEvent): Simul
             detail: `${Math.round(event.score)} / 100`,
           }),
           MAX_TIMELINE,
+          (m) => m.id,
         ),
       };
     }
@@ -530,6 +545,7 @@ export function reduceEvent(state: SimulationData, event: StreamingEvent): Simul
             detail: finding.explanation,
           }),
           MAX_TIMELINE,
+          (m) => m.id,
         ),
       };
     }
@@ -607,6 +623,7 @@ function keyResponseMarker(
       detail: `+${Math.round(scoreEvent.delta)}`,
     }),
     MAX_TIMELINE,
+    (m) => m.id,
   );
 }
 

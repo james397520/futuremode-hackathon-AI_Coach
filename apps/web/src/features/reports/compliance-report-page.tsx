@@ -175,7 +175,7 @@ export function ComplianceReportPage() {
                         <p className="mt-2 text-body-sm text-text-secondary">{finding.explanation}</p>
                         {finding.suggested_correction ? (
                           <p className="mt-1.5 text-body-sm">
-                            <span className="meta-label mr-2 text-state-success">Correction</span>
+                            <span className="meta-label mr-2 text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]">Correction</span>
                             <span className="text-text-secondary">{finding.suggested_correction}</span>
                           </p>
                         ) : null}

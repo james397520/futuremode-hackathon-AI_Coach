@@ -144,7 +144,7 @@ export function RuntimeSettingsPage() {
 
         {fallbackReason ? (
           <p className="mt-4 rounded-card-sm border border-border-soft px-3.5 py-3 text-body-sm">
-            <span className="meta-label mr-2 text-state-warning">Fallback reason</span>
+            <span className="meta-label mr-2 text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]">Fallback reason</span>
             <span className="text-text-secondary">{fallbackReason}</span>
           </p>
         ) : null}
@@ -175,7 +175,7 @@ export function RuntimeSettingsPage() {
             ['Reranking', 'Local re-order of retrieved chunks'],
             ['Safety pre-check', 'Client-side screen before the turn is sent'],
           ].map(([task, detail]) => (
-            <li key={task} className="glass-strong flex items-start justify-between gap-3 rounded-card-sm p-4">
+            <li key={task} className="flex items-start justify-between gap-3 rounded-card-sm border border-border-soft bg-glass-card p-4">
               <div className="min-w-0">
                 <p className="text-body-sm font-medium">{task}</p>
                 <p className="mt-0.5 text-tiny text-text-tertiary">{detail}</p>

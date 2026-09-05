@@ -7,7 +7,7 @@ export default function NotFound() {
       <div className="dot-matrix pointer-events-none fixed left-0 top-0 h-[40vh] w-[40vw] opacity-70" aria-hidden />
       <main className="glass-shell relative w-full max-w-md p-8 text-center">
         <span
-          className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-avatar bg-glass-strong text-accent-indigo"
+          className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-avatar bg-glass-card text-accent-indigo"
           aria-hidden
         >
           <Compass size={22} strokeWidth={1.7} />
@@ -20,7 +20,7 @@ export default function NotFound() {
         <div className="mt-6 flex justify-center gap-2">
           <Link
             href="/dashboard"
-            className="rounded-button bg-glass-strong px-4 py-2 text-body-sm font-medium shadow-soft hover:-translate-y-px"
+            className="rounded-button bg-glass-card px-4 py-2 text-body-sm font-medium [box-shadow:var(--shadow-inset-hi)] hover:-translate-y-px"
           >
             Back to dashboard
           </Link>

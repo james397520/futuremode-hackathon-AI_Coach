@@ -39,7 +39,7 @@ export function StateTimeline({
         {unique.map((emotion, index) => (
           <span key={`${emotion}-${index}`} className="flex items-center gap-1.5">
             {index > 0 ? <span aria-hidden className="text-text-tertiary">→</span> : null}
-            <span className="rounded-pill bg-glass-strong px-2.5 py-1 text-body-sm">{emotion}</span>
+            <span className="rounded-pill bg-glass-card px-2.5 py-1 text-body-sm">{emotion}</span>
           </span>
         ))}
       </div>
@@ -52,12 +52,12 @@ export function StateTimeline({
             <li key={`${point.turn_id}-${point.at_ms}`} className="relative">
               <span
                 aria-hidden
-                className="absolute -left-[27px] top-1.5 flex h-4 w-4 items-center justify-center rounded-pill bg-glass-strong ring-1 ring-border-soft"
+                className="absolute -left-[27px] top-1.5 flex h-4 w-4 items-center justify-center rounded-pill bg-glass-card ring-1 ring-border-soft"
               >
                 <Icon size={10} strokeWidth={2} />
               </span>
 
-              <div className="glass-strong rounded-card-sm px-3.5 py-2.5">
+              <div className="rounded-card-sm bg-glass-card px-3.5 py-2.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-meta tabular-nums text-text-tertiary">{formatClock(point.at_ms)}</span>
                   {meta ? (
@@ -78,7 +78,7 @@ export function StateTimeline({
                     <button
                       type="button"
                       onClick={() => onJumpToTurn(point.turn_id)}
-                      className="rounded-button text-accent-indigo hover:underline"
+                      className="ink-indigo rounded-button hover:underline"
                     >
                       Jump to turn
                     </button>

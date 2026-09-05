@@ -107,7 +107,7 @@ export function TranscriptDocument({
                 {turn.audio_url ? (
                   <button
                     type="button"
-                    className="mt-1 inline-flex items-center gap-1 text-tiny text-accent-indigo hover:underline sm:justify-end"
+                    className="ink-indigo mt-1 inline-flex items-center gap-1 text-tiny hover:underline sm:justify-end"
                     aria-label={`Play audio for the turn at ${formatClock(turn.timestamp_ms)}`}
                   >
                     <Play size={11} strokeWidth={2} aria-hidden /> Play
@@ -126,10 +126,10 @@ export function TranscriptDocument({
                     <Sparkles size={13} strokeWidth={1.9} aria-hidden className="mr-1.5 inline align-[-1px] text-accent-indigo" />
                   ) : null}
                   {turn.speaker === 'compliance' ? (
-                    <AlertTriangle size={13} strokeWidth={1.9} aria-hidden className="mr-1.5 inline align-[-1px] text-state-warning" />
+                    <AlertTriangle size={13} strokeWidth={1.9} aria-hidden className="ink-warning mr-1.5 inline align-[-1px]" />
                   ) : null}
                   {turn.speaker === 'knowledge' ? (
-                    <BookOpen size={13} strokeWidth={1.9} aria-hidden className="mr-1.5 inline align-[-1px] text-accent-blue" />
+                    <BookOpen size={13} strokeWidth={1.9} aria-hidden className="ink-blue mr-1.5 inline align-[-1px]" />
                   ) : null}
                   {turn.text}
                 </p>

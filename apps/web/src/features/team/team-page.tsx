@@ -113,7 +113,7 @@ export function TeamPage() {
               <li key={user.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3.5">
                 <Avatar name={user.display_name} size="md" />
                 <div className="min-w-0 flex-1">
-                  <Link href={`/performance/${user.id}`} className="text-body-sm font-medium hover:text-accent-indigo">
+                  <Link href={`/performance/${user.id}`} className="text-body-sm font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]">
                     {user.display_name}
                   </Link>
                   <p className="flex items-center gap-1.5 text-tiny text-text-tertiary">

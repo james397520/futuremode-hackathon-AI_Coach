@@ -68,9 +68,8 @@ function ActionButton({
         onClick={onClick}
         className="sim-focusable sim-lift flex items-center gap-2 rounded-input px-4 py-2.5 text-body font-medium"
         style={{
-          background:
-            'linear-gradient(120deg, var(--accent-indigo), var(--accent-blue) 58%, var(--accent-cyan))',
-          color: 'var(--text-on-media)',
+          background: 'var(--action-dark)',
+          color: 'var(--text-on-accent)',
         }}
       >
         {icon}

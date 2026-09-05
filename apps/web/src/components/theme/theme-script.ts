@@ -6,22 +6,20 @@
  * and synchronous. The `.theme-transition` class (aurora.css) is added only
  * afterwards, by ThemeProvider, so the very first paint is not animated.
  */
-export const THEME_STORAGE_KEY = 'ai-coach:theme';
+/**
+ * v2 resets the legacy dark-locked preference once. New choices continue to
+ * persist normally, while existing browsers enter the Soft Lavender theme on
+ * their first load after the redesign.
+ */
+export const THEME_STORAGE_KEY = 'ai-coach:theme:v2';
 
 export const themeNoFlashScript = `
 (function(){
   try {
-    var k = '${THEME_STORAGE_KEY}';
-    var stored = null;
-    try { stored = window.localStorage.getItem(k); } catch (e) {}
-    var mode = (stored === 'light' || stored === 'dark' || stored === 'system') ? stored : 'system';
-    var resolved = mode;
-    if (mode === 'system') {
-      resolved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light';
-    }
     var el = document.documentElement;
+    var stored = localStorage.getItem('${THEME_STORAGE_KEY}');
+    var mode = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'light';
+    var resolved = mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : mode === 'dark' ? 'dark' : 'light';
     el.setAttribute('data-theme', resolved);
     el.style.colorScheme = resolved;
   } catch (e) {

@@ -114,10 +114,11 @@ export interface PersonaAvatarProps extends AvatarProps {
   wrapperClassName?: string;
 }
 
+/* A glow is emission, not a cast shadow: it sits around the avatar, not 18px below it. */
 const glowClass: Record<'indigo' | 'mint', string> = {
   indigo:
-    '[box-shadow:0_0_0_5px_color-mix(in_srgb,var(--accent-indigo)_12%,transparent),0_18px_38px_color-mix(in_srgb,var(--accent-indigo)_18%,transparent)]',
-  mint: '[box-shadow:0_0_0_5px_color-mix(in_srgb,var(--accent-mint)_12%,transparent),0_18px_38px_color-mix(in_srgb,var(--accent-mint)_18%,transparent)]',
+    '[box-shadow:0_0_0_5px_color-mix(in_srgb,var(--accent-indigo)_12%,transparent),0_6px_24px_-2px_color-mix(in_srgb,var(--accent-indigo)_22%,transparent)]',
+  mint: '[box-shadow:0_0_0_5px_color-mix(in_srgb,var(--accent-mint)_12%,transparent),0_6px_24px_-2px_color-mix(in_srgb,var(--accent-mint)_22%,transparent)]',
 };
 
 export const PersonaAvatar = React.forwardRef<

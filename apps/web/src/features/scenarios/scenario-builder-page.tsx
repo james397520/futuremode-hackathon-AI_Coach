@@ -136,7 +136,7 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
             </p>
             <ul className="space-y-2">
               {MOCK_KNOWLEDGE_BASES.map((kb) => (
-                <li key={kb.id} className="glass-strong flex items-start justify-between gap-3 rounded-card-sm p-4">
+                <li key={kb.id} className="border border-border-soft bg-glass-card flex items-start justify-between gap-3 rounded-card-sm p-4">
                   <div className="min-w-0">
                     <p className="text-body-sm font-medium">{kb.name}</p>
                     <p className="mt-0.5 text-body-sm text-text-secondary">{kb.description}</p>
@@ -253,7 +253,7 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
                 ['De-escalate after two consecutive failures', 'Persona offers a clearer signal instead of exiting.'],
                 ['Hold difficulty in assessment mode', 'Adaptation is always disabled for assessments.'],
               ].map(([title, body]) => (
-                <li key={title} className="glass-strong rounded-card-sm p-4">
+                <li key={title} className="border border-border-soft bg-glass-card rounded-card-sm p-4">
                   <p className="text-body-sm font-medium">{title}</p>
                   <p className="mt-0.5 text-body-sm text-text-secondary">{body}</p>
                 </li>
@@ -300,7 +300,7 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
                       </ul>
                     </div>
                     <div>
-                      <p className="meta-label text-state-danger">Forbidden behaviours</p>
+                      <p className="meta-label text-[color:color-mix(in_srgb,var(--danger)_55%,var(--text-primary))]">Forbidden behaviours</p>
                       <ul className="mt-2 space-y-1 text-body-sm text-text-secondary">
                         {rubric.forbidden_behaviors.map((item) => (
                           <li key={item}>{item}</li>
@@ -327,7 +327,7 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
                 ['Injection detection', 'Enabled — attempts are recorded as security findings.'],
                 ['Critical finding behaviour', 'Assessment sessions fail immediately on a critical finding.'],
               ].map(([title, body]) => (
-                <li key={title} className="glass-strong flex items-start justify-between gap-3 rounded-card-sm p-4">
+                <li key={title} className="border border-border-soft bg-glass-card flex items-start justify-between gap-3 rounded-card-sm p-4">
                   <div className="min-w-0">
                     <p className="text-body-sm font-medium">{title}</p>
                     <p className="mt-0.5 text-body-sm text-text-secondary">{body}</p>
@@ -400,7 +400,11 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
                 <li key={String(label)} className="flex items-center gap-2.5 text-body-sm">
                   <span
                     aria-hidden
-                    className={done ? 'text-state-success' : 'text-text-tertiary'}
+                    className={
+                      done
+                        ? 'text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]'
+                        : 'text-text-tertiary'
+                    }
                   >
                     <Check size={15} strokeWidth={2.2} />
                   </span>
@@ -410,7 +414,7 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
               ))}
             </ul>
             {!canPublish ? (
-              <p className="text-body-sm text-state-warning">
+              <p className="text-body-sm text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]">
                 Your role can save drafts but not publish. Submit for review instead.
               </p>
             ) : null}

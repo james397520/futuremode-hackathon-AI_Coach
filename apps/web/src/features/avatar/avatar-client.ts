@@ -204,9 +204,22 @@ export class AvatarClient {
 
     const controller = new AbortController();
     const timeoutMs = options.timeoutMs ?? AVATAR_REQUEST_TIMEOUT_MS;
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    /*
+     * Abort with an explicit reason. `controller.abort()` with no argument
+     * produces "signal is aborted without reason", which Next's dev overlay
+     * surfaces as an unexplained console error every time the avatar effect
+     * cleans up (a remount, or simply navigating away) — an ordinary
+     * cancellation that looks like a crash. A named reason also lets the catch
+     * below tell a timeout from a caller-initiated cancel without guessing.
+     */
+    const timeoutReason = new DOMException(
+      `${method} ${path} timed out after ${timeoutMs}ms`,
+      'TimeoutError',
+    );
+    const timer = setTimeout(() => controller.abort(timeoutReason), timeoutMs);
     const external = options.signal;
-    const onExternalAbort = (): void => controller.abort();
+    const onExternalAbort = (): void =>
+      controller.abort(new DOMException('avatar request cancelled', 'AbortError'));
     external?.addEventListener('abort', onExternalAbort);
 
     try {
@@ -238,10 +251,13 @@ export class AvatarClient {
         return avatarFail('RUNTIME_BAD_RESPONSE', `${method} ${path} returned non-JSON`);
       }
     } catch (error) {
-      const aborted = external?.aborted === true;
-      if (aborted) return avatarFail('RUNTIME_TIMEOUT', 'request cancelled');
-      const isAbort = error instanceof DOMException && error.name === 'AbortError';
-      return isAbort
+      // Cancelled by the caller (effect cleanup / unmount): expected, not a fault.
+      if (external?.aborted === true) return avatarFail('RUNTIME_TIMEOUT', 'request cancelled');
+      const reason: unknown = controller.signal.reason;
+      const timedOut =
+        reason === timeoutReason ||
+        (error instanceof DOMException && (error.name === 'TimeoutError' || error.name === 'AbortError'));
+      return timedOut
         ? avatarFail('RUNTIME_TIMEOUT', `${method} ${path} timed out after ${timeoutMs}ms`)
         : avatarFail('RUNTIME_UNREACHABLE', `${method} ${path} failed: no Avatar Runtime on ${this.baseUrl}`);
     } finally {

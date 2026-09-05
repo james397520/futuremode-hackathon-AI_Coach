@@ -18,7 +18,7 @@ import { useShellStore } from './shell-store';
  */
 export function WorkspaceTopBar() {
   const router = useRouter();
-  const { user, workspace, workspaces, selectWorkspace, activeRole } = useAuth();
+  const { workspace, workspaces, selectWorkspace, activeRole } = useAuth();
   const canStart = useCan('simulation.start');
   const pathname = usePathname();
   // Offering "start a simulation" while one is already running is the wrong
@@ -33,22 +33,21 @@ export function WorkspaceTopBar() {
   const [switcherOpen, setSwitcherOpen] = useState(false);
 
   const unread = useMemo(() => MOCK_NOTIFICATIONS.filter((n) => !n.read).length, []);
-  const firstName = user?.display_name.split(' ')[0] ?? 'there';
-
   return (
-    <header className="flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6">
+    <header className="relative z-20 flex h-[var(--header-height)] shrink-0 items-center gap-3 border-b border-border-soft bg-white/90 px-4 backdrop-blur-md sm:px-5 dark:bg-[color:color-mix(in_srgb,var(--workspace-background)_92%,transparent)]">
       <div className="min-w-0 flex-1">
-        <p className="meta-label">工作區</p>
-        <div className="relative flex items-center gap-2">
+        <div className="relative flex items-center gap-2 text-body-sm">
+          <span className="hidden text-text-tertiary sm:inline">工作區</span>
+          <span className="hidden text-text-tertiary sm:inline" aria-hidden>/</span>
           <button
             type="button"
             aria-haspopup="listbox"
             aria-expanded={switcherOpen}
             onClick={() => setSwitcherOpen((prev) => !prev)}
-            className="flex min-w-0 items-center gap-1.5 rounded-button text-left text-section hover:text-accent-indigo"
+            className="flex min-w-0 items-center gap-1.5 rounded-button text-left font-medium text-text-primary hover:text-accent-ink"
           >
             <span className="truncate">{workspace?.name ?? '選擇工作區'}</span>
-            <ChevronDown size={17} strokeWidth={1.8} aria-hidden className="shrink-0 text-text-tertiary" />
+            <ChevronDown size={14} strokeWidth={1.8} aria-hidden className="shrink-0 text-text-tertiary" />
           </button>
           {workspace?.kind === 'b2c' ? <Pill tone="neutral" size="sm">個人</Pill> : null}
 
@@ -71,8 +70,11 @@ export function WorkspaceTopBar() {
                     }}
                     className={cn(
                       'flex w-full items-center justify-between gap-2 rounded-input px-3 py-2 text-left text-body-sm',
-                      'hover:bg-glass-strong',
-                      option.id === workspace?.id && 'bg-glass-strong font-medium',
+                      'hover:bg-glass-card',
+                      // Selected row: the same flat indigo tint as the active rail
+                      // item, instead of a strong-glass block inside a glass menu.
+                      option.id === workspace?.id &&
+                        'bg-[color:color-mix(in_srgb,var(--accent-indigo)_12%,transparent)] font-medium',
                     )}
                   >
                     <span className="truncate">{option.name}</span>
@@ -83,7 +85,7 @@ export function WorkspaceTopBar() {
               <li className="border-t border-border-soft/70 pt-1">
                 <Link
                   href="/workspace-select"
-                  className="block rounded-input px-3 py-2 text-body-sm text-accent-indigo hover:bg-glass-strong"
+                  className="ink-indigo block rounded-input px-3 py-2 text-body-sm hover:bg-glass-card"
                   onClick={() => setSwitcherOpen(false)}
                 >
                   查看所有工作區
@@ -92,16 +94,15 @@ export function WorkspaceTopBar() {
             </ul>
           ) : null}
         </div>
-        <p className="mt-0.5 truncate text-body-sm text-text-secondary">
-          {firstName}，這裡是你的今日工作概況。
-        </p>
       </div>
 
       <div className="flex items-center gap-2">
         {activeRole ? (
           <Link
             href="/role-select"
-            className="hidden rounded-pill border border-border-soft bg-glass-card px-3 py-2 text-body-sm text-text-secondary hover:text-accent-indigo md:block"
+            // Hover goes to text-primary, not indigo: 13px indigo is 3.8:1 on the
+            // card glass in light and a hover state is still a state.
+            className="hidden rounded-button px-2 py-1.5 text-body-sm text-text-secondary hover:bg-[color:color-mix(in_srgb,var(--text-tertiary)_8%,transparent)] hover:text-text-primary lg:block"
           >
             {ROLE_LABEL[activeRole]} · 切換身份
           </Link>
@@ -109,12 +110,12 @@ export function WorkspaceTopBar() {
         <button
           type="button"
           onClick={toggleCommandPalette}
-          className="hidden items-center gap-2 rounded-pill border border-border-soft bg-glass-card px-3.5 py-2 text-body-sm text-text-tertiary transition-colors duration-150 ease-out-soft hover:text-text-primary md:flex"
+          className="hidden h-8 items-center gap-2 rounded-button border border-border-soft bg-white/70 px-3 text-body-sm text-text-tertiary transition-colors duration-150 ease-out-soft hover:bg-white hover:text-text-primary xl:flex dark:bg-white/5 dark:hover:bg-white/10"
           aria-label="搜尋全部內容（Command 或 Control K）"
         >
           <Search size={16} strokeWidth={1.7} aria-hidden />
-          <span>搜尋人物、知識庫、報表…</span>
-          <kbd className="ml-2 rounded-button border border-border-soft px-1.5 py-0.5 text-tiny">⌘K</kbd>
+          <span>搜尋</span>
+          <kbd className="ml-2 rounded-[5px] border border-border-soft px-1.5 py-0.5 text-tiny">⌘K</kbd>
         </button>
 
         <IconButton label="Search" onClick={toggleCommandPalette} className="md:hidden">

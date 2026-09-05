@@ -73,16 +73,16 @@ export function SecurityPage() {
 
         <ul className="mt-4 grid gap-3 lg:grid-cols-2">
           {SAFETY_CONTROLS.map((control) => (
-            <li key={control.id} className="glass-strong rounded-card-sm p-4">
+            <li key={control.id} className="rounded-card-sm border border-border-soft bg-glass-card p-4">
               <div className="flex items-start gap-2.5">
                 <span
                   aria-hidden
                   className={
                     control.status === 'enforced'
-                      ? 'mt-0.5 text-state-success'
+                      ? 'mt-0.5 text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]'
                       : control.status === 'attention'
-                        ? 'mt-0.5 text-state-warning'
-                        : 'mt-0.5 text-accent-blue'
+                        ? 'mt-0.5 text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]'
+                        : 'mt-0.5 text-[color:color-mix(in_srgb,var(--accent-blue)_45%,var(--text-primary))]'
                   }
                 >
                   {control.status === 'attention' ? (

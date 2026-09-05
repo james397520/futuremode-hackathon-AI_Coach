@@ -108,7 +108,7 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
         </GlassCard>
 
         <div className="space-y-4">
-          <GlassCard tone="strong" className="p-5">
+          <GlassCard className="p-5">
             <h2 className="text-card-title">Retrieval configuration</h2>
             <dl className="mt-3 space-y-2 text-body-sm">
               <div className="flex items-center justify-between gap-3">
@@ -181,7 +181,7 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
               <GlassCard className="group flex h-full flex-col p-5">
                 <div className="flex items-start gap-3">
                   <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-avatar bg-glass-strong text-accent-blue"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-avatar bg-glass-card text-accent-blue"
                     aria-hidden
                   >
                     <FileText size={18} strokeWidth={1.7} />
@@ -216,7 +216,7 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
 
                 {doc.state === 'failed' && doc.failure_reason ? (
                   <p className="mt-3 rounded-card-sm border border-border-soft px-3 py-2 text-body-sm text-text-secondary">
-                    <span className="meta-label mr-2 text-state-danger">Error</span>
+                    <span className="meta-label mr-2 text-[color:color-mix(in_srgb,var(--danger)_55%,var(--text-primary))]">Error</span>
                     {doc.failure_reason}
                   </p>
                 ) : null}

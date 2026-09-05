@@ -216,7 +216,19 @@ class StructlogAuditSink:
     """Default audit sink: structured logs only, no prompt/response bodies (§49.5)."""
 
     async def record(self, entry: Mapping[str, Any]) -> None:
-        log.info("llm.audit", **dict(entry))
+        """
+        `event` is structlog's own first positional argument, and the audit
+        entries carry a field of the same name (`event="llm.call"`). Splatting
+        the entry raised
+        `TypeError: meth() got multiple values for argument 'event'`
+        *after* the model had already answered, so every turn threw once the LLM
+        succeeded and the persona never replied. Rename the field rather than
+        drop it — it is what identifies the audit record.
+        """
+        fields = dict(entry)
+        if "event" in fields:
+            fields["audit_event"] = fields.pop("event")
+        log.info("llm.audit", **fields)
 
 
 # ---------------------------------------------------------------------------
@@ -609,11 +621,16 @@ class MiniMaxClient:
             system = f"{system}\n\n{instruction}" if system else instruction
         body: dict[str, Any] = {
             "model": self._default_model,
-            # 16384 to match the reference agent. M2.7 emits an interleaved
-            # `thinking` block *before* the answer and both draw on the same
-            # budget, so a 2048 cap silently truncated replies mid-sentence
-            # whenever the model reasoned at any length.
-            "max_tokens": max_tokens or 16384,
+            # 16384 to match the reference agent, and it is a FLOOR rather than
+            # just a default. M2.7 emits an interleaved `thinking` block *before*
+            # the answer, both draw on this one budget, and `_text_from_content`
+            # discards the thinking — so a caller's budget, which is sized for
+            # the visible answer, starves the answer instead of capping it.
+            # Measured: one two-sentence persona line spends 497-767 tokens, so
+            # `CustomerAgent.default_max_tokens = 500` returned an EMPTY string
+            # every time the model reasoned at all. This is a cap, not a spend:
+            # the model still stops at `end_turn` on its own.
+            "max_tokens": max(max_tokens or 0, 16384),
             "messages": turns,
             "temperature": temperature,
             "stream": stream,

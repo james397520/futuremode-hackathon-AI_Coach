@@ -47,7 +47,7 @@ export function TranscriptDialog({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Transcript">
+    <Modal open={open} onClose={onClose} title="逐字稿">
       <div className="grid gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -61,7 +61,7 @@ export function TranscriptDialog({
             style={insetSurface('blue', 12)}
           >
             <TranscriptIcon size={13} style={{ color: toneText('blue') }} />
-            <span style={{ color: toneText('blue') }}>{copied ? 'Copied' : 'Copy as Markdown'}</span>
+            <span style={{ color: toneText('blue') }}>{copied ? '已複製' : '複製為 Markdown'}</span>
           </button>
           <button
             type="button"
@@ -70,14 +70,14 @@ export function TranscriptDialog({
             style={insetSurface('neutral', 10)}
           >
             <DownloadIcon size={13} />
-            Download
+            下載
           </button>
-          <span className="ml-auto text-tiny text-text-tertiary">{items.length} entries</span>
+          <span className="ml-auto text-tiny text-text-tertiary">共 {items.length} 則</span>
         </div>
 
         <div className={cn('sim-scroll max-h-[60vh] overflow-y-auto rounded-card border p-4')} style={insetSurface('neutral', 6)}>
           {items.length === 0 ? (
-            <p className="text-body-sm text-text-tertiary">Nothing has been said yet.</p>
+            <p className="text-body-sm text-text-tertiary">目前還沒有任何對話內容。</p>
           ) : (
             <ol className="grid gap-4">
               {items.map((item) => (
@@ -113,15 +113,15 @@ export interface ReportIssueDialogProps {
 }
 
 const CATEGORIES = [
-  'The persona broke character',
-  'The answer was factually wrong',
-  'Audio or microphone problem',
-  'Scoring looks wrong',
-  'Something else',
+  '模擬人物脫離角色設定',
+  '回答的內容有事實錯誤',
+  '音訊或麥克風問題',
+  '計分看起來不對',
+  '其他問題',
 ] as const;
 
 export function ReportIssueDialog({ open, onClose, onSubmit }: ReportIssueDialogProps) {
-  const [category, setCategory] = useState<string>(CATEGORIES[0] ?? 'Something else');
+  const [category, setCategory] = useState<string>(CATEGORIES[0] ?? '其他問題');
   const [detail, setDetail] = useState('');
   const [sent, setSent] = useState(false);
 
@@ -136,10 +136,10 @@ export function ReportIssueDialog({ open, onClose, onSubmit }: ReportIssueDialog
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Report an issue">
+    <Modal open={open} onClose={onClose} title="回報問題">
       <div className="grid gap-3">
         <p className="text-body-sm text-text-secondary">
-          Your report is attached to this session so a reviewer can replay the exact moment.
+          你的回報會附加在本次練習上，讓審核者可以重播當下的情境。
         </p>
 
         <div className="grid gap-2">
@@ -162,8 +162,8 @@ export function ReportIssueDialog({ open, onClose, onSubmit }: ReportIssueDialog
           onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setDetail(event.target.value)}
           rows={4}
           maxLength={1000}
-          placeholder="What happened? (optional)"
-          aria-label="Issue detail"
+          placeholder="發生了什麼事？（選填）"
+          aria-label="問題詳情"
           className="sim-scroll w-full resize-none rounded-input border-border-soft bg-transparent p-3 text-body text-text-primary placeholder:text-text-tertiary focus:outline-none"
         />
 
@@ -174,7 +174,7 @@ export function ReportIssueDialog({ open, onClose, onSubmit }: ReportIssueDialog
             className="sim-focusable rounded-input px-4 py-2 text-body text-text-secondary"
             style={insetSurface('neutral', 9)}
           >
-            Cancel
+            取消
           </button>
           <button
             type="button"
@@ -182,12 +182,12 @@ export function ReportIssueDialog({ open, onClose, onSubmit }: ReportIssueDialog
             disabled={sent}
             className="sim-focusable flex items-center gap-2 rounded-input px-4 py-2 text-body font-medium disabled:opacity-60"
             style={{
-              background: 'linear-gradient(120deg, var(--accent-indigo), var(--accent-blue))',
-              color: 'var(--text-on-media)',
+              background: 'var(--action-dark)',
+              color: 'var(--text-on-accent)',
             }}
           >
             <FlagIcon size={15} />
-            {sent ? 'Sent' : 'Send report'}
+            {sent ? '已送出' : '送出回報'}
           </button>
         </div>
       </div>

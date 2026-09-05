@@ -13,9 +13,12 @@
  */
 export {
   auroraGlow,
+  INK,
   insetSurface,
+  onMediaSurface,
   pillSurface,
   tint,
+  TONE_CSS,
   toneText,
   toneVar,
   type ToneKey,

@@ -89,7 +89,7 @@ export function IntegrationsPage() {
               <GlassCard className="flex h-full flex-col p-5">
                 <div className="flex items-start gap-3">
                   <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-avatar bg-glass-strong text-accent-indigo"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-avatar bg-glass-card text-accent-indigo"
                     aria-hidden
                   >
                     <Plug size={18} strokeWidth={1.7} />
@@ -104,9 +104,9 @@ export function IntegrationsPage() {
                     aria-hidden
                     className={
                       connector.status === 'connected'
-                        ? 'mt-1 text-state-success'
+                        ? 'mt-1 text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]'
                         : connector.status === 'error'
-                          ? 'mt-1 text-state-danger'
+                          ? 'mt-1 text-[color:color-mix(in_srgb,var(--danger)_55%,var(--text-primary))]'
                           : 'mt-1 text-text-tertiary'
                     }
                   >
@@ -146,7 +146,9 @@ export function IntegrationsPage() {
                 {connector.detail ? (
                   <p
                     className={`mt-3 rounded-card-sm border border-border-soft px-3 py-2 text-body-sm ${
-                      connector.status === 'error' ? 'text-state-danger' : 'text-text-secondary'
+                      connector.status === 'error'
+                        ? 'text-[color:color-mix(in_srgb,var(--danger)_55%,var(--text-primary))]'
+                        : 'text-text-secondary'
                     }`}
                   >
                     {connector.detail}
@@ -154,7 +156,10 @@ export function IntegrationsPage() {
                 ) : null}
 
                 {testing === connector.id ? (
-                  <p className="mt-2 text-tiny text-accent-indigo" role="status">
+                  <p
+                    className="mt-2 text-tiny text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
+                    role="status"
+                  >
                     Testing connection…
                   </p>
                 ) : null}

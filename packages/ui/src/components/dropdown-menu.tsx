@@ -64,7 +64,7 @@ export const DropdownMenuItem = React.forwardRef<
       className={cn(
         itemClass,
         tone === 'danger' &&
-          'text-[color:var(--danger)] data-[highlighted]:bg-[color:color-mix(in_srgb,var(--danger)_12%,transparent)] data-[highlighted]:text-[color:var(--danger)]',
+          'text-state-danger-ink data-[highlighted]:bg-[color:color-mix(in_srgb,var(--danger)_12%,transparent)] data-[highlighted]:text-state-danger-ink',
         focusRingTight,
         className,
       )}
@@ -92,7 +92,7 @@ export const DropdownMenuCheckboxItem = React.forwardRef<
     >
       <span className="absolute left-2.5 inline-flex items-center">
         <DropdownMenuPrimitive.ItemIndicator>
-          <Check aria-hidden className="size-4 text-[color:var(--accent-blue)]" />
+          <Check aria-hidden className="size-4 text-accent-ink" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}
@@ -112,7 +112,7 @@ export const DropdownMenuRadioItem = React.forwardRef<
     >
       <span className="absolute left-2.5 inline-flex items-center">
         <DropdownMenuPrimitive.ItemIndicator>
-          <Circle aria-hidden className="size-2 fill-current text-[color:var(--accent-blue)]" />
+          <Circle aria-hidden className="size-2 fill-current text-accent-ink" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}

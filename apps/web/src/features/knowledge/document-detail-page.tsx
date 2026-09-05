@@ -87,7 +87,7 @@ export function DocumentDetailPage({ kbId, docId }: { kbId: string; docId: strin
               {versions.map((version) => (
                 <li
                   key={version}
-                  className="glass-strong flex items-center justify-between gap-3 rounded-card-sm px-3.5 py-2.5"
+                  className="border border-border-soft bg-glass-card flex items-center justify-between gap-3 rounded-card-sm px-3.5 py-2.5"
                 >
                   <div className="min-w-0">
                     <p className="text-body-sm font-medium">Version {version}</p>
@@ -153,7 +153,7 @@ export function DocumentDetailPage({ kbId, docId }: { kbId: string; docId: strin
           ) : (
             <ul className="mt-4 space-y-3">
               {chunks.map((chunk) => (
-                <li key={chunk.id} className="glass-strong rounded-card-sm p-4">
+                <li key={chunk.id} className="border border-border-soft bg-glass-card rounded-card-sm p-4">
                   <div className="flex flex-wrap items-center gap-2 text-tiny text-text-tertiary">
                     <span className="font-medium text-text-secondary">{chunk.id}</span>
                     {chunk.page !== undefined ? <span>page {chunk.page}</span> : null}

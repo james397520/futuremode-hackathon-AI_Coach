@@ -63,7 +63,7 @@ export const Field = React.forwardRef<HTMLDivElement, FieldProps>(function Field
               {label}
               {required === true ? (
                 <>
-                  <span aria-hidden className="ml-0.5 text-state-danger">
+                  <span aria-hidden className="ml-0.5 text-state-danger-ink">
                     *
                   </span>
                   <span className="sr-only"> (required)</span>
@@ -80,7 +80,8 @@ export const Field = React.forwardRef<HTMLDivElement, FieldProps>(function Field
       {control}
 
       {error != null ? (
-        <p id={errorId} role="alert" className="text-meta text-state-danger">
+        // ink: the display red is 2.7:1 on light glass, far under AA for 12px
+        <p id={errorId} role="alert" className="text-meta text-state-danger-ink">
           {error}
         </p>
       ) : hint != null ? (

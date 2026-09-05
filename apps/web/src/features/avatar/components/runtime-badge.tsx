@@ -17,13 +17,20 @@
  */
 import { useAvatarStore } from '../avatar-store';
 import { useCan } from '@/lib/auth-context';
-import { cn, tint, toneText, type ToneKey } from '../lib/tone';
+import { cn, onMediaSurface, tint, toneText, toneVar, type ToneKey } from '../lib/tone';
 import type { AvatarRuntimeStatus } from '../types';
+import { AvatarStyles } from './avatar-styles';
 
 export interface RuntimeBadgeProps {
   className?: string;
   /** Compact form drops the detail row even for admins (used on the small card). */
   compact?: boolean;
+  /**
+   * Rendered over the persona portrait rather than on glass: ink scrim +
+   * `--text-on-media`, with the tone carried by the dot. The glass chip's toned
+   * text has no guaranteed contrast over a photo.
+   */
+  onMedia?: boolean;
 }
 
 interface Label {
@@ -36,16 +43,16 @@ function traineeLabel(status: AvatarRuntimeStatus, backend: string | null): Labe
     case 'ready':
       return { text: acceleratedLabel(backend), tone: 'mint' };
     case 'loading':
-      return { text: 'Preparing customer…', tone: 'indigo' };
+      return { text: '正在準備客戶影像…', tone: 'indigo' };
     case 'checking':
-      return { text: 'Checking video…', tone: 'neutral' };
+      return { text: '正在檢查視訊…', tone: 'neutral' };
     case 'degraded':
-      return { text: 'Reduced video quality', tone: 'warning' };
+      return { text: '視訊畫質降低', tone: 'warning' };
     case 'unavailable':
-      return { text: 'Portrait mode', tone: 'neutral' };
+      return { text: '靜態頭像模式', tone: 'neutral' };
     case 'unknown':
     default:
-      return { text: 'Portrait mode', tone: 'neutral' };
+      return { text: '靜態頭像模式', tone: 'neutral' };
   }
 }
 
@@ -55,13 +62,13 @@ function traineeLabel(status: AvatarRuntimeStatus, backend: string | null): Labe
  * than pretending.
  */
 function acceleratedLabel(backend: string | null): string {
-  if (!backend) return 'Local AI';
+  if (!backend) return '本機 AI';
   const id = backend.toLowerCase();
-  if (id.includes('cpu')) return 'Local AI · CPU';
-  return 'Local AI · GPU accelerated';
+  if (id.includes('cpu')) return '本機 AI · CPU';
+  return '本機 AI · GPU 加速';
 }
 
-export function RuntimeBadge({ className, compact = false }: RuntimeBadgeProps) {
+export function RuntimeBadge({ className, compact = false, onMedia = false }: RuntimeBadgeProps) {
   const status = useAvatarStore((s) => s.status);
   const backend = useAvatarStore((s) => s.backend);
   const frames = useAvatarStore((s) => s.frames);
@@ -74,15 +81,31 @@ export function RuntimeBadge({ className, compact = false }: RuntimeBadgeProps) 
   const label = traineeLabel(status, backend);
   const showDetail = canSeeTelemetry && !compact && status !== 'unknown';
 
+  const dotColor = onMedia
+    ? label.tone === 'neutral'
+      ? 'var(--text-on-media)'
+      : toneVar(label.tone)
+    : toneText(label.tone);
+
   return (
     <div className={cn('flex min-w-0 flex-col items-start gap-1', className)}>
+      {/* The badge is mounted on its own on the settings and setup pages, so it
+          carries the stylesheet its pulse class and AA tone mixes come from. */}
+      <AvatarStyles />
       <span
-        className="inline-flex max-w-full items-center gap-1.5 truncate rounded-pill border px-2 py-0.5 text-tiny backdrop-blur"
-        style={{
-          backgroundColor: tint(label.tone, 14),
-          borderColor: tint(label.tone, 28),
-          color: toneText(label.tone),
-        }}
+        className={cn(
+          'inline-flex max-w-full items-center gap-1.5 truncate rounded-pill px-2 py-0.5 text-tiny backdrop-blur',
+          !onMedia && 'border',
+        )}
+        style={
+          onMedia
+            ? onMediaSurface()
+            : {
+                backgroundColor: tint(label.tone, 14),
+                borderColor: tint(label.tone, 28),
+                color: toneText(label.tone),
+              }
+        }
       >
         <span
           aria-hidden="true"
@@ -90,7 +113,7 @@ export function RuntimeBadge({ className, compact = false }: RuntimeBadgeProps) 
             'inline-block size-1.5 shrink-0 rounded-pill',
             status === 'loading' || status === 'checking' ? 'avatar-speak-pulse' : undefined,
           )}
-          style={{ backgroundColor: toneText(label.tone) }}
+          style={{ backgroundColor: dotColor }}
         />
         <span className="truncate">{label.text}</span>
       </span>

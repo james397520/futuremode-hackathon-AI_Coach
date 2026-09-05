@@ -52,7 +52,7 @@ export function PersonaObjectiveCard({
   return (
     <GlassCard className={cn('sim-float-in sim-lift p-5', className)}>
       <CardTitle
-        eyebrow="Objective progress"
+        eyebrow="目標達成進度"
         action={
           scenarioPhase ? (
             <TonePill tone="indigo" fill={15}>
@@ -61,24 +61,24 @@ export function PersonaObjectiveCard({
           ) : null
         }
       >
-        {progress.coveredCount} of {progress.totalCount} talking points
+        已提及 {progress.coveredCount} / {progress.totalCount} 個重點
       </CardTitle>
 
       <div className="mt-4 grid gap-3">
-        <Meter label="Toward objective" value={progress.overall} tone="indigo" />
+        <Meter label="目標達成度" value={progress.overall} tone="indigo" />
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-tiny text-text-tertiary">
-          <span>Scenario phase {progress.phase}%</span>
-          <span>Talking points {progress.coverage}%</span>
+          <span>情境進度 {progress.phase}%</span>
+          <span>重點涵蓋率 {progress.coverage}%</span>
         </div>
       </div>
 
       <div className="mt-4">
         <div className="text-tiny uppercase tracking-[0.08em] text-text-tertiary">
-          Required talking points
+          必須提及的重點
         </div>
         <ul className="mt-2 grid gap-1.5">
           {progress.points.length === 0 ? (
-            <li className="text-body-sm text-text-tertiary">None required.</li>
+            <li className="text-body-sm text-text-tertiary">此情境沒有必須提及的重點。</li>
           ) : (
             progress.points.map((entry) => (
               <Bullet key={entry.point} done={entry.covered}>
@@ -88,14 +88,14 @@ export function PersonaObjectiveCard({
           )}
         </ul>
         <p className="mt-2 text-tiny text-text-tertiary">
-          Ticks mean the phrase was detected in your transcript — not a score.
+          打勾表示逐字稿中偵測到這句話——不代表分數。
         </p>
       </div>
 
       {keyObjections.length > 0 ? (
         <div className="mt-4">
           <div className="text-tiny uppercase tracking-[0.08em] text-text-tertiary">
-            Expected objections
+            預期異議
           </div>
           <ul className="mt-2 grid gap-1.5">
             {keyObjections.map((objection) => (
@@ -110,7 +110,7 @@ export function PersonaObjectiveCard({
       <InsetBlock tone="mint" fill={9} className="mt-4">
         <div className="flex items-center gap-1.5 text-tiny uppercase tracking-[0.08em] text-text-tertiary">
           <ShieldIcon size={12} />
-          Success condition
+          通過條件
         </div>
         <p className="mt-1.5 text-body-sm text-text-secondary">{successCondition}</p>
       </InsetBlock>
@@ -119,7 +119,7 @@ export function PersonaObjectiveCard({
         <div className="mt-4 flex items-center justify-between text-meta">
           <span className="flex items-center gap-1.5 text-text-tertiary">
             <ClockIcon size={13} />
-            Time limit {formatTimer(timeLimitSeconds * 1000)}
+            時間限制 {formatTimer(timeLimitSeconds * 1000)}
           </span>
           <span
             className="tabular-nums"
@@ -128,8 +128,8 @@ export function PersonaObjectiveCard({
             {remainingMs === null
               ? '—'
               : overtime
-                ? `${formatTimer(Math.abs(remainingMs))} over`
-                : `${formatTimer(remainingMs)} left`}
+                ? `超時 ${formatTimer(Math.abs(remainingMs))}`
+                : `剩餘 ${formatTimer(remainingMs)}`}
           </span>
         </div>
       ) : null}

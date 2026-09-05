@@ -31,12 +31,7 @@ export const ModalOverlay = React.forwardRef<
   return (
     <DialogPrimitive.Overlay
       ref={ref}
-      className={cn(
-        'fixed inset-0 z-40 backdrop-blur-[10px]',
-        'bg-[color:color-mix(in_srgb,var(--text-primary)_14%,transparent)]',
-        'dark:bg-[color:color-mix(in_srgb,var(--bg-canvas)_58%,transparent)]',
-        className,
-      )}
+      className={cn('fixed inset-0 z-40', glassSurface.scrim, className)}
       {...props}
     />
   );

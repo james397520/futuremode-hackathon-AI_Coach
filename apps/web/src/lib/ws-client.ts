@@ -17,7 +17,11 @@
  */
 import type { ClientCommand, StreamingEvent, StreamingEventType } from '@ai-coach/shared';
 
-export const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL ?? 'ws://localhost:8000';
+// Single source of truth — see lib/runtime-env.ts. Imported (not just
+// re-exported) because this module joins URLs against it below.
+import { WS_BASE_URL } from './runtime-env';
+
+export { WS_BASE_URL };
 
 export type WsStatus =
   | 'idle'
@@ -34,7 +38,7 @@ export interface SeqGap {
 }
 
 export interface StreamingClientOptions {
-  /** Path such as `/ws/sessions/<id>`; joined against WS_BASE_URL. */
+  /** Path such as `/api/v1/sessions/<id>/ws`; joined against WS_BASE_URL. */
   path: string;
   /** Resume from a known sequence number after a reconnect. */
   lastSeq?: number;
@@ -278,5 +282,9 @@ export function createSessionSocket(
   sessionId: string,
   options: Omit<StreamingClientOptions, 'path'>,
 ): StreamingClient {
-  return new StreamingClient({ ...options, path: `/ws/sessions/${sessionId}` });
+  // Must match the backend route (`@router.websocket("/{session_id}/ws")` under
+  // the `/api/v1/sessions` prefix) — and the `websocket_url` the session
+  // envelope returns. The old `/ws/sessions/<id>` matched no route, so every
+  // connect was rejected 403 and the UI sat in an endless reconnect loop.
+  return new StreamingClient({ ...options, path: `/api/v1/sessions/${sessionId}/ws` });
 }

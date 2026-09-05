@@ -93,7 +93,7 @@ export function TrainingPage() {
                   </div>
 
                   <h2 className="text-card-title">
-                    <Link href={`/simulations/${item.scenario_id}/setup`} className="hover:text-accent-indigo">
+                    <Link href={`/simulations/${item.scenario_id}/setup`} className="hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]">
                       {item.scenario_name}
                     </Link>
                   </h2>
@@ -134,7 +134,7 @@ export function TrainingPage() {
                     {item.critical_findings > 0 ? (
                       <div className="flex gap-2">
                         <dt className="text-text-tertiary">合規</dt>
-                        <dd className="text-state-danger">
+                        <dd className="font-medium text-[color:color-mix(in_srgb,var(--danger)_55%,var(--text-primary))]">
                           {item.critical_findings} 項發現阻礙完成
                         </dd>
                       </div>

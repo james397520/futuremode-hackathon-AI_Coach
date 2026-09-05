@@ -26,8 +26,8 @@ export const textareaVariants = cva(
         vertical: 'resize-y',
       },
       invalid: {
-        true: 'border-[color:color-mix(in_srgb,var(--danger)_46%,transparent)]',
-        false: 'border-border-soft hover:border-border-glass',
+        true: 'border-[color:color-mix(in_srgb,var(--danger-ink)_55%,transparent)]',
+        false: 'border-border-soft hover:border-[color:color-mix(in_srgb,var(--text-tertiary)_45%,transparent)]',
       },
     },
     defaultVariants: { resize: 'vertical', invalid: false },

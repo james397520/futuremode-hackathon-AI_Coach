@@ -57,7 +57,7 @@ export function KnowledgeListPage() {
                 </div>
 
                 <h2 className="text-card-title">
-                  <Link href={`/knowledge/${kb.id}`} className="hover:text-accent-indigo">
+                  <Link href={`/knowledge/${kb.id}`} className="hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]">
                     {kb.name}
                   </Link>
                 </h2>
@@ -89,7 +89,7 @@ export function KnowledgeListPage() {
                     className="h-full rounded-pill"
                     style={{
                       width: `${readiness}%`,
-                      background: 'linear-gradient(120deg, var(--accent-indigo), var(--accent-cyan) 60%, var(--accent-mint))',
+                      background: 'var(--accent-indigo)',
                     }}
                   />
                 </div>

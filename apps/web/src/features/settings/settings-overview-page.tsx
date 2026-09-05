@@ -35,14 +35,14 @@ export function SettingsOverviewPage() {
             <GlassCard className="h-full p-5">
               <div className="flex items-start gap-3">
                 <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-avatar bg-glass-strong text-accent-indigo"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-avatar bg-glass-card text-accent-indigo"
                   aria-hidden
                 >
                   <section.icon size={17} strokeWidth={1.7} />
                 </span>
                 <div className="min-w-0">
                   <h2 className="text-card-title">
-                    <Link href={section.href} className="hover:text-accent-indigo">
+                    <Link href={section.href} className="hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]">
                       {section.label}
                     </Link>
                   </h2>

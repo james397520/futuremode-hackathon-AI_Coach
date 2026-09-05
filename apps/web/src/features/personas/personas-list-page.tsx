@@ -120,7 +120,7 @@ export function PersonasListPage() {
                           className="h-full rounded-pill"
                           style={{
                             width: `${value}%`,
-                            background: 'linear-gradient(90deg, var(--accent-indigo), var(--accent-cyan))',
+                            background: 'var(--accent-indigo)',
                           }}
                         />
                       </div>

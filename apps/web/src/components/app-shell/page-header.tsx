@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface Crumb {
@@ -30,7 +29,7 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div className={cn('flex flex-wrap items-end justify-between gap-4 pb-6 pt-1', className)}>
+    <div className={cn('flex flex-wrap items-end justify-between gap-4 pb-5 pt-5', className)}>
       <div className="min-w-0 flex-1">
         {breadcrumbs && breadcrumbs.length > 0 ? (
           <nav aria-label="Breadcrumb" className="mb-2">
@@ -48,7 +47,7 @@ export function PageHeader({
                         {crumb.label}
                       </span>
                     )}
-                    {!isLast ? <ChevronRight size={13} strokeWidth={1.8} aria-hidden /> : null}
+                    {!isLast ? <span className="text-text-tertiary" aria-hidden>/</span> : null}
                   </li>
                 );
               })}

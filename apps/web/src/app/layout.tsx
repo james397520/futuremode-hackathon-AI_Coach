@@ -25,8 +25,8 @@ export const viewport: Viewport = {
    * (light / dark) — everything inside the page uses the variables (§99).
    */
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f4f7fd' },
-    { media: '(prefers-color-scheme: dark)', color: '#07101e' },
+    { media: '(prefers-color-scheme: light)', color: '#ccc8fe' },
+    { media: '(prefers-color-scheme: dark)', color: '#17151f' },
   ],
 };
 
@@ -46,7 +46,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* §47 — first tab stop skips the icon rail. */}
         <a
           href="#workspace-main"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-6 focus:top-6 focus:z-50 focus:rounded-button focus:bg-glass-strong focus:px-4 focus:py-2 focus:text-body-sm focus:shadow-floating"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-6 focus:top-6 focus:z-50 focus:rounded-button focus:bg-glass-card focus:px-4 focus:py-2 focus:text-body-sm focus:shadow-floating focus:backdrop-blur-card"
         >
           跳至主要內容
         </a>

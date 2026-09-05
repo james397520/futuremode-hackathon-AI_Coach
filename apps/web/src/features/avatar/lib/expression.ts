@@ -149,14 +149,14 @@ const EMOTION_TO_EXPRESSION: Record<PersonaEmotion, AvatarExpressionName> = {
 
 /** Plain-language label for the caption chip — never shown as a raw enum. */
 export const EXPRESSION_LABEL: Record<AvatarExpressionName, string> = {
-  neutral: 'Neutral',
-  listening: 'Listening',
-  skeptical: 'Skeptical',
-  concerned: 'Concerned',
-  frustrated: 'Frustrated',
-  interested: 'Interested',
-  thinking: 'Considering',
-  ready: 'Ready to decide',
+  neutral: '平靜',
+  listening: '聆聽中',
+  skeptical: '懷疑',
+  concerned: '擔憂',
+  frustrated: '挫折',
+  interested: '有興趣',
+  thinking: '考慮中',
+  ready: '準備決定',
 };
 
 /** Tone key per expression, so the stage's wash matches the persona state card. */

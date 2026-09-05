@@ -15,7 +15,7 @@ import type { ReactNode } from 'react';
 import type { PersonaSimulationState } from '@ai-coach/shared';
 
 import { AvatarStage } from '@/features/avatar';
-import { auroraGlow, tint, toneText } from '../lib/tone';
+import { auroraGlow, INK, onMediaSurface } from '../lib/tone';
 import { LiveDot } from './atoms';
 import { ChevronRightIcon, MicIcon, SparkleIcon } from './icons';
 import { cn } from './kit';
@@ -49,7 +49,7 @@ export function PersonaStage({
   personaName,
   subtitle,
   avatarUrl,
-  eyebrow = 'Customer Simulation',
+  eyebrow = '客戶模擬',
   speaking,
   listening,
   thinking,
@@ -91,21 +91,25 @@ export function PersonaStage({
             surface="bare"
           />
 
-          {/* §20.1 top gradient overlay so the name stays legible on any portrait. */}
+          {/* §20.1 top gradient overlay so the name stays legible on any portrait.
+              Built from `INK`, not `--text-primary`: the latter is near-white in
+              dark mode and turned this into a light veil under light text. At 64%
+              the `--text-on-media` name plate stays ≥4.6:1 even over a white photo. */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 top-0 h-24"
             style={{
-              background:
-                'linear-gradient(to bottom, color-mix(in srgb, var(--text-primary) 52%, transparent), transparent)',
+              background: `linear-gradient(to bottom, color-mix(in srgb, ${INK} 64%, transparent), transparent)`,
             }}
           />
 
           <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
             <div className="min-w-0">
+              {/* Hierarchy by weight, not alpha: the 78% `--text-on-media-dim`
+                  fell to ~3:1 at 11px over a light portrait. */}
               <p
                 className="text-tiny uppercase tracking-[0.1em]"
-                style={{ color: 'var(--text-on-media-dim)' }}
+                style={{ color: 'var(--text-on-media)' }}
               >
                 {eyebrow}
               </p>
@@ -115,10 +119,7 @@ export function PersonaStage({
               >
                 {personaName}
                 {subtitle ? (
-                  <span
-                    className="font-normal"
-                    style={{ color: 'var(--text-on-media-dim)' }}
-                  >
+                  <span className="font-normal">
                     {' · '}
                     {subtitle}
                   </span>
@@ -131,10 +132,9 @@ export function PersonaStage({
                 type="button"
                 onClick={onOpenProfile}
                 className="sim-focusable flex shrink-0 items-center gap-1 rounded-pill px-2.5 py-1 text-tiny backdrop-blur"
-                style={{
-                  backgroundColor: 'color-mix(in srgb, var(--bg-canvas-soft) 24%, transparent)',
-                  color: 'var(--text-on-media)',
-                }}
+                // Dark scrim in both themes. `--bg-canvas-soft` is near-white in
+                // light mode, which put white text on a white wash over the photo.
+                style={onMediaSurface()}
               >
                 Profile
                 <ChevronRightIcon size={12} />
@@ -146,37 +146,30 @@ export function PersonaStage({
           <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4">
             <span
               className="flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-tiny backdrop-blur"
-              style={{
-                backgroundColor: 'color-mix(in srgb, var(--glass-card-strong) 88%, transparent)',
-                borderColor: tint('neutral', 22),
-                color: speaking
-                  ? toneText('violet')
-                  : listening
-                    ? toneText('cyan')
-                    : thinking
-                      ? toneText('indigo')
-                      : 'var(--text-tertiary)',
-              }}
+              // Over the portrait, so: ink scrim + `--text-on-media` (§20.1), never
+              // the card's toned text, which is tuned for glass and unreadable on
+              // a photo. The tone lives in the dot.
+              style={onMediaSurface()}
             >
               {speaking ? (
                 <>
-                  <LiveDot tone="violet" pulsing />
-                  Speaking
+                  <LiveDot tone="violet" pulsing onMedia />
+                  說話中
                 </>
               ) : listening ? (
                 <>
                   <MicIcon size={11} />
-                  Listening
+                  聆聽中
                 </>
               ) : thinking ? (
                 <>
                   <SparkleIcon size={11} />
-                  Thinking
+                  思考中
                 </>
               ) : (
                 <>
-                  <LiveDot tone="neutral" />
-                  Standing by
+                  <LiveDot tone="neutral" onMedia />
+                  待命中
                 </>
               )}
             </span>

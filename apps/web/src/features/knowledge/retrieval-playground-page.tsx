@@ -129,7 +129,7 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
               const relevance = marks[citation.chunk_id] ?? 'unmarked';
               return (
                 <li key={citation.chunk_id}>
-                  <GlassCard tone="strong" className="p-5">
+                  <GlassCard className="p-5">
                     <div className="flex flex-wrap items-baseline justify-between gap-3">
                       <div className="flex flex-wrap items-baseline gap-3">
                         <span className="text-section tabular-nums text-text-tertiary">#{index + 1}</span>
@@ -168,7 +168,7 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
                         className={cn(
                           'flex items-center gap-1.5 rounded-pill border px-3 py-1 text-tiny',
                           relevance === 'relevant'
-                            ? 'border-state-success text-state-success'
+                            ? 'border-[color:color-mix(in_srgb,var(--success)_55%,transparent)] font-medium text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]'
                             : 'border-border-soft text-text-secondary hover:text-text-primary',
                         )}
                       >
@@ -182,7 +182,7 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
                         className={cn(
                           'flex items-center gap-1.5 rounded-pill border px-3 py-1 text-tiny',
                           relevance === 'irrelevant'
-                            ? 'border-state-danger text-state-danger'
+                            ? 'border-[color:color-mix(in_srgb,var(--danger)_55%,transparent)] font-medium text-[color:color-mix(in_srgb,var(--danger)_55%,var(--text-primary))]'
                             : 'border-border-soft text-text-secondary hover:text-text-primary',
                         )}
                       >
@@ -191,7 +191,7 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
                       </button>
                       <Link
                         href={`/knowledge/${kbId}/chunks`}
-                        className="ml-auto text-tiny text-accent-indigo hover:underline"
+                        className="ml-auto text-tiny text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))] hover:underline"
                       >
                         Open in chunk viewer
                       </Link>

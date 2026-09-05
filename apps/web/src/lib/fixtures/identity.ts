@@ -41,7 +41,7 @@ export const MOCK_CURRENT_USER: User & { theme_preference?: 'light' | 'dark' | '
   team_ids: ['team_taipei_north'],
   created_at: daysAgo(400),
   updated_at: NOW_ISO,
-  theme_preference: 'system',
+  theme_preference: 'light',
 };
 
 export const MOCK_TEAMS: Team[] = [

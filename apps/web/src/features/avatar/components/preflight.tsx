@@ -19,6 +19,7 @@
 import { useAvatarStore } from '../avatar-store';
 import { cn, tint, toneText, type ToneKey } from '../lib/tone';
 import type { PreflightCheck, PreflightCheckState } from '../types';
+import { AvatarStyles } from './avatar-styles';
 
 const STATE_TONE: Record<PreflightCheckState, ToneKey> = {
   pending: 'neutral',
@@ -63,6 +64,9 @@ export function AvatarPreflight({ visible = true, className }: AvatarPreflightPr
       aria-live="polite"
       aria-busy={!settled}
     >
+      {/* Mounted standalone on the setup page: bring the pulse keyframes and the
+          AA tone mixes with it. */}
+      <AvatarStyles />
       <ul className="grid gap-1">
         {checks.map((check) => {
           const tone = STATE_TONE[check.state];

@@ -139,14 +139,14 @@ export function useSessionBootstrap(
 
     void (async () => {
       try {
-        const session = await endpoints.getSession(sessionId);
+        // One request. The envelope already pins the scenario and persona to
+        // this session (§54), so re-fetching them separately was both redundant
+        // and a permission error: a trainee has `session.read` but not
+        // `scenario.read`, so the extra calls 403'd for the only role that
+        // actually runs simulations.
+        const envelope = await endpoints.getSession(sessionId);
         if (cancelled) return;
-        const [scenario, persona] = await Promise.all([
-          endpoints.getScenario(session.scenario_id),
-          endpoints.getPersona(session.persona_id),
-        ]);
-        if (cancelled) return;
-        apply(composeBootstrap(session, scenario, persona));
+        apply(composeBootstrap(envelope.session, envelope.scenario, envelope.persona));
       } catch (err) {
         if (cancelled) return;
         const message =

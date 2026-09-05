@@ -209,17 +209,17 @@ export function PersonaTestLabPage({ personaId }: { personaId: string }) {
             <h2 className="text-card-title">Probe results</h2>
             <ul className="mt-3 space-y-2.5">
               {PROBES.map((probe) => (
-                <li key={probe.id} className="glass-strong rounded-card-sm p-4">
+                <li key={probe.id} className="rounded-card-sm border border-border-soft bg-glass-card p-4">
                   <div className="flex items-start gap-2.5">
                     <span
                       aria-hidden
                       className={
                         probe.status === 'pass'
-                          ? 'mt-0.5 text-state-success'
+                          ? 'mt-0.5 text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]'
                           : probe.status === 'attention'
-                            ? 'mt-0.5 text-state-warning'
+                            ? 'mt-0.5 text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]'
                             : probe.status === 'fail'
-                              ? 'mt-0.5 text-state-danger'
+                              ? 'mt-0.5 text-[color:color-mix(in_srgb,var(--danger)_55%,var(--text-primary))]'
                               : 'mt-0.5 text-text-tertiary'
                       }
                     >
@@ -263,7 +263,7 @@ export function PersonaTestLabPage({ personaId }: { personaId: string }) {
             </Button>
           </GlassCard>
 
-          <GlassCard tone="strong" className="p-5">
+          <GlassCard className="p-5">
             <h2 className="text-card-title">Live persona state</h2>
             <p className="mt-1 text-body-sm text-text-secondary">
               Exactly the object the right-hand column of a live session renders. The UI never infers

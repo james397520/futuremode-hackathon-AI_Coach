@@ -11,6 +11,7 @@
 import * as React from 'react';
 
 import { cn } from '../lib/cn';
+import { glassSurface } from './glass-card';
 
 export interface EmptyStateProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
   /** outline icon（§85 線性、18–20px；這裡容器會放大到 20px）。 */
@@ -51,8 +52,7 @@ export const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(func
       className={cn(
         'relative flex w-full flex-col items-center justify-center overflow-hidden text-center',
         size === 'sm' ? 'gap-3 px-5 py-8' : 'gap-4 px-6 py-14',
-        surface === 'card' &&
-          'rounded-card border border-border-soft bg-glass-strong backdrop-blur-card',
+        surface === 'card' && 'rounded-card border border-border-soft bg-glass-card',
         className,
       )}
       {...props}
@@ -69,9 +69,8 @@ export const EmptyState = React.forwardRef<HTMLDivElement, EmptyStateProps>(func
           <span
             aria-hidden
             className={cn(
-              'inline-flex items-center justify-center rounded-card-sm border border-border-glass bg-glass-card',
-              'text-text-tertiary backdrop-blur-card',
-              '[box-shadow:var(--shadow-soft),var(--shadow-inset-hi)]',
+              'inline-flex items-center justify-center rounded-card-sm text-text-tertiary',
+              glassSurface.card,
               size === 'sm' ? 'size-10 [&_svg]:size-[18px]' : 'size-12 [&_svg]:size-5',
             )}
           >

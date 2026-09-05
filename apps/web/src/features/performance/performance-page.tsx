@@ -140,7 +140,7 @@ export function PerformancePage({ userId }: { userId?: string }) {
                 <div className="min-w-0 flex-1">
                   <Link
                     href={`/simulations/${entry.scenario_id}/setup`}
-                    className="text-body-sm font-medium hover:text-accent-indigo"
+                    className="text-body-sm font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
                   >
                     {entry.scenario_name}
                   </Link>
@@ -157,7 +157,7 @@ export function PerformancePage({ userId }: { userId?: string }) {
         </GlassCard>
 
         <div className="space-y-4">
-          <GlassCard tone="strong" className="p-5">
+          <GlassCard className="p-5">
             <div className="flex items-center gap-2">
               <Target size={16} strokeWidth={1.8} aria-hidden className="text-accent-indigo" />
               <h2 className="text-card-title">What to do next</h2>
@@ -170,7 +170,7 @@ export function PerformancePage({ userId }: { userId?: string }) {
                 <li>
                   <Link
                     href={`/simulations/${DEMO_RECOMMENDATION.retry_scenario_id}/setup`}
-                    className="font-medium hover:text-accent-indigo"
+                    className="font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
                   >
                     Retry: {scenarioById(DEMO_RECOMMENDATION.retry_scenario_id)?.name}
                   </Link>
@@ -180,7 +180,7 @@ export function PerformancePage({ userId }: { userId?: string }) {
                 <li>
                   <Link
                     href={`/simulations/${DEMO_RECOMMENDATION.next_scenario_id}/setup`}
-                    className="font-medium hover:text-accent-indigo"
+                    className="font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
                   >
                     Next: {scenarioById(DEMO_RECOMMENDATION.next_scenario_id)?.name}
                   </Link>
@@ -196,7 +196,7 @@ export function PerformancePage({ userId }: { userId?: string }) {
 
           <GlassCard className="p-5">
             <div className="flex items-center gap-2">
-              <Flame size={16} strokeWidth={1.8} aria-hidden className="text-state-warning" />
+              <Flame size={16} strokeWidth={1.8} aria-hidden className="text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]" />
               <h2 className="text-card-title">Recent sessions</h2>
             </div>
             <ul className="mt-3 divide-y divide-border-soft/70">
@@ -205,7 +205,7 @@ export function PerformancePage({ userId }: { userId?: string }) {
                   <div className="min-w-0">
                     <Link
                       href={`/simulations/${session.session_id}/review`}
-                      className="truncate text-body-sm hover:text-accent-indigo"
+                      className="truncate text-body-sm hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]"
                     >
                       {scenarioById(session.scenario_id)?.name ?? session.scenario_id}
                     </Link>

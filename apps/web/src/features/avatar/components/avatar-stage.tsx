@@ -68,13 +68,13 @@ export interface AvatarStageProps {
 function statusAnnouncement(status: AvatarRuntimeStatus, personaName: string): string {
   switch (status) {
     case 'ready':
-      return `${personaName} is now shown as a live video avatar.`;
+      return `${personaName} 現在以即時虛擬人影像呈現。`;
     case 'loading':
-      return `Preparing the video avatar for ${personaName}.`;
+      return `正在準備 ${personaName} 的虛擬人影像。`;
     case 'degraded':
-      return `Video quality reduced. ${personaName} is still responding normally.`;
+      return `視訊畫質已降低。${personaName} 仍正常回應。`;
     case 'unavailable':
-      return `${personaName} is shown as a portrait. Voice and conversation are unaffected.`;
+      return `${personaName} 以靜態頭像呈現。語音與對話不受影響。`;
     default:
       return '';
   }
@@ -226,7 +226,7 @@ export function AvatarStage({
         // Sits one row above the parent card's status chip (§20.1 keeps the very
         // bottom-left for Speaking / Listening), so the two never overlap.
         <div className="pointer-events-none absolute bottom-12 left-4">
-          <RuntimeBadge compact />
+          <RuntimeBadge compact onMedia />
         </div>
       ) : null}
 

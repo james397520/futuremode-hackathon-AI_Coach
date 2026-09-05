@@ -86,7 +86,7 @@ export function RoleSelectPage() {
   };
 
   return (
-    <GlassCard tone="strong" className="p-8">
+    <GlassCard className="p-8">
       <p className="meta-label">選擇工作身份</p>
       <h1 className="mt-2 text-section">今天要做什麼？</h1>
       <p className="mt-1.5 text-body-sm text-text-secondary">
@@ -95,10 +95,10 @@ export function RoleSelectPage() {
       </p>
 
       {trainee ? (
-        <GlassCard tone="floating" className="mt-6 p-5">
+        <GlassCard className="mt-6 p-5">
           <div className="flex items-start gap-3">
             <span
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-avatar bg-glass-strong text-accent-indigo"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-avatar bg-glass-card text-accent-indigo"
               aria-hidden
             >
               <UserRound size={18} strokeWidth={1.7} />
@@ -145,11 +145,11 @@ export function RoleSelectPage() {
                       onClick={() => choose(option)}
                       className={cn(
                         'flex w-full items-center gap-3 rounded-card-sm border border-border-soft px-4 py-4 text-left',
-                        'transition-transform duration-150 ease-out-soft hover:-translate-y-px hover:shadow-soft',
+                        'transition-[transform,background-color] duration-150 ease-out-soft hover:-translate-y-px hover:bg-glass-card',
                       )}
                     >
                       <span
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-avatar bg-glass-strong text-accent-indigo"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-avatar bg-glass-card text-accent-indigo"
                         aria-hidden
                       >
                         <Icon size={18} strokeWidth={1.7} />
@@ -159,7 +159,7 @@ export function RoleSelectPage() {
                         <span className="mt-0.5 block text-body-sm text-text-secondary">
                           {option.description}
                         </span>
-                        <span className="mt-2 block text-tiny font-medium text-accent-indigo">
+                        <span className="mt-2 block text-tiny font-medium text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]">
                           {option.action}
                         </span>
                       </span>

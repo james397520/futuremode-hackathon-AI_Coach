@@ -129,7 +129,7 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
         {/* Preview column */}
         <div className="space-y-4">
-          <GlassCard tone="strong" className="p-5">
+          <GlassCard className="p-5">
             <div
               className="dot-matrix mb-4 flex h-32 items-center justify-center rounded-card-sm border border-border-soft"
               aria-hidden
@@ -159,7 +159,7 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
                       className="h-full rounded-pill"
                       style={{
                         width: `${draft.traits[trait.key]}%`,
-                        background: 'linear-gradient(90deg, var(--accent-indigo), var(--accent-cyan))',
+                        background: 'var(--accent-indigo)',
                       }}
                     />
                   </div>
@@ -176,7 +176,7 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
             </p>
             <ul className="mt-3 space-y-1.5 text-body-sm">
               <li>
-                <Link href="/scenarios" className="hover:text-accent-indigo">
+                <Link href="/scenarios" className="hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]">
                   「我已經有保險了」— 保障缺口對話
                 </Link>
               </li>
@@ -380,7 +380,7 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
 
                 <ul className="mt-4 space-y-2.5">
                   {PERSONA_TRIGGER_RULES.map((rule) => (
-                    <li key={rule.id} className="glass-strong rounded-card-sm p-4">
+                    <li key={rule.id} className="border border-border-soft bg-glass-card rounded-card-sm p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-body-sm font-medium">When {rule.when.toLowerCase()}</p>
@@ -428,7 +428,7 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
 
               <ol className="mt-4 space-y-2">
                 {(draft.hidden?.objections ?? []).map((objection, index) => (
-                  <li key={objection} className="glass-strong flex items-center gap-3 rounded-card-sm px-4 py-3">
+                  <li key={objection} className="border border-border-soft bg-glass-card flex items-center gap-3 rounded-card-sm px-4 py-3">
                     <span className="text-meta tabular-nums text-text-tertiary">{index + 1}</span>
                     <span className="min-w-0 flex-1 text-body-sm">「{objection}」</span>
                     {index === 0 ? <Pill tone="gradient" size="sm">Main objection</Pill> : null}
@@ -477,7 +477,7 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
               <h3 className="mt-6 text-body-sm font-semibold">Knowledge bases the persona may reference</h3>
               <ul className="mt-2 space-y-2">
                 {MOCK_KNOWLEDGE_BASES.slice(0, 3).map((kb) => (
-                  <li key={kb.id} className="glass-strong flex items-center justify-between gap-3 rounded-card-sm px-4 py-3">
+                  <li key={kb.id} className="border border-border-soft bg-glass-card flex items-center justify-between gap-3 rounded-card-sm px-4 py-3">
                     <div className="min-w-0">
                       <p className="truncate text-body-sm font-medium">{kb.name}</p>
                       <p className="text-tiny text-text-tertiary">
@@ -586,7 +586,7 @@ export function PersonaBuilderPage({ personaId }: { personaId?: string }) {
                   ['No personal data collection', 'Will not accept or repeat full national ID numbers.'],
                   ['Escalate on distress', 'If the trainee describes a real crisis, the session pauses with guidance.'],
                 ].map(([title, body]) => (
-                  <li key={title} className="glass-strong flex items-start justify-between gap-3 rounded-card-sm p-4">
+                  <li key={title} className="border border-border-soft bg-glass-card flex items-start justify-between gap-3 rounded-card-sm p-4">
                     <div className="min-w-0">
                       <p className="text-body-sm font-medium">{title}</p>
                       <p className="mt-0.5 text-body-sm text-text-secondary">{body}</p>

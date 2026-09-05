@@ -20,7 +20,7 @@
 import { useMemo, type CSSProperties } from 'react';
 
 import { EXPRESSION_LABEL, EXPRESSION_TONE } from '../lib/expression';
-import { auroraGlow, cn, tint, toneText, toneVar, type ToneKey } from '../lib/tone';
+import { auroraGlow, cn, onMediaSurface, tint, toneText, toneVar, type ToneKey } from '../lib/tone';
 import type { AvatarExpressionName, AvatarExpressionState } from '../types';
 
 export interface AvatarFallbackProps {
@@ -147,14 +147,14 @@ export function AvatarFallback({
         />
       ) : null}
 
-      {/* Expression caption — the piece that still works with motion disabled. */}
+      {/* Expression caption — the piece that still works with motion disabled.
+          It sits on the portrait, so it gets the on-media treatment (ink scrim +
+          `--text-on-media`, ≥4.6:1 over any photo); a 14% tone wash with the
+          card's toned text had no guaranteed contrast over an image at all. The
+          emotion colour stays in the dot. */}
       <span
-        className="absolute left-4 top-14 inline-flex items-center gap-1.5 rounded-pill border px-2 py-0.5 text-tiny backdrop-blur"
-        style={{
-          backgroundColor: tint(tone, 14),
-          borderColor: tint(tone, 30),
-          color: toneText(tone),
-        }}
+        className="absolute left-4 top-14 inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 text-tiny backdrop-blur"
+        style={onMediaSurface()}
       >
         <span
           aria-hidden="true"

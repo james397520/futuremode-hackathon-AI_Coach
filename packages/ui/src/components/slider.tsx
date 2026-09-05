@@ -143,7 +143,7 @@ export const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.R
             <SliderPrimitive.Range
               className={cn(
                 'absolute h-full rounded-pill',
-                '[background-image:linear-gradient(90deg,var(--accent-indigo),var(--accent-blue)_58%,var(--accent-mint))]',
+                'bg-accent-indigo',
               )}
             />
           </SliderPrimitive.Track>
@@ -159,9 +159,9 @@ export const Slider = React.forwardRef<React.ElementRef<typeof SliderPrimitive.R
                   : undefined
               }
               className={cn(
-                'block size-4 rounded-pill border border-border-glass bg-white',
-                // §35 soft glow
-                '[box-shadow:0_2px_8px_color-mix(in_srgb,var(--accent-indigo)_28%,transparent),0_0_0_5px_color-mix(in_srgb,var(--accent-blue)_10%,transparent)]',
+                'block size-4 rounded-pill border border-border-soft bg-surface-solid',
+                // §35 soft glow: centred halo + a small down-right contact shadow
+                '[box-shadow:1px_2px_6px_color-mix(in_srgb,var(--accent-solid)_28%,transparent),0_0_0_5px_color-mix(in_srgb,var(--accent-solid)_10%,transparent)]',
                 'transition-transform duration-[var(--dur-hover)] ease-out-soft motion-reduce:transition-none',
                 'hover:scale-105 motion-reduce:hover:scale-100',
                 'disabled:pointer-events-none',

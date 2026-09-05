@@ -13,6 +13,7 @@ import * as React from 'react';
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 
 import { cn } from '../lib/cn';
+import { glassSurface } from './glass-card';
 
 export type StatDeltaDirection = 'up' | 'down' | 'flat';
 export type StatDeltaTone = 'positive' | 'negative' | 'neutral';
@@ -30,9 +31,10 @@ export interface StatDelta {
   label?: React.ReactNode;
 }
 
+/* ink, not the display colour: --success as 13px text on light glass is 1.8:1 */
 const deltaToneClass: Record<StatDeltaTone, string> = {
-  positive: 'text-[color:var(--success)]',
-  negative: 'text-[color:var(--danger)]',
+  positive: 'text-state-success-ink',
+  negative: 'text-state-danger-ink',
   neutral: 'text-text-tertiary',
 };
 
@@ -112,8 +114,7 @@ export const StatTile = React.forwardRef<HTMLDivElement, StatTileProps>(function
       className={cn(
         'flex min-w-0 flex-1 flex-col gap-2',
         size === 'sm' ? 'p-3' : 'p-4',
-        surface === 'card' &&
-          'rounded-card border border-border-glass bg-glass-card backdrop-blur-card [box-shadow:var(--shadow-soft),var(--shadow-inset-hi)]',
+        surface === 'card' && 'rounded-card border border-border-soft bg-glass-strong',
         divider && 'border-l border-border-soft',
         className,
       )}

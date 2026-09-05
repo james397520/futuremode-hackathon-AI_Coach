@@ -35,12 +35,12 @@ const MARKER_TONE: Record<TimelineMarkerKind, ToneKey> = {
 };
 
 const MARKER_LABEL: Record<TimelineMarkerKind, string> = {
-  key_response: 'Key response',
-  missed_signal: 'Missed signal',
-  compliance_warning: 'Compliance warning',
-  state_transition: 'State transition',
-  phase_change: 'Phase change',
-  score_event: 'Score event',
+  key_response: '關鍵回應',
+  missed_signal: '錯過的訊號',
+  compliance_warning: '合規警示',
+  state_transition: '狀態轉換',
+  phase_change: '階段變化',
+  score_event: '分數事件',
 };
 
 const LEGEND: readonly TimelineMarkerKind[] = [
@@ -87,18 +87,18 @@ export function StateTimeline({
   return (
     <GlassCard className={cn('sim-float-in p-5', className)}>
       <CardTitle
-        eyebrow="Session timeline"
+        eyebrow="練習時間軸"
         action={
-          <Tooltip content="A simulated state produced by the scenario engine from the conversation. Not an inference about a real person's emotions or personality.">
+          <Tooltip content="此為情境引擎依對話產生的模擬狀態，並非對真實人物情緒或個性的推斷。">
             <span>
               <TonePill tone="neutral" fill={10} icon={<SparkleIcon size={11} />}>
-                Simulated
+                模擬狀態
               </TonePill>
             </span>
           </Tooltip>
         }
       >
-        Persona state
+        模擬人物狀態
       </CardTitle>
 
       {/* Emotion ladder ---------------------------------------------------- */}
@@ -145,7 +145,7 @@ export function StateTimeline({
           className="relative h-8 rounded-pill"
           style={insetSurface('neutral', 7)}
           role="group"
-          aria-label="Session markers"
+          aria-label="練習事件標記"
         >
           <div
             aria-hidden="true"
@@ -168,7 +168,7 @@ export function StateTimeline({
                     backgroundColor: toneText(tone),
                     borderColor: 'var(--glass-card-strong)',
                   }}
-                  aria-label={`${MARKER_LABEL[marker.kind]} at ${formatClock(offset)}: ${marker.label}`}
+                  aria-label={`${MARKER_LABEL[marker.kind]} · ${formatClock(offset)}：${marker.label}`}
                 />
               </Tooltip>
             );
@@ -197,7 +197,7 @@ export function StateTimeline({
 
       {markers.length === 0 ? (
         <p className="mt-3 text-tiny text-text-tertiary">
-          Markers appear as the persona state changes and as the coach and compliance agents report.
+          當模擬人物狀態改變、或教練與合規代理回報時，這裡會出現事件標記。
         </p>
       ) : null}
     </GlassCard>

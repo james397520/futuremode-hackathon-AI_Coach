@@ -61,10 +61,12 @@
     color: var(--text-primary);
   }
 
-  /* §84 Scrollbar — extremely thin, no track chrome. */
+  /* §84 Scrollbar — extremely thin, no track chrome.
+   * The thumb is the tertiary text colour at low alpha, so it follows the theme
+   * on its own (no dark override) and never needs a literal. */
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(94, 120, 170, 0.2) transparent;
+    scrollbar-color: color-mix(in srgb, var(--text-tertiary) 30%, transparent) transparent;
   }
 
   ::-webkit-scrollbar {
@@ -77,24 +79,12 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(94, 120, 170, 0.2);
+    background: color-mix(in srgb, var(--text-tertiary) 30%, transparent);
     border-radius: 999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(94, 120, 170, 0.32);
-  }
-
-  [data-theme='dark'] * {
-    scrollbar-color: rgba(180, 195, 220, 0.18) transparent;
-  }
-
-  [data-theme='dark'] ::-webkit-scrollbar-thumb {
-    background: rgba(180, 195, 220, 0.18);
-  }
-
-  [data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
-    background: rgba(180, 195, 220, 0.3);
+    background: color-mix(in srgb, var(--text-tertiary) 45%, transparent);
   }
 }
 
@@ -110,54 +100,82 @@
    * `components/app-shell/app-shell.tsx` for the two overrides this app applies.
    */
 
-  /* §11 Icon rail button — 44x44, radius 13. */
+  /* Compact desktop-workspace navigation row. */
   .rail-item {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
-    height: 44px;
-    min-width: 44px;
+    gap: var(--space-2);
+    height: 34px;
+    min-width: 34px;
     padding: 0 10px;
-    border-radius: 13px;
+    border-radius: 6px;
     color: var(--text-secondary);
     transition:
       background-color var(--dur-hover) var(--ease-out-soft),
       color var(--dur-hover) var(--ease-out-soft),
-      transform var(--dur-hover) var(--ease-out-soft);
+      border-color var(--dur-hover) var(--ease-out-soft);
   }
 
   .rail-item:hover {
     color: var(--text-primary);
-    background: color-mix(in srgb, var(--glass-card-strong) 55%, transparent);
-    transform: translateY(-1px);
+    background: #f0f0f4;
   }
 
+  /* Active: a flat indigo tint, nothing else. The rail sits directly on the
+   * shell glass, so the previous gradient-over-strong-glass fill with its own
+   * drop shadow read as a separate opaque chip floating on the rail. It now
+   * follows the flat primary button: one tint, no gradient, no shadow.
+   * Measured: text-primary on this tint 10.97:1 light / 14.04:1 dark. */
   .rail-item[data-active='true'] {
     color: var(--text-primary);
-    background:
-      linear-gradient(
-        120deg,
-        color-mix(in srgb, var(--accent-indigo) 16%, transparent),
-        color-mix(in srgb, var(--accent-cyan) 14%, transparent)
-      ),
-      var(--glass-card-strong);
-    box-shadow: 0 6px 18px rgba(55, 77, 124, 0.08), var(--shadow-inset-hi);
+    background: #ececef;
+    font-weight: 500;
   }
 
-  /* Soft gradient active indicator on the rail edge. */
-  .rail-indicator {
+  /* Active indicator on the rail edge — solid, to match the flat active tint. */
+  .rail-indicator { display: none; }
+
+  .workspace-surface {
+    position: relative;
+    background:
+      radial-gradient(circle at 78% 12%, color-mix(in srgb, var(--accent-indigo) 8%, transparent), transparent 32%),
+      radial-gradient(circle at 30% 65%, color-mix(in srgb, var(--accent-violet) 5%, transparent), transparent 38%),
+      var(--workspace-background);
+  }
+
+  .workspace-surface::before {
+    content: '';
     position: absolute;
-    left: 0;
-    width: 3px;
-    height: 20px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, var(--accent-indigo), var(--accent-cyan));
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, rgba(105, 96, 170, 0.08) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  [data-theme='dark'] .rail-item:hover { background: rgba(255, 255, 255, 0.06); }
+  [data-theme='dark'] .rail-item[data-active='true'] { background: rgba(255, 255, 255, 0.1); }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .workspace-sidebar { width: var(--rail-width) !important; }
+    .workspace-sidebar .rail-expanded-only { display: none; }
+    .workspace-sidebar .rail-item { justify-content: center; }
+  }
+
+  @media (max-width: 767px) {
+    .workspace-sidebar .rail-expanded-only { display: none; }
+    .workspace-sidebar .rail-item { justify-content: center; }
   }
 
   /* §25 Part I — meeting-transcript / document style. Never messenger bubbles (§99). */
+  /* Card glass, not strong: with the 32px blur underneath, body text on the
+   * card surface measures 13.4:1 (primary) / 5.3:1 (secondary, tertiary) in
+   * light and 15.5:1 / 9.4:1 / 5.2:1 in dark, so the 52% white fill bought
+   * nothing but opacity. */
   .transcript-doc {
     border-radius: var(--radius-card);
-    background: var(--glass-card-strong);
+    background: var(--glass-card);
+    backdrop-filter: blur(var(--blur-card)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--blur-card)) saturate(150%);
     border: 1px solid var(--border-soft);
   }
 
@@ -209,6 +227,46 @@
   .scroll-area {
     overflow-y: auto;
     overscroll-behavior: contain;
+  }
+
+  #workspace-main > div {
+    width: 100%;
+    max-width: 1320px;
+    margin-inline: auto;
+  }
+
+  /*
+   * "Ink" variants of the accent / state colours — for *text and icons*, not
+   * fills. The raw tokens are tuned as fills and pass nothing as small text on
+   * the light glass (indigo 3.8:1, danger 2.7:1, warning 1.6:1, success 1.7:1,
+   * info 2.2:1, blue 2.2:1 on the card surface). Mixing each with
+   * --text-primary darkens it in light mode and lightens it in dark mode, so
+   * one rule clears AA in both themes. Percentages are the largest share of
+   * the accent that still measures ≥ 4.5:1 on both the shell and the card
+   * glass in light (dark lands between 6.5:1 and 13:1).
+   */
+  .ink-indigo {
+    color: color-mix(in srgb, var(--accent-indigo) 80%, var(--text-primary));
+  }
+
+  .ink-blue {
+    color: color-mix(in srgb, var(--accent-blue) 54%, var(--text-primary));
+  }
+
+  .ink-danger {
+    color: color-mix(in srgb, var(--danger) 62%, var(--text-primary));
+  }
+
+  .ink-warning {
+    color: color-mix(in srgb, var(--warning) 44%, var(--text-primary));
+  }
+
+  .ink-success {
+    color: color-mix(in srgb, var(--success) 46%, var(--text-primary));
+  }
+
+  .ink-info {
+    color: color-mix(in srgb, var(--info) 52%, var(--text-primary));
   }
 
   /* §47 — visually hidden but announced. */

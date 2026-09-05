@@ -22,8 +22,8 @@ import { cn } from '../lib/cn';
 export type ProgressTone = 'ai' | 'success' | 'neutral' | 'default' | 'warning' | 'danger';
 
 const toneFill: Record<ProgressTone, string> = {
-  ai: '[background-image:linear-gradient(90deg,var(--accent-indigo),var(--accent-blue)_58%,var(--accent-mint))]',
-  success: '[background-image:linear-gradient(90deg,var(--accent-mint),var(--accent-cyan))]',
+  ai: 'bg-accent-indigo',
+  success: 'bg-state-success',
   neutral: 'bg-[color:color-mix(in_srgb,var(--text-secondary)_55%,transparent)]',
   default: 'bg-[color:color-mix(in_srgb,var(--text-secondary)_55%,transparent)]',
   warning: 'bg-state-warning',
@@ -124,20 +124,25 @@ export interface StepProgressProps extends Omit<React.HTMLAttributes<HTMLDivElem
   'aria-label'?: string;
 }
 
+/*
+ * 步驟點的字（✓ / ×）是 3:1 的圖形物件：白字在 mint→cyan 漸層上只有 1.9:1，在
+ * indigo→blue 上 2.6:1。complete 改成與 Pill 同款的 tint + ink，active 用 flat
+ * --accent-solid。
+ */
 const statusDot: Record<StepStatus, string> = {
   complete:
-    'border-transparent text-white [background-image:linear-gradient(120deg,var(--accent-mint),var(--accent-cyan))]',
+    'border-transparent bg-[color:color-mix(in_srgb,var(--success)_22%,transparent)] text-state-success-ink',
   active:
-    'border-transparent text-white [background-image:linear-gradient(120deg,var(--accent-indigo),var(--accent-blue))] ' +
-    '[box-shadow:0_0_0_4px_color-mix(in_srgb,var(--accent-blue)_14%,transparent)]',
+    'border-transparent bg-accent-solid text-text-on-accent ' +
+    '[box-shadow:0_0_0_4px_color-mix(in_srgb,var(--accent-solid)_16%,transparent)]',
   pending: 'border-border-soft bg-glass-strong text-text-tertiary',
   error:
-    'border-[color:color-mix(in_srgb,var(--danger)_40%,transparent)] bg-[color:color-mix(in_srgb,var(--danger)_12%,transparent)] text-[color:var(--danger)]',
+    'border-[color:color-mix(in_srgb,var(--danger-ink)_45%,transparent)] bg-[color:color-mix(in_srgb,var(--danger)_12%,transparent)] text-state-danger-ink',
 };
 
 const segmentFill: Record<StepStatus, string> = {
-  complete: '[background-image:linear-gradient(90deg,var(--accent-mint),var(--accent-cyan))]',
-  active: '[background-image:linear-gradient(90deg,var(--accent-indigo),var(--accent-blue))]',
+  complete: 'bg-state-success',
+  active: 'bg-accent-indigo',
   pending: 'bg-[color:color-mix(in_srgb,var(--text-tertiary)_18%,transparent)]',
   error: 'bg-[color:color-mix(in_srgb,var(--danger)_45%,transparent)]',
 };

@@ -292,7 +292,10 @@ export function createApiTelemetryReporter(
   options: ApiTelemetryReporterOptions = {},
 ): TelemetryReporter {
   const base = (options.baseUrl ?? '').replace(/\/+$/, '');
-  const endpoint = options.endpoint ?? '/api/runtime/telemetry';
+  // The API is versioned: every route lives under /api/v1. The unversioned
+  // default 404'd on every report — harmless by design (telemetry is
+  // fire-and-forget) but it filled the console with failures on every session.
+  const endpoint = options.endpoint ?? '/api/v1/runtime/telemetry';
   const url = `${base}${endpoint}`;
 
   return async (telemetry) => {
@@ -307,8 +310,33 @@ export function createApiTelemetryReporter(
       /* auth header resolution failure just means an unauthenticated report */
     }
     try {
-      // `assertContentFree` is a runtime backstop for the compile-time rule.
-      const body = JSON.stringify(assertContentFree(telemetry));
+      /*
+       * Two things had to line up with the API's `RuntimeTelemetryRequest`
+       * (`{ telemetry, session_id? }`, `extra="forbid"` on the nested model):
+       *
+       * 1. `telemetry` must be its own key, not the flat object at the top
+       *    level of the body.
+       * 2. Only the base `RuntimeTelemetry` fields may be inside it. The
+       *    collector's live state is `RuntimeTelemetryDetail`, a superset with
+       *    admin-UI-only counters (`worker_status`, `fallback_count`,
+       *    `inferences`, `updated_at`) that the API's model does not declare
+       *    and — being `extra="forbid"` — rejects outright.
+       *
+       * Missing either one 422'd on *every single report*, which fires on
+       * every runtime state change: a failed network request on a hot path,
+       * a real contributor to the page feeling sluggish.
+       */
+      const { backend, model_id, load_ms, last_inference_ms, worker_alive, fallback_reason } =
+        telemetry;
+      const reportable: RuntimeTelemetry = {
+        backend,
+        model_id,
+        load_ms,
+        last_inference_ms,
+        worker_alive,
+        fallback_reason,
+      };
+      const body = JSON.stringify({ telemetry: assertContentFree(reportable) });
       await impl(url, { method: 'POST', headers, body, credentials: 'include' });
     } catch (error) {
       options.onError?.(`Telemetry report failed: ${errorText(error)}`);

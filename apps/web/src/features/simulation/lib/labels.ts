@@ -97,6 +97,27 @@ export const COMPLIANCE_TYPE_LABEL: Record<ComplianceFindingType, string> = {
   missing_disclosure: '缺少揭露', prompt_injection: '提示注入', restricted_topic: '受限制主題',
 };
 
+/**
+ * `Scenario.training_type` is a free-form string on the API (not a strict
+ * enum), so this is a lookup, not a `Record`. Seeded data uses snake_case
+ * slugs ("objection_handling"); older fixtures used "Title Case" phrases —
+ * both normalise to the same key. Rendering the raw value (as the scenario
+ * card used to) showed English slugs like "objection_handling" verbatim in an
+ * otherwise Chinese UI; an unrecognised value still falls back to itself
+ * rather than disappearing.
+ */
+const TRAINING_TYPE_LABEL: Record<string, string> = {
+  objection_handling: '異議處理', needs_discovery: '需求探索', compliance_assessment: '合規考核',
+  executive_pitch: '高階主管提案', negotiation: '議價協商', product_pitch: '商品說明',
+  closing: '締結成交', discovery: '需求探索',
+};
+
+export function trainingTypeLabel(value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  const key = value.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  return TRAINING_TYPE_LABEL[key] ?? value;
+}
+
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
   easy: '初階', medium: '中階', hard: '進階', expert: '專家',
 };

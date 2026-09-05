@@ -44,8 +44,8 @@ export const SelectTrigger = React.forwardRef<
         'disabled:cursor-not-allowed disabled:opacity-60',
         triggerSizeClass[triggerSize],
         invalid
-          ? 'border-[color:color-mix(in_srgb,var(--danger)_46%,transparent)]'
-          : 'border-border-soft hover:border-border-glass',
+          ? 'border-[color:color-mix(in_srgb,var(--danger-ink)_55%,transparent)]'
+          : 'border-border-soft hover:border-[color:color-mix(in_srgb,var(--text-tertiary)_45%,transparent)]',
         focusRing,
         className,
       )}
@@ -149,7 +149,7 @@ export const SelectItem = React.forwardRef<
     >
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
       <SelectPrimitive.ItemIndicator className="absolute right-2.5 inline-flex items-center">
-        <Check aria-hidden className="size-4 text-[color:var(--accent-blue)]" />
+        <Check aria-hidden className="size-4 text-accent-ink" />
       </SelectPrimitive.ItemIndicator>
     </SelectPrimitive.Item>
   );

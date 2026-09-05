@@ -1,10 +1,8 @@
 /**
  * GlassShell — spec §10 App Shell / §3.1 Main Glass Frame。
  *
- * 整個 Web 不做 full-bleed dashboard：Aurora 背景 → 24px safe area →
- * 浮在背景上的玻璃大框（radius 30px、blur 28px、saturate 135%）。
- * Aurora 背景本身由 host app 的 `.aurora-canvas` 提供（見 design-tokens/aurora.css），
- * 這個元件只負責外框，不畫背景漸層。
+ * Desktop uses a restrained floating application frame over the lavender
+ * stage. The host app owns the stage; this component owns only the shell.
  */
 import * as React from 'react';
 
@@ -50,9 +48,9 @@ export const GlassShell = React.forwardRef<HTMLDivElement, GlassShellProps>(func
         ref={ref}
         className={cn(
           'relative flex w-full max-w-shell flex-col',
-          'liquid-glass rounded-shell bg-glass-shell',
-          'backdrop-blur-shell backdrop-saturate-[var(--saturate-shell)]',
-          '[box-shadow:var(--shadow-shell),var(--shadow-inset-hi)]',
+          'rounded-shell border border-border-glass bg-glass-shell',
+          // rim comes from .liquid-glass::after; do not stack --shadow-inset-hi on it
+          'shadow-shell',
           'text-text-primary',
           fullHeight && 'min-h-[calc(100vh_-_2_*_var(--shell-safe-area))]',
           padded && 'p-5 xl:p-6',

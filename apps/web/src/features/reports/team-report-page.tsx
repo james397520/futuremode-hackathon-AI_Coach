@@ -154,7 +154,7 @@ export function TeamReportPage() {
             {TEAM_LEADERBOARD.map((row) => (
               <li key={row.user_id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 py-3">
                 <div className="min-w-0 flex-1">
-                  <Link href={`/performance/${row.user_id}`} className="text-body-sm font-medium hover:text-accent-indigo">
+                  <Link href={`/performance/${row.user_id}`} className="text-body-sm font-medium hover:text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))]">
                     {row.display_name}
                   </Link>
                   <p className="text-tiny text-text-tertiary">
@@ -180,7 +180,7 @@ export function TeamReportPage() {
           </p>
           <ul className="mt-3 space-y-2.5">
             {KNOWLEDGE_GAPS.map((gap) => (
-              <li key={gap.topic} className="glass-strong rounded-card-sm p-4">
+              <li key={gap.topic} className="rounded-card-sm border border-border-soft bg-glass-card p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-body-sm font-medium">{gap.topic}</p>
                   <Pill tone="warning" size="sm">{Math.round(gap.miss_rate * 100)}% miss rate</Pill>

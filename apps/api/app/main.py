@@ -261,9 +261,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # can answer a preflight without running the rest of the stack.
     app.add_middleware(RequestContextMiddleware, settings=cfg)
     app.add_middleware(SecurityHeadersMiddleware, hsts=not cfg.is_local)
+    # Local dev is reached from whatever address the machine happens to have:
+    # `localhost`, `127.0.0.1`, and a LAN IP that changes with the network (this
+    # box moved from 192.168.130.32 to 172.20.10.2 mid-session). Each is a
+    # distinct Origin, and a missing one surfaces only as a bare "Failed to
+    # fetch" — which then looks like "the app logged me out", because the
+    # blocked `/auth/me` leaves the client with no session. So local accepts any
+    # loopback or private-range origin by pattern; every other environment keeps
+    # the explicit allowlist, since `allow_credentials` forbids a wildcard.
+    private_origin_re = (
+        r"^http://(localhost|127\.0\.0\.1|\[::1\]"
+        r"|10\.\d{1,3}\.\d{1,3}\.\d{1,3}"
+        r"|192\.168\.\d{1,3}\.\d{1,3}"
+        r"|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$"
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(cfg.cors_allow_origins),
+        allow_origin_regex=private_origin_re if cfg.is_local else None,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization", CSRF_HEADER_NAME, REQUEST_ID_HEADER],

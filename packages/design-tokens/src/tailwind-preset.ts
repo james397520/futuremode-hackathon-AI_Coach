@@ -25,6 +25,10 @@ export const aiCoachPreset: Partial<Config> = {
           primary: 'var(--text-primary)',
           secondary: 'var(--text-secondary)',
           tertiary: 'var(--text-tertiary)',
+          'on-media': 'var(--text-on-media)',
+          'on-media-dim': 'var(--text-on-media-dim)',
+          'on-accent': 'var(--text-on-accent)',
+          'on-pastel': 'var(--text-on-pastel)',
         },
         accent: {
           indigo: 'var(--accent-indigo)',
@@ -32,12 +36,26 @@ export const aiCoachPreset: Partial<Config> = {
           cyan: 'var(--accent-cyan)',
           mint: 'var(--accent-mint)',
           violet: 'var(--accent-violet)',
+          /** solid fill under `text-text-on-accent` */
+          solid: 'var(--accent-solid)',
+          /** accent as text / icon on the glass (AA) */
+          ink: 'var(--accent-ink)',
         },
         state: {
           success: 'var(--success)',
           warning: 'var(--warning)',
           danger: 'var(--danger)',
           info: 'var(--info)',
+          /** semantic colour as *text* on the glass — the display values are pastel */
+          'success-ink': 'var(--success-ink)',
+          'warning-ink': 'var(--warning-ink)',
+          'danger-ink': 'var(--danger-ink)',
+          'info-ink': 'var(--info-ink)',
+          /** solid fill under `text-text-on-accent` */
+          'danger-solid': 'var(--danger-solid)',
+        },
+        surface: {
+          solid: 'var(--surface-solid)',
         },
       },
       borderRadius: {
@@ -54,6 +72,8 @@ export const aiCoachPreset: Partial<Config> = {
         soft: 'var(--shadow-soft)',
         floating: 'var(--shadow-floating)',
         shell: 'var(--shadow-shell)',
+        accent: 'var(--shadow-accent)',
+        'accent-hover': 'var(--shadow-accent-hover)',
       },
       backdropBlur: {
         shell: 'var(--blur-shell)',
@@ -61,10 +81,10 @@ export const aiCoachPreset: Partial<Config> = {
       },
       fontFamily: { sans: 'var(--font-sans)' },
       fontSize: {
-        display: ['42px', { lineHeight: '48px', letterSpacing: '-0.02em', fontWeight: '600' }],
-        'page-title': ['32px', { lineHeight: '40px', letterSpacing: '-0.015em', fontWeight: '600' }],
-        section: ['22px', { lineHeight: '30px', letterSpacing: '-0.015em', fontWeight: '600' }],
-        'card-title': ['16px', { lineHeight: '24px', fontWeight: '600' }],
+        display: ['32px', { lineHeight: '40px', letterSpacing: '-0.02em', fontWeight: '600' }],
+        'page-title': ['18px', { lineHeight: '26px', letterSpacing: '-0.02em', fontWeight: '600' }],
+        section: ['16px', { lineHeight: '24px', letterSpacing: '-0.015em', fontWeight: '600' }],
+        'card-title': ['14px', { lineHeight: '21px', fontWeight: '600' }],
         body: ['14px', { lineHeight: '22px' }],
         'body-sm': ['13px', { lineHeight: '19px' }],
         meta: ['12px', { lineHeight: '17px', fontWeight: '500' }],

@@ -22,28 +22,32 @@ export type PillTone =
   | 'info'
   | 'accent';
 
-/** 語意色一律走 color-mix tint + 同色文字，避免實心色塊（§99）。 */
-const tint = (token: string) =>
-  [
-    `bg-[color:color-mix(in_srgb,var(${token})_16%,transparent)]`,
-    `text-[color:color-mix(in_srgb,var(${token})_82%,var(--text-primary))]`,
-    `border-[color:color-mix(in_srgb,var(${token})_28%,transparent)]`,
-  ].join(' ');
+/**
+ * 語意色一律走 tint + ink，避免實心色塊（§99）。
+ *
+ * 文字用 `--*-ink`，不是 `color-mix(tone 82%, text-primary)`：display 色是 pastel，
+ * 混完在淺色玻璃上只有 2.0–3.1:1（12px 字需要 4.5）。ink 是同色系、可讀的那一階。
+ * 沒有描邊 —— 產品方向是 borderless chips，tint 底本身就是邊界。
+ */
+const tint = (tone: 'success' | 'warning' | 'danger' | 'info') =>
+  `bg-[color:color-mix(in_srgb,var(--${tone})_16%,transparent)] text-state-${tone}-ink`;
 
 export const pillVariants = cva(
-  'inline-flex shrink-0 items-center gap-1 rounded-pill border font-medium whitespace-nowrap [&_svg]:size-3 [&_svg]:shrink-0',
+  'inline-flex shrink-0 items-center gap-1 rounded-pill font-medium whitespace-nowrap [&_svg]:size-3 [&_svg]:shrink-0',
   {
     variants: {
       tone: {
+        // pastel gradient → navy ink; white on these stops measured 1.9–2.6:1
         gradient:
-          'border-transparent text-white [background-image:linear-gradient(120deg,var(--accent-blue),var(--accent-cyan)_48%,var(--accent-mint))]',
+          'bg-[color:color-mix(in_srgb,var(--accent-indigo)_14%,transparent)] text-accent-ink',
         neutral:
-          'border-border-soft bg-[color:color-mix(in_srgb,var(--text-tertiary)_12%,transparent)] text-text-secondary',
-        success: tint('--success'),
-        warning: tint('--warning'),
-        danger: tint('--danger'),
-        info: tint('--info'),
-        accent: tint('--accent-indigo'),
+          'bg-[color:color-mix(in_srgb,var(--text-tertiary)_12%,transparent)] text-text-secondary',
+        success: tint('success'),
+        warning: tint('warning'),
+        danger: tint('danger'),
+        info: tint('info'),
+        accent:
+          'bg-[color:color-mix(in_srgb,var(--accent-indigo)_16%,transparent)] text-accent-ink',
       },
       size: {
         sm: 'h-5 px-2 text-tiny',

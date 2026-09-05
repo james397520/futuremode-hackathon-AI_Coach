@@ -173,20 +173,20 @@ export interface DashboardKpi {
 }
 
 export const DASHBOARD_KPIS: DashboardKpi[] = [
-  { id: 'learners', label: 'Active learners', value: '38', delta: '+4', hint: 'of 42 seats', trend: [28, 30, 31, 34, 36, 38] },
-  { id: 'completion', label: 'Completion', value: '71%', delta: '+9 pts', hint: 'mandatory assignments', trend: [52, 55, 60, 63, 66, 71] },
-  { id: 'avg-score', label: 'Avg score', value: '79', delta: '+3.2', hint: 'last 30 days', trend: [72, 73, 75, 76, 78, 79] },
-  { id: 'compliance', label: 'Compliance safe rate', value: '94%', delta: '−1 pt', hint: '2 open critical findings', trend: [96, 95, 96, 95, 95, 94] },
-  { id: 'hours', label: 'Simulation hours', value: '412', delta: '+38', hint: 'incl. 96 voice hours', trend: [280, 305, 330, 356, 374, 412] },
-  { id: 'improvement', label: 'Improvement', value: '+6.4', hint: 'avg monthly score delta', trend: [1.2, 2.4, 3.1, 4.6, 5.5, 6.4] },
+  { id: 'learners', label: '活躍學員', value: '38', delta: '+4', hint: '共 42 個名額', trend: [28, 30, 31, 34, 36, 38] },
+  { id: 'completion', label: '完成率', value: '71%', delta: '+9 pts', hint: '必修指派', trend: [52, 55, 60, 63, 66, 71] },
+  { id: 'avg-score', label: '平均分數', value: '79', delta: '+3.2', hint: '最近 30 天', trend: [72, 73, 75, 76, 78, 79] },
+  { id: 'compliance', label: '合規安全率', value: '94%', delta: '−1 pt', hint: '2 項待處理的重大發現', trend: [96, 95, 96, 95, 95, 94] },
+  { id: 'hours', label: '模擬練習時數', value: '412', delta: '+38', hint: '含 96 小時語音練習', trend: [280, 305, 330, 356, 374, 412] },
+  { id: 'improvement', label: '進步幅度', value: '+6.4', hint: '每月平均分數變化', trend: [1.2, 2.4, 3.1, 4.6, 5.5, 6.4] },
 ];
 
 export const ACTIVITY_BY_DAY: Array<{ label: string; sessions: number; voice: number }> = [
-  { label: 'Mon', sessions: 22, voice: 6 },
-  { label: 'Tue', sessions: 31, voice: 11 },
-  { label: 'Wed', sessions: 27, voice: 9 },
-  { label: 'Thu', sessions: 34, voice: 14 },
-  { label: 'Fri', sessions: 19, voice: 5 },
-  { label: 'Sat', sessions: 7, voice: 1 },
-  { label: 'Sun', sessions: 4, voice: 0 },
+  { label: '一', sessions: 22, voice: 6 },
+  { label: '二', sessions: 31, voice: 11 },
+  { label: '三', sessions: 27, voice: 9 },
+  { label: '四', sessions: 34, voice: 14 },
+  { label: '五', sessions: 19, voice: 5 },
+  { label: '六', sessions: 7, voice: 1 },
+  { label: '日', sessions: 4, voice: 0 },
 ];

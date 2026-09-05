@@ -47,24 +47,23 @@ export function CoachCard({
   if (mode === 'assessment' && visible.length === 0) {
     return (
       <GlassCard className={cn('sim-float-in p-5', className)}>
-        <CardTitle eyebrow="AI Coach">Coaching is deferred</CardTitle>
+        <CardTitle eyebrow="AI 教練">教練提示已暫緩</CardTitle>
         <div
           className="mt-3 flex items-start gap-2.5 rounded-card-sm border p-3.5"
           style={insetSurface('indigo', 9)}
         >
           <ShieldIcon size={15} style={{ color: toneText('indigo') }} className="mt-[2px] shrink-0" />
           <p className="text-body-sm text-text-secondary">
-            This is an assessment. Hints, suggested replies and live coaching are withheld so the score
-            reflects your own work. Your full coaching report unlocks the moment the session ends.
+            這是一場評測。為了讓分數反映你自己的表現，提示、建議回覆與即時教練都會保留。完整的教練報告會在練習結束時解鎖。
           </p>
         </div>
         <div className="mt-4 flex items-center justify-between">
           <TonePill tone="indigo" fill={15} icon={<ShieldIcon size={11} />}>
-            Assessment mode
+            評測模式
           </TonePill>
           {suppressedCount > 0 ? (
             <span className="text-tiny text-text-tertiary">
-              {suppressedCount} note{suppressedCount === 1 ? '' : 's'} held for the report
+              {suppressedCount} 則筆記將收錄於報告中
             </span>
           ) : null}
         </div>
@@ -76,16 +75,16 @@ export function CoachCard({
   return (
     <GlassCard className={cn('sim-float-in sim-lift p-5', className)}>
       <CardTitle
-        eyebrow="AI Coach"
+        eyebrow="AI 教練"
         action={
           latest ? (
             <TonePill tone={COACH_KIND_TONE[latest.kind] ?? 'violet'} fill={15}>
-              {COACH_KIND_LABEL[latest.kind] ?? 'Coach'}
+              {COACH_KIND_LABEL[latest.kind] ?? '教練'}
             </TonePill>
           ) : null
         }
       >
-        Summary
+        摘要
       </CardTitle>
 
       {latest ? (
@@ -100,14 +99,13 @@ export function CoachCard({
         </>
       ) : (
         <p className="mt-3 text-body text-text-secondary">
-          The coach is listening. Notes appear here as the conversation develops — or ask for a hint
-          whenever you feel stuck.
+          教練正在觀察對話。筆記會隨著對話進展出現在這裡——卡關時也可以主動要求提示。
         </p>
       )}
 
       {keyPoints.length > 0 ? (
         <div className="mt-4 border-t pt-3" style={{ borderColor: 'var(--border-soft)' }}>
-          <div className="text-tiny uppercase tracking-[0.08em] text-text-tertiary">Key points</div>
+          <div className="text-tiny uppercase tracking-[0.08em] text-text-tertiary">重點筆記</div>
           <ul className="mt-2 grid gap-2">
             {keyPoints.map((insight) => (
               <li key={insight.id} className="flex items-start gap-2 text-body-sm text-text-secondary">
@@ -126,7 +124,7 @@ export function CoachCard({
       <div className="mt-4 flex items-center justify-between gap-3">
         <GradientPill className="flex items-center gap-1.5 px-3 py-1 text-tiny">
           <SparkleIcon size={11} />
-          AI Coaching
+          AI 教練
         </GradientPill>
         {onAskCoach ? (
           <button
@@ -136,7 +134,7 @@ export function CoachCard({
             style={insetSurface('violet', 13)}
           >
             <LightbulbIcon size={13} style={{ color: toneText('violet') }} />
-            <span style={{ color: toneText('violet') }}>Ask coach</span>
+            <span style={{ color: toneText('violet') }}>詢問教練</span>
           </button>
         ) : null}
       </div>

@@ -13,6 +13,54 @@
  * `connect-src` only lists our own API / WS origins.
  */
 
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+/**
+ * ONE env file for the whole repo.
+ *
+ * Next.js only auto-loads env files from this app directory, but the FastAPI
+ * backend and the seed/avatar scripts all read the monorepo-root `.env`. Rather
+ * than keep a second copy here (which drifts, and which is how the frontend
+ * silently lost the API URL and fell back to the scripted demo), we load the
+ * root file ourselves before the config below reads `process.env`.
+ *
+ * Real environment variables always win, so CI / container / Vercel settings
+ * still override the file. Only `NEXT_PUBLIC_*` values ever reach the browser;
+ * secrets in the same file (MINIMAX_API_KEY, DB creds) are read by the Node
+ * process only and are never inlined into the bundle.
+ */
+function loadRootEnv() {
+  const rootEnv = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '.env');
+  let raw;
+  try {
+    raw = readFileSync(rootEnv, 'utf8');
+  } catch {
+    return; // no root .env (CI / container) — real env vars are the source then
+  }
+  for (const line of raw.split('\n')) {
+    const text = line.trim();
+    if (!text || text.startsWith('#')) continue;
+    const eq = text.indexOf('=');
+    if (eq < 1) continue;
+    const key = text.slice(0, eq).trim();
+    if (process.env[key] !== undefined) continue; // real env wins
+    let value = text.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    } else {
+      value = value.split(/\s+#/)[0].trim(); // strip ` # inline comment`
+    }
+    process.env[key] = value;
+  }
+}
+
+loadRootEnv();
+
 const isDev = process.env.NODE_ENV !== 'production';
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';

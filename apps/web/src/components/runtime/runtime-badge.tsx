@@ -19,7 +19,10 @@ export function RuntimeBadge({
 }) {
   const { label, backend, state } = useComputeCapability();
   const Icon = backend === 'webgpu' ? Sparkles : backend === 'wasm' ? Cpu : ShieldCheck;
-  const tone = backend === 'webgpu' ? 'gradient' : backend === 'wasm' ? 'info' : 'neutral';
+  // `gradient` is white text on the blue→cyan→mint ramp: 2.0–2.6:1 in both
+  // themes. `accent` is the indigo tint with mixed ink, the only tinted tone
+  // that clears AA for 11px text on the light glass.
+  const tone = backend === 'webgpu' ? 'accent' : backend === 'wasm' ? 'info' : 'neutral';
 
   if (variant === 'compact') {
     return (

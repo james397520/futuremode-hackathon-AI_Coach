@@ -109,32 +109,32 @@ export function QuickActions({
     <div className={cn('flex flex-col gap-2.5', className)}>
       {/* ── Training-only coaching affordances (§8.4) ───────────────────────── */}
       {!isAssessment && training ? (
-        <div className="flex flex-wrap items-center gap-2" aria-label="Coaching actions">
+        <div className="flex flex-wrap items-center gap-2" aria-label="教練工具">
           <PillButton
             tone="violet"
             icon={<LightbulbIcon size={13} />}
-            label="Hint"
+            label="提示"
             onClick={training.onHint}
             disabled={busy || finished}
           />
           <PillButton
             tone="indigo"
             icon={<SparkleIcon size={13} />}
-            label="Suggested strategy"
+            label="建議策略"
             onClick={training.onSuggestedStrategy}
             disabled={busy || finished}
           />
           <PillButton
             tone="blue"
             icon={<UserIcon size={13} />}
-            label="Ask coach"
+            label="詢問教練"
             onClick={training.onAskCoach}
             disabled={busy || finished}
           />
           <PillButton
             tone="mint"
             icon={<BookIcon size={13} />}
-            label="Knowledge reference"
+            label="知識庫參考"
             onClick={training.onViewKnowledge}
             disabled={busy || finished}
           />
@@ -144,17 +144,17 @@ export function QuickActions({
       {isAssessment ? (
         <p className="flex items-center gap-1.5 text-tiny text-text-tertiary">
           <ShieldIcon size={13} />
-          Assessment mode — hints, live coaching and knowledge lookup are unavailable for this session.
+          評測模式 — 本次練習無法使用提示、即時教練與知識庫查詢。
         </p>
       ) : null}
 
       {/* ── Always available (§24) ──────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2" aria-label="Session controls">
+      <div className="flex flex-wrap items-center gap-2" aria-label="練習控制">
         <PillButton
           tone="neutral"
           fill={10}
           icon={paused ? <PlayIcon size={13} /> : <PauseIcon size={13} />}
-          label={paused ? 'Resume' : 'Pause'}
+          label={paused ? '繼續' : '暫停'}
           onClick={onPauseResume}
           disabled={busy || finished}
         />
@@ -162,7 +162,7 @@ export function QuickActions({
           tone="neutral"
           fill={10}
           icon={<RestartIcon size={13} />}
-          label="Restart"
+          label="重新開始"
           onClick={onRestart}
           disabled={busy}
         />
@@ -170,7 +170,7 @@ export function QuickActions({
           tone="neutral"
           fill={10}
           icon={<CaptionsIcon size={13} />}
-          label="Captions"
+          label="字幕"
           onClick={onToggleCaptions}
           pressed={captionsEnabled}
         />
@@ -178,28 +178,28 @@ export function QuickActions({
           tone="neutral"
           fill={10}
           icon={<TranscriptIcon size={13} />}
-          label="Transcript"
+          label="逐字稿"
           onClick={onOpenTranscript}
         />
         <PillButton
           tone="neutral"
           fill={10}
           icon={<HeadphonesIcon size={13} />}
-          label="Audio device"
+          label="音訊裝置"
           onClick={onOpenAudioDevice}
         />
         <PillButton
           tone="neutral"
           fill={10}
           icon={<FlagIcon size={13} />}
-          label="Report issue"
+          label="回報問題"
           onClick={onReportIssue}
         />
         <PillButton
           tone="danger"
           fill={12}
           icon={<StopIcon size={13} />}
-          label="End session"
+          label="結束練習"
           onClick={onEnd}
           disabled={finished}
         />

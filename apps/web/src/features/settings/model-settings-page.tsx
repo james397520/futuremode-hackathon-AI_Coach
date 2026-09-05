@@ -33,7 +33,12 @@ export function ModelSettingsPage() {
       {!canManage ? (
         <GlassCard className="p-4">
           <p className="flex items-start gap-2 text-body-sm text-text-secondary">
-            <AlertTriangle size={15} strokeWidth={1.8} aria-hidden className="mt-0.5 shrink-0 text-state-warning" />
+            <AlertTriangle
+              size={15}
+              strokeWidth={1.8}
+              aria-hidden
+              className="mt-0.5 shrink-0 text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]"
+            />
             You can view this configuration but not change it. Model changes are recorded in the audit log.
           </p>
         </GlassCard>

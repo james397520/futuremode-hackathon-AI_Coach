@@ -57,7 +57,7 @@ export function DocumentPipeline({
             width: `${Math.max(2, Math.min(100, progress))}%`,
             background: failed
               ? 'var(--danger)'
-              : 'linear-gradient(120deg, var(--accent-indigo), var(--accent-cyan) 60%, var(--accent-mint))',
+              : 'var(--accent-indigo)',
           }}
         />
       </div>
@@ -75,7 +75,7 @@ export function DocumentPipeline({
                 aria-hidden
                 className={cn(
                   'flex h-4 w-4 shrink-0 items-center justify-center',
-                  done ? 'text-state-success' : errored ? 'text-state-danger' : active ? 'text-accent-indigo' : 'text-text-tertiary',
+                  done ? 'ink-success' : errored ? 'ink-danger' : active ? 'text-accent-indigo' : 'text-text-tertiary',
                 )}
               >
                 {done ? (
@@ -88,7 +88,7 @@ export function DocumentPipeline({
                   <CircleDashed size={13} strokeWidth={1.8} />
                 )}
               </span>
-              <span className={done ? 'text-text-secondary' : errored ? 'text-state-danger' : 'text-text-tertiary'}>
+              <span className={done ? 'text-text-secondary' : errored ? 'ink-danger' : 'text-text-tertiary'}>
                 {step.label}
               </span>
             </li>
@@ -98,7 +98,7 @@ export function DocumentPipeline({
 
       {failed && failureReason ? (
         <p className="rounded-card-sm border border-border-soft bg-glass-card px-3 py-2 text-body-sm text-text-secondary">
-          <span className="meta-label mr-2 text-state-danger">Why it failed</span>
+          <span className="meta-label ink-danger mr-2">Why it failed</span>
           {failureReason}
         </p>
       ) : null}

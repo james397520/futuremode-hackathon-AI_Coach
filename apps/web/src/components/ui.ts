@@ -21,7 +21,9 @@
  *     respectively — pass `surface="card"` for a standalone StatTile.
  *
  *   GlassShell        { children, className }                       §3.1 outer frame
- *   GlassCard         { children, className, tone?: 'card'|'strong', padding? }
+ *   GlassCard         { children, className, tone?: 'card'|'strong'|'floating', padding? }
+ *                       `floating` = card glass + --shadow-floating; use it for anything
+ *                       that hovers over the page (consent card, popovers).
  *   Button            { variant?: 'primary'|'secondary'|'ghost'|'subtle'|'danger',
  *                       size?: 'sm'|'md'|'lg', asChild?, ...button }
  *                       `asChild` follows the Radix convention (§48.2 mandates Radix
@@ -29,8 +31,9 @@
  *                       keeping the button skin. If the kit does not ship it, replace
  *                       those call sites with a router push.
  *   IconButton        { label (required, a11y), size?, ...button }
- *   Pill              { tone?: 'gradient'|'neutral'|'success'|'warning'|'danger'|'info',
+ *   Pill              { tone?: 'gradient'|'neutral'|'success'|'warning'|'danger'|'info'|'accent',
  *                       size?: 'sm'|'md' }                          §86 status pill
+ *                       Avoid `gradient` for text pills — white on the ramp is ~2:1.
  *   StatTile          { label, value, delta?, hint?, icon? }         §13.3 KPI
  *   StepProgress      { steps: {id,label}[], current: number }       §33 / §17 stepper
  *   CommandPalette    { open, onOpenChange, groups, placeholder? }   §79

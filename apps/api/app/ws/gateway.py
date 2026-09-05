@@ -30,6 +30,7 @@ from typing import Any
 
 import structlog
 
+from app.services.base import iso_now
 from app.ws.events import EventEmitter, EventEmitterRegistry, EventType, now_ms
 
 log = structlog.get_logger(__name__)
@@ -124,6 +125,29 @@ async def session_ws_endpoint(
         tenant_id=str(getattr(ctx, "tenant_id", "")),
         workspace_id=str(getattr(ctx, "workspace_id", "")),
     )
+
+    # A freshly created session sits in `connecting` until its socket arrives:
+    # the transport *is* the readiness signal. Without this the client connects,
+    # finds an empty replay buffer, never receives `session.started`, and leaves
+    # the composer disabled behind "正在連線…" forever.
+    # `mark_ready` transitions connecting/reconnecting -> ready and publishes
+    # `session.started`; an already-ready session raises on the illegal
+    # transition, which is not a reason to drop the socket.
+    # A newly connected client must always learn the current state, not only on
+    # the first transition: the event buffer lives in this process, so after a
+    # reconnect (or an API restart) an already-`ready` session would replay
+    # nothing and leave the composer disabled behind "正在連線…" forever.
+    status = str(getattr(session, "status", "") or "")
+    log.info("ws.connect_state", session=session_id, status=status, emitter=id(emitter))
+    try:
+        if status in ("connecting", "reconnecting"):
+            # Transitions to `ready` *and* publishes `session.started`.
+            await service.mark_ready(session_id)
+        elif status == "ready":
+            ev = await emitter.session_started("ready", iso_now())
+            log.info("ws.session_started_emitted", session=session_id, seq=ev.get("seq"))
+    except Exception as exc:  # noqa: BLE001 - readiness is best-effort, but log it
+        log.info("ws.mark_ready_skipped", session=session_id, error=repr(exc))
     connection = _Connection(
         websocket=websocket,
         emitter=emitter,
@@ -199,7 +223,18 @@ class _Connection:
 
     # -- replay ------------------------------------------------------------
     async def _replay(self, after_seq: int) -> None:
-        if after_seq <= 0:
+        """Catch a newly attached socket up on everything already buffered.
+
+        `after_seq <= 0` used to return immediately, on the assumption that a
+        cursor of 0 means "new client, nothing to catch up on". The opposite is
+        true: readiness (`session.started`) is published when the socket is
+        accepted, which is *before* `_write_loop` subscribes, so a first-time
+        client missed the live push and then skipped the replay that would have
+        delivered it — it received zero frames and sat at "正在連線…" forever.
+        Replaying from 0 hands it the buffer, which is exactly the catch-up a
+        fresh attach needs.
+        """
+        if after_seq < 0:
             return
         if self.emitter.has_gap(after_seq):
             await self._send(
@@ -359,7 +394,7 @@ class _Connection:
         except asyncio.CancelledError:
             raise
         except Exception as exc:  # noqa: BLE001
-            log.warning("ws.turn_failed", session=self.session_id, error=repr(exc))
+            log.warning("ws.turn_failed", session=self.session_id, error=repr(exc), exc_info=exc)
             await self._client_error(_error_code(exc), _safe_message(exc), recoverable=True)
 
     async def _request_hint(self) -> None:

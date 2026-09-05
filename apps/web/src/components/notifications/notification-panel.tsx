@@ -79,7 +79,7 @@ export function NotificationPanel() {
           >
             Mark all as read
           </Button>
-          <Link href="/settings/profile" className="text-body-sm text-accent-indigo hover:underline">
+          <Link href="/settings/profile" className="ink-indigo text-body-sm hover:underline">
             Notification settings
           </Link>
         </div>
@@ -109,7 +109,7 @@ export function NotificationPanel() {
 
         <ul className="scroll-area -mx-1 flex min-h-0 flex-1 flex-col gap-2 px-1" aria-live="polite">
           {visible.length === 0 ? (
-            <li className="glass-strong p-6 text-center text-body-sm text-text-secondary">
+            <li className="rounded-card bg-glass-card p-6 text-center text-body-sm text-text-secondary">
               Nothing here. New assignments, reports and security warnings will appear in this panel.
             </li>
           ) : null}
@@ -124,9 +124,13 @@ export function NotificationPanel() {
                     setItems((prev) => prev.map((n) => (n.id === item.id ? { ...n, read: true } : n)));
                     setOpen(false);
                   }}
+                  // The drawer is already the strong overlay surface; a strong
+                  // row on top of it was an opaque stack, and the 50px hover
+                  // shadow was a card shadow on a list row. Card glass, no
+                  // shadow; hover only lifts.
                   className={cn(
-                    'glass-strong block rounded-card-sm p-3.5 transition-transform duration-150 ease-out-soft',
-                    'hover:-translate-y-px hover:shadow-soft',
+                    'block rounded-card-sm bg-glass-card p-3.5 transition-[transform,background-color] duration-150 ease-out-soft',
+                    'hover:-translate-y-px hover:bg-glass-strong',
                     !item.read && 'border-l-2 border-l-accent-indigo',
                   )}
                 >
@@ -140,7 +144,7 @@ export function NotificationPanel() {
                           {NOTIFICATION_KIND_LABEL[item.kind]}
                         </Pill>
                         <span className="text-tiny text-text-tertiary">{formatRelative(item.at)}</span>
-                        {!item.read ? <span className="text-tiny font-medium text-accent-indigo">Unread</span> : null}
+                        {!item.read ? <span className="ink-indigo text-tiny font-medium">Unread</span> : null}
                       </div>
                       <p className="text-body-sm font-medium">{item.title}</p>
                       <p className="mt-0.5 text-body-sm text-text-secondary">{item.body}</p>

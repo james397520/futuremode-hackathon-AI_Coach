@@ -18,21 +18,28 @@ import { focusRing } from '../lib/focus-ring';
  * 共用玻璃表面字串 —— dialog / popover / dropdown / toast 等
  * Radix portal 內容直接引用，確保所有浮層是同一套玻璃參數。
  */
+/*
+ * 陰影只用 `shadow-*` token，不再疊 `--shadow-inset-hi`：`.liquid-glass::after`
+ * 已經畫了 1px 頂部亮邊（rim），再疊一條就是兩層白線、同一個邊緣厚兩倍。
+ * `--shadow-inset-hi` 留給沒有 liquid-glass 的小控件（button / tab）。
+ */
 export const glassSurface = {
   /** §3.2 */
-  card:
-    'liquid-glass bg-glass-card backdrop-blur-card backdrop-saturate-150 ' +
-    '[box-shadow:var(--shadow-soft),var(--shadow-inset-hi)]',
+  card: 'bg-glass-card border border-border-glass shadow-soft',
   /** §3.3 — 密集文字一律用這層 */
-  strong: 'liquid-glass bg-glass-strong backdrop-blur-card',
+  strong: 'bg-glass-strong border border-border-soft',
   /** §3.2 + 更深的 depth */
-  floating:
-    'liquid-glass bg-glass-card backdrop-blur-card backdrop-saturate-150 ' +
-    '[box-shadow:var(--shadow-floating),var(--shadow-inset-hi)]',
+  floating: 'bg-glass-strong border border-border-glass shadow-floating',
   /** 浮層（popover / dropdown / modal）— strong surface + floating shadow */
-  overlay:
-    'liquid-glass bg-glass-strong backdrop-blur-card ' +
-    '[box-shadow:var(--shadow-floating),var(--shadow-inset-hi)]',
+  overlay: 'bg-glass-strong border border-border-soft shadow-floating',
+  /**
+   * Modal / drawer 背後的遮罩。從 token 推導（§99 不 hardcode），dialog 與
+   * drawer 共用同一組值，個別元件只覆寫 blur 強度。
+   */
+  scrim:
+    'backdrop-blur-[10px] ' +
+    'bg-[color:color-mix(in_srgb,var(--text-primary)_14%,transparent)] ' +
+    'dark:bg-[color:color-mix(in_srgb,var(--bg-canvas)_58%,transparent)]',
 } as const;
 
 export const glassCardVariants = cva('relative text-text-primary', {
@@ -57,8 +64,8 @@ export const glassCardVariants = cva('relative text-text-primary', {
     /** §43 Hover：translateY -1px + shadow 微增，不做放大或變色 */
     interactive: {
       true:
-        'cursor-pointer transition-[transform,box-shadow] duration-[var(--dur-hover)] ease-out-soft ' +
-        'hover:-translate-y-px hover:[box-shadow:var(--shadow-floating),var(--shadow-inset-hi)] ' +
+        'cursor-pointer transition-[transform,box-shadow,border-color] duration-[var(--dur-hover)] ease-out-soft ' +
+        'hover:-translate-y-px hover:border-[color:color-mix(in_srgb,var(--accent-indigo)_18%,var(--border-soft))] hover:shadow-floating ' +
         'motion-reduce:transition-none motion-reduce:hover:translate-y-0',
       false: '',
     },

@@ -2,8 +2,8 @@
  * Button — spec §9 Radius（small button 12px）/ §43 Hover / §47 Accessibility。
  *
  * variant：
- *  - `primary` indigo → blue 柔和漸層（小面積，§86/§99）
- *  - `glass`   §3.3 strong surface，次要主操作
+ *  - `primary` charcoal solid fill
+ *  - `glass`   light bordered surface，次要主操作
  *  - `ghost`   無底，用於工具列 / 表格列內操作
  *  - `danger`  destructive，單色不做滿版漸層
  *
@@ -31,28 +31,31 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         primary: [
-          'text-white',
+          'text-text-on-accent',
           // Flat, not a gradient: the product owner asked for it, and a solid
           // fill also reads more clearly as one tappable target at small sizes.
-          'bg-accent-indigo',
-          '[box-shadow:0_10px_24px_color-mix(in_srgb,var(--accent-indigo)_24%,transparent)]',
-          'hover:-translate-y-px',
-          'hover:[box-shadow:0_14px_30px_color-mix(in_srgb,var(--accent-indigo)_30%,transparent)]',
+          // `--accent-solid`, not `--accent-indigo`: white on the display
+          // indigo measures 4.4:1 (3.3:1 in dark); the fill step clears 4.5.
+          'bg-[var(--action-dark)]',
+          // A flat button does not float on a 10px/24px glow; contact + ambient
+          // in the accent hue, falling down-right like every other shadow.
+          'shadow-accent',
+          'hover:-translate-y-px hover:bg-[var(--action-dark-hover)] hover:shadow-accent-hover',
           'motion-reduce:hover:translate-y-0',
         ].join(' '),
         glass: [
-          'border border-border-glass bg-glass-strong text-text-primary backdrop-blur-card',
-          '[box-shadow:var(--shadow-soft),var(--shadow-inset-hi)]',
-          'hover:-translate-y-px hover:bg-glass-card',
-          'motion-reduce:hover:translate-y-0',
+          // Borderless (product direction: chips and buttons carry no outline).
+          // The old .82 white hairline plus the inset highlight made a 2px
+          // bright edge on a 52% fill; the fill step, the 1px top highlight
+          // and the contact shadow are the edge now.
+          'border border-border-soft bg-glass-strong text-text-primary',
+          'hover:bg-[color:color-mix(in_srgb,var(--text-tertiary)_8%,var(--glass-card-strong))]',
         ].join(' '),
         ghost: 'bg-transparent text-text-secondary hover:bg-glass-card hover:text-text-primary',
         /** `secondary` 是 `glass` 的語意別名（兩個接縫檔都用這個名字）。 */
         secondary: [
-          'border border-border-glass bg-glass-strong text-text-primary backdrop-blur-card',
-          '[box-shadow:var(--shadow-soft),var(--shadow-inset-hi)]',
-          'hover:-translate-y-px hover:bg-glass-card',
-          'motion-reduce:hover:translate-y-0',
+          'border border-border-soft bg-glass-strong text-text-primary',
+          'hover:bg-[color:color-mix(in_srgb,var(--text-tertiary)_8%,var(--glass-card-strong))]',
         ].join(' '),
         /** `subtle`：比 ghost 再輕一階，用於卡片內的低權重操作。 */
         subtle: [
@@ -60,8 +63,9 @@ export const buttonVariants = cva(
           'hover:bg-[color:color-mix(in_srgb,var(--text-tertiary)_16%,transparent)] hover:text-text-primary',
         ].join(' '),
         danger: [
-          'bg-state-danger text-white',
-          '[box-shadow:0_10px_24px_color-mix(in_srgb,var(--danger)_22%,transparent)]',
+          // `--danger-solid`: white on the display red is 3.1:1.
+          'bg-state-danger-solid text-text-on-accent',
+          '[box-shadow:1px_2px_6px_color-mix(in_srgb,var(--danger-solid)_18%,transparent),4px_10px_24px_-6px_color-mix(in_srgb,var(--danger-solid)_22%,transparent)]',
           'hover:-translate-y-px',
           'motion-reduce:hover:translate-y-0',
         ].join(' '),

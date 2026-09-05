@@ -22,7 +22,9 @@ export function CitationList({
       {citations.map((citation) => (
         <li
           key={citation.chunk_id}
-          className="glass-strong flex items-start gap-2.5 rounded-card-sm px-3 py-2"
+          // Card glass: citations sit inside a transcript row that is already a
+          // glass surface, so a strong fill here was a second opaque layer.
+          className="flex items-start gap-2.5 rounded-card-sm bg-glass-card px-3 py-2"
         >
           <FileText size={14} strokeWidth={1.7} aria-hidden className="mt-0.5 shrink-0 text-text-tertiary" />
           <div className="min-w-0 flex-1">

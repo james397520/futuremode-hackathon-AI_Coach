@@ -9,6 +9,7 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 import { cn } from '../lib/cn';
+import { glassSurface } from './glass-card';
 
 export const skeletonVariants = cva(
   [
@@ -87,11 +88,7 @@ export const SkeletonCard = React.forwardRef<HTMLDivElement, SkeletonCardProps>(
         aria-busy
         aria-live="polite"
         ref={ref}
-        className={cn(
-          'flex flex-col gap-4 rounded-card border border-border-glass bg-glass-card p-5 backdrop-blur-card',
-          '[box-shadow:var(--shadow-soft),var(--shadow-inset-hi)]',
-          className,
-        )}
+        className={cn('flex flex-col gap-4 rounded-card p-5', glassSurface.card, className)}
         {...props}
       >
         <div className="flex items-center gap-3">
