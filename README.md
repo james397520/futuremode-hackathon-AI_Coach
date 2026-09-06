@@ -4,12 +4,12 @@
 
 FUTUREMODE 2026 台灣未來祭 · BUILDMODE 黑客松參賽作品 · **Track 5**
 
-[![SkillCoach 實機操作：3D 虛擬人對練與即時臉部情緒辨識](docs/media/demo-preview.gif)](https://james397520.github.io/futuremode-hackathon-AI_Coach/#top)
+[![SkillCoach 實機操作：3D 虛擬人對練與即時臉部情緒辨識](docs/media/demo-preview.gif)](https://james397520.github.io/futuremode-hackathon-SkillCoach/#top)
 
-▶ 上圖為實機操作片段。完整影片（39 秒、有聲）可[在專案網站播放](https://james397520.github.io/futuremode-hackathon-AI_Coach/#top)，或下載 [`docs/media/demo.mp4`](docs/media/demo.mp4)。
+▶ 上圖為實機操作片段。完整影片（39 秒、有聲）可[在專案網站播放](https://james397520.github.io/futuremode-hackathon-SkillCoach/#top)，或下載 [`docs/media/demo.mp4`](docs/media/demo.mp4)。
 
-- 專案網站：<https://james397520.github.io/futuremode-hackathon-AI_Coach/>
-- 儲存庫：<https://github.com/james397520/futuremode-hackathon-AI_Coach>
+- 專案網站：<https://james397520.github.io/futuremode-hackathon-SkillCoach/>
+- 儲存庫：<https://github.com/james397520/futuremode-hackathon-SkillCoach>
 - 應用程式原始碼與安裝說明：[PLATFORM_README.md](PLATFORM_README.md)（本檔案是黑客松提交總覽，實際的 monorepo 開發文件在該檔）
 
 ## 問題與目標
@@ -45,7 +45,7 @@ SkillCoach 希望運用多模態導引，打造一個具有溫度的 Agent 引�
 | AI Models | LLM、STT / TTS、Embedding、Avatar 驅動 |
 | Data | 關聯式資料庫、物件儲存、企業文件來源 |
 
-主要資料流：Web App 與語音擷取進入 API Gateway 與對話編排器 → 對話編排器呼叫 STT/TTS 處理語音、呼叫 RAG Pipeline 檢索企業知識 → RAG Pipeline 串接 Embedding 模型與企業文件來源 → 評估引擎呼叫 LLM 進行逐句評分推理。完整架構圖見[專案網站的「系統架構」區塊](https://james397520.github.io/futuremode-hackathon-AI_Coach/#arch)。
+主要資料流：Web App 與語音擷取進入 API Gateway 與對話編排器 → 對話編排器呼叫 STT/TTS 處理語音、呼叫 RAG Pipeline 檢索企業知識 → RAG Pipeline 串接 Embedding 模型與企業文件來源 → 評估引擎呼叫 LLM 進行逐句評分推理。完整架構圖見[專案網站的「系統架構」區塊](https://james397520.github.io/futuremode-hackathon-SkillCoach/#arch)。
 
 ## 核心技術功能（後端實作重點）
 
@@ -165,7 +165,7 @@ AI 客戶：如果市場大跌，你們有什麼具體的措施來保護我的�
 同一段對談前半，學員被問到稅務時回答「稅務我不能給建議，請以會計師或稅務專業意見為準」——
 這種**正確劃清界線**的行為不會被標記，合規檢查針對的是逾越界線的話術，不是禁止談論。
 
-完整過程（92 秒、有聲）：[在專案網站播放](https://james397520.github.io/futuremode-hackathon-AI_Coach/#flow)，
+完整過程（92 秒、有聲）：[在專案網站播放](https://james397520.github.io/futuremode-hackathon-SkillCoach/#flow)，
 或下載 [`docs/media/compliance.mp4`](docs/media/compliance.mp4)。
 
 ### 分數累積成學員進度
@@ -329,14 +329,14 @@ python -m http.server 8765 --directory docs
 
 ## 作品展示
 
-- 線上網站：<https://james397520.github.io/futuremode-hackathon-AI_Coach/>
-- Demo 影片（39 秒、有聲）：[在專案網站上播放](https://james397520.github.io/futuremode-hackathon-AI_Coach/#top)，或下載 [`docs/media/demo.mp4`](docs/media/demo.mp4)；本檔最上方的動圖為其片段預覽
-- 平台封面影片（14 秒、無聲）：[在專案網站上循環播放](https://james397520.github.io/futuremode-hackathon-AI_Coach/#demo)，或下載 [`docs/media/cover.mp4`](docs/media/cover.mp4)
-- 合規審查影片（92 秒、有聲）：[在專案網站上播放](https://james397520.github.io/futuremode-hackathon-AI_Coach/#flow)，或下載 [`docs/media/compliance.mp4`](docs/media/compliance.mp4)
+- 線上網站：<https://james397520.github.io/futuremode-hackathon-SkillCoach/>
+- Demo 影片（39 秒、有聲）：[在專案網站上播放](https://james397520.github.io/futuremode-hackathon-SkillCoach/#top)，或下載 [`docs/media/demo.mp4`](docs/media/demo.mp4)；本檔最上方的動圖為其片段預覽
+- 平台封面影片（14 秒、無聲）：[在專案網站上循環播放](https://james397520.github.io/futuremode-hackathon-SkillCoach/#demo)，或下載 [`docs/media/cover.mp4`](docs/media/cover.mp4)
+- 合規審查影片（92 秒、有聲）：[在專案網站上播放](https://james397520.github.io/futuremode-hackathon-SkillCoach/#flow)，或下載 [`docs/media/compliance.mp4`](docs/media/compliance.mp4)
 
 **平台封面**
 
-[![SkillCoach 平台封面：Practice every conversation before it counts.](docs/media/cover-preview.gif)](https://james397520.github.io/futuremode-hackathon-AI_Coach/#demo)
+[![SkillCoach 平台封面：Practice every conversation before it counts.](docs/media/cover-preview.gif)](https://james397520.github.io/futuremode-hackathon-SkillCoach/#demo)
 
 ## 第三方服務、資料與素材
 
