@@ -4,7 +4,7 @@
 >
 > 這份文件是 monorepo 的開發與部署總覽。黑客松提交總覽、產品理念與展示影片請看 [README.md](README.md)；各子系統更細的說明在 [docs/](docs/) 與各目錄自己的 README。
 
-[![CI](https://github.com/james397520/futuremode-hackathon-AI_Coach/actions/workflows/ci.yml/badge.svg)](https://github.com/james397520/futuremode-hackathon-AI_Coach/actions/workflows/ci.yml)
+[![CI](https://github.com/james397520/futuremode-hackathon-SkillCoach/actions/workflows/ci.yml/badge.svg)](https://github.com/james397520/futuremode-hackathon-SkillCoach/actions/workflows/ci.yml)
 ![Node](https://img.shields.io/badge/node-20.18-339933?logo=node.js&logoColor=white)
 ![Python](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)
 ![pnpm](https://img.shields.io/badge/pnpm-9.12-F69220?logo=pnpm&logoColor=white)
@@ -173,7 +173,7 @@ corepack enable && corepack install --global pnpm@9.12.0
 # 若 corepack 出現簽章錯誤：export COREPACK_INTEGRITY_KEYS=0
 
 # 3. 取得程式碼與設定
-git clone https://github.com/james397520/futuremode-hackathon-AI_Coach.git skillcoach
+git clone https://github.com/james397520/futuremode-hackathon-SkillCoach.git skillcoach
 cd skillcoach
 cp .env.example .env
 #    編輯 .env：MINIMAX_API_KEY 必填；ELEVENLABS_API_KEY 建議填（雲端語音備援）
@@ -380,7 +380,7 @@ Windows 有兩條路。**方式 A（WSL2）**與 macOS／Linux 幾乎相同，�
 3. 取得程式碼、設定、初始化：
 
    ```bash
-   git clone https://github.com/james397520/futuremode-hackathon-AI_Coach.git skillcoach
+   git clone https://github.com/james397520/futuremode-hackathon-SkillCoach.git skillcoach
    cd skillcoach && cp .env.example .env
    # 編輯 .env：MINIMAX_API_KEY、ELEVENLABS_API_KEY、STT_PROVIDER=elevenlabs、TTS_PROVIDER=local
    #           NEXT_PUBLIC_DEV_LOGIN_EMAIL / PASSWORD（同 macOS）
@@ -437,7 +437,7 @@ Windows 有兩條路。**方式 A（WSL2）**與 macOS／Linux 幾乎相同，�
 3. 取得程式碼與設定：
 
    ```powershell
-   git clone https://github.com/james397520/futuremode-hackathon-AI_Coach.git skillcoach
+   git clone https://github.com/james397520/futuremode-hackathon-SkillCoach.git skillcoach
    cd skillcoach
    Copy-Item .env.example .env
    notepad .env
