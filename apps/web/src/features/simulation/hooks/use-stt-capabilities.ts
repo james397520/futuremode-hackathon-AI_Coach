@@ -51,7 +51,7 @@ export function localTtsUsable(cap: SttCapability | null): boolean {
  *
  * Breeze2-VITS ships a single female speaker, so in local mode a 67-year-old
  * male customer answers in a young woman's voice. That is a deliberate choice
- * (HANDOFF §16.16) and the only wrong way to ship it is silently — someone
+ * and the only wrong way to ship it is silently — someone
  * would spend the demo debugging a voice that is working as designed.
  */
 export function localTtsSingleVoice(cap: SttCapability | null): boolean {

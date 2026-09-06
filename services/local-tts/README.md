@@ -10,9 +10,8 @@ laptop. Two engines behind one HTTP surface, reached by `apps/api`'s
 | **`breeze`** (default) | [MediaTek-Research/Breeze2-VITS-onnx](https://huggingface.co/MediaTek-Research/Breeze2-VITS-onnx) | 1 | 22.05 kHz | Taiwanese voice, distilled from BreezyVoice. **Licence not stated anywhere** — see below. |
 | `kokoro` | [hexgrad/Kokoro-82M-v1.1-zh](https://huggingface.co/hexgrad/Kokoro-82M-v1.1-zh) | 100 | 24 kHz | Apache-2.0, mainland-standard accent, male/female choice. |
 
-Why Breeze became the default, the measured comparison, the accent verdict and
-the licence risk are in `docs/HANDOFF.md` §16.16; §16.15 is the original Kokoro
-decision.
+Why Breeze became the default and how the two engines compare is measured in
+the sections below.
 
 ## Install / run
 
@@ -150,8 +149,7 @@ neither granted nor forbidden by any citable document. The upstream
 [BreezyVoice](https://huggingface.co/MediaTek-Research/BreezyVoice) it is
 distilled from *is* Apache-2.0, but that grant is on a different repo and
 extending it to these weights is an inference, not a fact. Treat it as an open
-risk for anything shipped commercially — `docs/HANDOFF.md` §16.16 records the
-detail, and `LOCAL_TTS_ENGINE=kokoro` is the one-variable way back to an
+risk for anything shipped commercially — `LOCAL_TTS_ENGINE=kokoro` is the one-variable way back to an
 unambiguously licensed model.
 
 ## Tests

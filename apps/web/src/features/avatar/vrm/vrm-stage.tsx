@@ -505,8 +505,8 @@ export function VrmStage({ gender, age = null, ariaLabel, speaking, onStatus, cl
           // three-vrm refuses any VRM 1.0 whose meta.licenseUrl is not the
           // official VRM licence — the whole model fails to load, silently
           // becoming the portrait fallback. The Rocketbox body carries its own
-          // licence URL, accepted here explicitly (its terms are in that file;
-          // see HANDOFF §19.1), not by disabling the check.
+          // licence URL, accepted here explicitly (its terms are in that file),
+          // not by disabling the check.
           metaPlugin: new VRMMetaLoaderPlugin(parser, {
             acceptLicenseUrls: [
               'https://vrm.dev/licenses/1.0/',

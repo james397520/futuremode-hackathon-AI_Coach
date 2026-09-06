@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8795
     #: Which engine speaks when the request does not say. `breeze` is Taiwanese
-    #: and single-speaker, `kokoro` is mainland-accented with 100 voices; see
-    #: docs/HANDOFF.md §16.16. Falls back to whichever weights are on disk.
+    #: and single-speaker, `kokoro` is mainland-accented with 100 voices.
+    #: Falls back to whichever weights are on disk.
     engine: str = "breeze"
     #: Where fetch_model.sh put the weights. Gitignored.
     model_dir: Path = Field(default=SERVICE_ROOT / "models")

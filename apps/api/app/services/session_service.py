@@ -1025,9 +1025,8 @@ async def _end_session(self: SessionService, session_id: str, payload: Any = Non
     every click on 「結束練習」 a TypeError. Unpack the request here, and shape
     the reply as the `SessionEndResponse` the route declares.
 
-    `evaluation` is honestly `None`: nothing enqueues the scoring job yet (see
-    HANDOFF), so the client is told it is pending rather than handed a number
-    nobody computed.
+    `evaluation` is honestly `None`: nothing enqueues the scoring job yet, so the
+    client is told it is pending rather than handed a number nobody computed.
     """
     from app.domain.request_response import SessionEndResponse
     from app.domain.session import TrainingSession

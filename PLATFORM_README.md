@@ -146,7 +146,7 @@ primary；若同時設定 `GMI_API_KEY`，GMI Cloud 是 first fallback。兩者�
 │   ├── check-contracts.sh       TS/Python 事件契約防漂移
 │   └── dev/                     launchd 安裝腳本（API、mac-stt、local-tts）、MediaPipe 資產抓取
 ├── infra/systemd, infra/nginx   Linux 正式環境範本
-├── docs/                        規格、架構、API、部署、ADR、交付文件（HANDOFF.md）
+├── docs/                        規格、架構、API、部署、ADR
 ├── backend/                     隊友的獨立 SkillCoach 後端子專案（見附屬子專案）
 └── emotion_webcam/              MediaPipe blendshape 表情規則引擎的 Python 範例與規則來源
 ```
@@ -755,7 +755,7 @@ curl -s 127.0.0.1:8795/speak -H 'content-type: application/json' \
 
 **處理流程**：正規化（去千分位、`NT$`→新台幣）→ 依句末標點斷句、過長再依逗號切 → G2P（Breeze：cn2an 數字轉中文 → 68k 詞典最長比對 → 疊加台灣讀音表；Kokoro：misaki jieba + pypinyin）→ 每段一次 onnxruntime → 0.18 秒段間靜音 → wav 或 ffmpeg mp3。
 
-**已知限制**：Breeze 只有一個女聲，本地模式下男性人設也是女聲（回應以 `X-Voice-Ignored` 明示，UI tooltip 會提示）；中文句子裡的英文單字兩顆引擎都會略過；沒有串流，一句合成完才開始播。詳細量測與決策紀錄在 [docs/HANDOFF.md](docs/HANDOFF.md) §16.15–§16.16。
+**已知限制**：Breeze 只有一個女聲，本地模式下男性人設也是女聲（回應以 `X-Voice-Ignored` 明示，UI tooltip 會提示）；中文句子裡的英文單字兩顆引擎都會略過；沒有串流，一句合成完才開始播。引擎比較與量測數據見 [services/local-tts/README.md](services/local-tts/README.md)。
 
 ### macOS 原生語音辨識（`tools/mac-stt`）
 
@@ -967,7 +967,7 @@ CI（`.github/workflows/ci.yml`）四個 job：web（typecheck、lint、build）
 
 ## 疑難排解
 
-完整版在 [docs/troubleshooting.md](docs/troubleshooting.md) 與 [docs/HANDOFF.md](docs/HANDOFF.md) §7。最常見的幾個：
+完整版在 [docs/troubleshooting.md](docs/troubleshooting.md)。最常見的幾個：
 
 | 症狀 | 原因 | 處理 |
 | --- | --- | --- |
@@ -1027,7 +1027,6 @@ CI（`.github/workflows/ci.yml`）四個 job：web（typecheck、lint、build）
 | [docs/model.md](docs/model.md) | 模型三層（伺服器／API／瀏覽器）、權重放哪、換 embedding 模型 |
 | [docs/dataset.md](docs/dataset.md) | 資料與隱私 |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | 症狀 → 原因 → 修法 |
-| [docs/HANDOFF.md](docs/HANDOFF.md) | 交付文件：語音（§16）、情緒融合（§18）、每個踩過的坑與量測數據 |
 | [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | 三個能力展示情境的台詞卡與觸發條件 |
 | [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) | 檔案歸屬 |
 | [docs/adr/](docs/adr/) | 架構決策紀錄（pnpm workspace、TS 為契約真相、Qdrant、systemd 而非 Docker、虛擬人決策…） |

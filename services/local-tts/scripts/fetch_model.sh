@@ -6,8 +6,7 @@
 #
 # Kokoro's ONNX export is the one published by kokoro-onnx (thewh1teagle); the
 # vocab comes from the original hexgrad repo so token ids match the export.
-# Breeze comes straight from its Hugging Face repo — see docs/HANDOFF.md §16.16
-# for what its licence does and does not say. sha256 is pinned throughout: a
+# Breeze comes straight from its Hugging Face repo. sha256 is pinned throughout: a
 # different file would produce plausible audio from the wrong weights.
 #
 #   scripts/fetch_model.sh            # both
