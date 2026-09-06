@@ -354,7 +354,7 @@ python -m http.server 8765 --directory docs
 
 | 姓名 | 分工 | 重點經歷 |
 | --- | --- | --- |
-| Bryan | Leader | 逢甲大學前瞻智慧研究社社長（第三屆）；上銀機械手臂大賽 2024 冠軍；上銀黑客松 2024 / 2025 |
+| Bryan | Leader | 逢甲大學前瞻科技研究社第五屆社長；Apple WWDC26 得獎者；2024 上銀智慧機器手實作競賽第三名；NASA 黑客松台中賽區金獎（2024／2025） |
 | Jease | LLM | GTA Robotics 共同創辦人暨技術長；European Innovation Academy 2024；FAST PROCESSING DATA TECH INC. 與 Dirui Energy 資訊顧問 |
 | Gino | Vision | 7年資深AI工程師 ; 四項國際競賽獎項 ; 曾任Appworks, FCU, 台灣人工智慧學校以及企業AI講師  |
 | Jessie | UI/UX | 紐約 ADC 年度獎銅獎；德國紅點設計獎 Best of Best；Yodex 新世代設計產學合作獎銅獎 |
