@@ -350,18 +350,6 @@ python -m http.server 8765 --directory docs
 
 各服務之授權條款以其官方網站公告為準；本儲存庫未包含任何 API Key、Token 或個人資料。
 
-## 團隊成員
-
-| 姓名 | 分工 | 重點經歷 |
-| --- | --- | --- |
-| Bryan | Leader | 逢甲大學前瞻科技研究社第五屆社長；Apple WWDC26 得獎者；2024 上銀智慧機器手實作競賽第三名；NASA 黑客松台中賽區金獎（2024／2025） |
-| Jease | LLM | GTA Robotics 共同創辦人暨技術長；European Innovation Academy 2024；FAST PROCESSING DATA TECH INC. 與 Dirui Energy 資訊顧問 |
-| Gino | Vision | 7年資深AI工程師 ; 四項國際競賽獎項 ; 曾任Appworks, FCU, 台灣人工智慧學校以及企業AI講師  |
-| Jessie | UI/UX | 紐約 ADC 年度獎銅獎；德國紅點設計獎 Best of Best；Yodex 新世代設計產學合作獎銅獎 |
-| James | Repo Owner | 資深 AI 工程師； 超低功耗模型設計; AI系統優化與開發 |
-
-
-
 ## License
 
 本專案的原創程式碼與文件採用 [Apache License 2.0](LICENSE) 授權。
