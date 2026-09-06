@@ -66,9 +66,6 @@
   h1 span{color:var(--fg-3)}
   .hero .lead{font-size:20px}
   .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:40px}
-  .stats{display:flex;gap:40px;flex-wrap:wrap;margin-top:64px;padding-top:32px;border-top:1px solid var(--line)}
-  .stats div b{display:block;font-size:28px;font-weight:800;letter-spacing:-.02em}
-  .stats div span{font-size:13px;color:var(--fg-3)}
 
   /* problem */
   .two{grid-template-columns:1fr 1fr}
@@ -119,7 +116,8 @@
 
   /* demo */
   .video{aspect-ratio:16/9;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r);display:grid;place-items:center;margin-top:48px;overflow:hidden;position:relative}
-  .video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .video iframe,.video video{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+  .hero-video{margin-top:48px;max-width:880px}
   .video .ph{text-align:center;color:var(--fg-3);padding:24px}
   .video .ph .play{width:64px;height:64px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;margin:0 auto 16px}
 
@@ -221,6 +219,30 @@
   .final .dim{background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:16px}
   .final .dim b{display:block;font-size:26px;font-weight:800;letter-spacing:-.02em}
   .final .dim span{display:block;font-size:12px;color:var(--fg-3);margin-top:4px}
+  /* sub-sections inside 核心技術 */
+  .subsec{margin-top:80px;padding-top:56px;border-top:1px solid var(--line)}
+  .subsec > h3{font-size:clamp(22px,2.6vw,30px);font-weight:800;letter-spacing:-.02em;line-height:1.2}
+  .subsec > h3 + .lead{margin-top:16px}
+  .subsec h4{font-size:19px;font-weight:700;margin-top:56px}
+  /* affect fusion */
+  .fuse{width:100%;border-collapse:collapse;margin-top:32px;font-size:14px}
+  .fuse th,.fuse td{text-align:left;padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+  .fuse th{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3);font-weight:500}
+  .fuse td:first-child{color:var(--fg);white-space:nowrap;font-weight:600}
+  .fuse td:last-child{color:var(--fg-2)}
+  .fuse tr.key td:last-child{color:var(--fg)}
+  .two-path{grid-template-columns:1fr 1fr}
+  @media(max-width:860px){.two-path{grid-template-columns:1fr}}
+  .two-path .card .en{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--fg-3);margin-bottom:14px;text-transform:uppercase}
+  .two-path .card ol{margin:14px 0 0;padding-left:20px;color:var(--fg-2);font-size:14px;display:grid;gap:6px}
+  .two-path .card p{color:var(--fg-2);font-size:15px;margin-top:10px}
+  .quote{margin-top:32px;padding:20px 24px;border-left:2px solid var(--line);color:var(--fg-2);font-size:15px;line-height:1.7}
+  /* avatar gallery */
+  .shots{display:grid;gap:32px;margin-top:48px}
+  .shot img{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:var(--r)}
+  .shot img.on-light{background:#fff;padding:8px;box-sizing:border-box}
+  .shot p{color:var(--fg-2);font-size:14px;margin-top:14px;max-width:760px}
+  .shot h3{font-size:19px;margin-bottom:14px}
   .todo{outline:1px dashed #444;outline-offset:2px;border-radius:4px}
 </style>
 </head>
@@ -257,10 +279,10 @@
       <a class="btn primary" href="#demo">觀看 Demo</a>
       <a class="btn" href="https://github.com/james397520/futuremode-hackathon-AI_Coach" target="_blank" rel="noopener">查看程式碼</a>
     </div>
-    <div class="stats">
-      <div><b>4</b><span>核心模組：角色扮演 / 語音 3D / RAG / 評估</span></div>
-      <div><b>&lt; 1s</b><span>語音往返延遲目標</span></div>
-      <div><b>100%</b><span>評分附逐句證據可回溯</span></div>
+    <div class="video hero-video">
+      <video autoplay muted loop playsinline controls preload="metadata" src="media/cover.mp4">
+        您的瀏覽器不支援內嵌影片，<a href="media/cover.mp4">請直接下載觀看</a>。
+      </video>
     </div>
   </div>
 </header>
@@ -431,43 +453,50 @@
   <div class="wrap">
     <div class="eyebrow">System Architecture</div>
     <h2>系統架構</h2>
-    <p class="lead">前端負責語音擷取與 3D 渲染；後端統籌對話狀態、RAG 檢索與評估流程；模型層可替換，資料層保存企業知識庫與訓練紀錄。</p>
+    <p class="lead">前端負責語音擷取、臉部情緒判讀與 3D 渲染；後端統籌對話狀態、知識檢索、情緒融合與評估；模型層可替換，資料層保存企業知識庫與訓練紀錄。</p>
     <div class="arch">
-      <svg viewBox="0 0 920 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI Coach 系統架構圖">
+      <svg viewBox="0 0 920 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SkillCoach 系統架構圖">
         <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5 0 10z" fill="#555"/></marker></defs>
         <!-- lanes -->
-        <rect class="lane" x="10" y="10" width="200" height="380" rx="10"/><text class="lbl" x="24" y="32">FRONTEND</text>
-        <rect class="lane" x="230" y="10" width="240" height="380" rx="10"/><text class="lbl" x="244" y="32">BACKEND</text>
-        <rect class="lane" x="490" y="10" width="200" height="380" rx="10"/><text class="lbl" x="504" y="32">AI MODELS</text>
-        <rect class="lane" x="710" y="10" width="200" height="380" rx="10"/><text class="lbl" x="724" y="32">DATA</text>
+        <rect class="lane" x="10" y="10" width="200" height="450" rx="10"/><text class="lbl" x="24" y="32">FRONTEND</text>
+        <rect class="lane" x="230" y="10" width="240" height="450" rx="10"/><text class="lbl" x="244" y="32">BACKEND</text>
+        <rect class="lane" x="490" y="10" width="200" height="450" rx="10"/><text class="lbl" x="504" y="32">AI MODELS</text>
+        <rect class="lane" x="710" y="10" width="200" height="450" rx="10"/><text class="lbl" x="724" y="32">DATA</text>
         <!-- frontend -->
-        <rect class="box" x="30" y="60" width="160" height="60" rx="8"/><text x="44" y="84">Web App</text><text class="sub" x="44" y="104">React / Vite</text>
-        <rect class="box" x="30" y="140" width="160" height="60" rx="8"/><text x="44" y="164">3D Avatar</text><text class="sub" x="44" y="184">Three.js · 口型同步</text>
-        <rect class="box" x="30" y="220" width="160" height="60" rx="8"/><text x="44" y="244">語音擷取</text><text class="sub" x="44" y="264">WebRTC / WebSocket</text>
-        <rect class="box" x="30" y="300" width="160" height="60" rx="8"/><text x="44" y="324">評估儀表板</text><text class="sub" x="44" y="344">學員 / 主管視圖</text>
+        <rect class="box" x="30" y="60" width="160" height="60" rx="8"/><text x="44" y="84">Web App</text><text class="sub" x="44" y="104">Next.js</text>
+        <rect class="box" x="30" y="140" width="160" height="60" rx="8"/><text x="44" y="164">語音擷取</text><text class="sub" x="44" y="184">VAD · 插話閘門</text>
+        <rect class="box" x="30" y="220" width="160" height="60" rx="8"/><text x="44" y="244">臉部情緒</text><text class="sub" x="44" y="264">瀏覽器端即時判讀</text>
+        <rect class="box" x="30" y="300" width="160" height="60" rx="8"/><text x="44" y="324">3D 虛擬人</text><text class="sub" x="44" y="344">three-vrm · morph</text>
+        <rect class="box" x="30" y="380" width="160" height="60" rx="8"/><text x="44" y="404">評估儀表板</text><text class="sub" x="44" y="424">學員 / 主管視圖</text>
         <!-- backend -->
         <rect class="box hi" x="250" y="60" width="200" height="60" rx="8"/><text class="hi-text" x="264" y="84">API Gateway</text><text class="sub" x="264" y="104" style="fill:#555">FastAPI · Auth · WS</text>
-        <rect class="box" x="250" y="140" width="200" height="60" rx="8"/><text x="264" y="164">對話編排器</text><text class="sub" x="264" y="184">情境狀態 · 難度調節</text>
-        <rect class="box" x="250" y="220" width="200" height="60" rx="8"/><text x="264" y="244">RAG Pipeline</text><text class="sub" x="264" y="264">切塊 · Embedding · 檢索</text>
-        <rect class="box" x="250" y="300" width="200" height="60" rx="8"/><text x="264" y="324">評估引擎</text><text class="sub" x="264" y="344">Rubric · 逐句證據</text>
+        <rect class="box" x="250" y="140" width="200" height="60" rx="8"/><text x="264" y="164">對話編排器</text><text class="sub" x="264" y="184">七階段 Agent 責任鏈</text>
+        <rect class="box" x="250" y="220" width="200" height="60" rx="8"/><text x="264" y="244">情緒融合</text><text class="sub" x="264" y="264">文字 × 臉部 · 純算術</text>
+        <rect class="box" x="250" y="300" width="200" height="60" rx="8"/><text x="264" y="324">RAG Pipeline</text><text class="sub" x="264" y="344">切塊 · 檢索 · rerank</text>
+        <rect class="box" x="250" y="380" width="200" height="60" rx="8"/><text x="264" y="404">評估引擎</text><text class="sub" x="264" y="424">Rubric · 逐句證據</text>
         <!-- models -->
         <rect class="box" x="510" y="60" width="160" height="60" rx="8"/><text x="524" y="84">LLM</text><text class="sub" x="524" y="104">角色扮演 · 評估推理</text>
-        <rect class="box" x="510" y="140" width="160" height="60" rx="8"/><text x="524" y="164">STT / TTS</text><text class="sub" x="524" y="184">串流語音辨識與合成</text>
-        <rect class="box" x="510" y="220" width="160" height="60" rx="8"/><text x="524" y="244">Embedding</text><text class="sub" x="524" y="264">知識向量化</text>
-        <rect class="box" x="510" y="300" width="160" height="60" rx="8"/><text x="524" y="324">Avatar 驅動</text><text class="sub" x="524" y="344">音素 → 表情參數</text>
+        <rect class="box" x="510" y="140" width="160" height="60" rx="8"/><text x="524" y="164">語音模型</text><text class="sub" x="524" y="184">STT 本機/雲端 · TTS 三路</text>
+        <rect class="box" x="510" y="300" width="160" height="60" rx="8"/><text x="524" y="324">Embedding · Rerank</text><text class="sub" x="524" y="344">ONNX Runtime</text>
+        <rect class="box" x="510" y="380" width="160" height="60" rx="8"/><text x="524" y="404">Avatar 驅動</text><text class="sub" x="524" y="424">52 維係數 → 表情</text>
         <!-- data -->
-        <rect class="box" x="730" y="60" width="160" height="60" rx="8"/><text x="744" y="84">關聯式資料庫</text><text class="sub" x="744" y="104">使用者 · 對練紀錄 · 評分</text>
+        <rect class="box" x="730" y="60" width="160" height="60" rx="8"/><text x="744" y="84">關聯式資料庫</text><text class="sub" x="744" y="104">使用者 · 紀錄 · 評分</text>
         <rect class="box" x="730" y="140" width="160" height="60" rx="8"/><text x="744" y="164">物件儲存</text><text class="sub" x="744" y="184">文件原檔 · 錄音</text>
         <rect class="box" x="730" y="220" width="160" height="60" rx="8"/><text x="744" y="244">企業文件來源</text><text class="sub" x="744" y="264">PDF · Docs · FAQ</text>
+        <rect class="box" x="730" y="300" width="160" height="60" rx="8"/><text x="744" y="324">向量資料庫</text><text class="sub" x="744" y="344">Qdrant · 企業知識索引</text>
         <!-- arrows: orthogonal only, routed through the empty gutters between lanes -->
         <line x1="190" y1="90" x2="250" y2="90"/>
-        <path d="M190,250 L220,250 L220,170 L250,170"/>
+        <line x1="190" y1="170" x2="250" y2="170"/>
+        <line x1="190" y1="250" x2="250" y2="250"/>
         <line x1="350" y1="120" x2="350" y2="140"/>
-        <line x1="450" y1="170" x2="510" y2="170"/>
-        <line x1="350" y1="200" x2="350" y2="220"/>
-        <line x1="450" y1="250" x2="510" y2="250"/>
-        <path d="M730,250 L700,250 L700,290 L478,290 L478,260 L450,260"/>
-        <path d="M450,340 L480,340 L480,90 L510,90"/>
+        <line x1="350" y1="220" x2="350" y2="200"/>
+        <path d="M450,155 L480,155 L480,90 L510,90"/>
+        <line x1="450" y1="185" x2="510" y2="185"/>
+        <line x1="450" y1="330" x2="510" y2="330"/>
+        <path d="M730,250 L700,250 L700,290 L474,290 L474,345 L450,345"/>
+        <path d="M450,355 L478,355 L478,370 L706,370 L706,330 L730,330"/>
+        <path d="M450,410 L486,410 L486,100 L510,100"/>
+        <path d="M510,420 L496,420 L496,450 L220,450 L220,330 L190,330"/>
       </svg>
     </div>
   </div>
@@ -527,6 +556,97 @@
           <li>畫面透過 WebSocket 逐幀傳輸（JPEG / WebP / PNG）</li>
         </ul>
       </div>
+    </div>
+    <div class="subsec">
+      <div class="eyebrow">Affect Sensing</div>
+      <h3>情緒感知：雙路並行</h3>
+    <p class="lead">兩個系統同時在讀學員的狀態，但它們可信度不同，所以融合方式是刻意不對稱的。</p>
+
+    <div class="grid two-path" style="margin-top:48px">
+      <div class="card">
+        <span class="en">Text · auditable</span>
+        <h3>文字：可稽核</h3>
+        <p>讀學員這一輪實際說出口的話，並且必須引用逐字原話。伺服器端有四條驗證，全部由程式檢查而非交給模型自律：</p>
+        <ol>
+          <li>引用必須逐字出現在這一輪學員的發言裡</li>
+          <li>要給明確標籤，就得同時有引用與真實強度</li>
+          <li>「不明確」不得挾帶強度</li>
+          <li>違反任一條，一律拒絕而非修補</li>
+        </ol>
+        <p>被拒絕的結果是降級為「不明確」，不是丟出例外——情緒是加值訊號，不該讓一輪對話失敗。</p>
+      </div>
+      <div class="card">
+        <span class="en">Face · advisory</span>
+        <h3>臉部：僅供參考</h3>
+        <p>瀏覽器端跑 FaceLandmarker（WASM），52 個 blendshape 在使用者機器上算完，攝影機影格完全不離開本機。</p>
+        <ol>
+          <li>分類規則移植自本專案的 <code>emotion_webcam</code>，是逐字翻譯而非重新詮釋</li>
+          <li>WASM 與模型 vendored 到自家網域——CSP 只列自家來源，從 CDN 抓會被靜默擋掉</li>
+          <li>模型在第一次開啟攝影機時才懶載入</li>
+          <li>低於 0.45 信心就視為「臉沒說出什麼有用的東西」</li>
+        </ol>
+      </div>
+    </div>
+
+    <h4>融合：純算術，不再問模型</h4>
+    <table class="fuse">
+      <thead><tr><th>情況</th><th>結果</th></tr></thead>
+      <tbody>
+        <tr class="key"><td>兩邊都沒有證據</td><td>回「不明確」，<b>不預設「平穩」</b>——平穩也是一種主張，沒有證據的主張比沉默更糟</td></tr>
+        <tr><td>只有文字說話</td><td>採用文字，信心 = 強度權重 × 0.85</td></tr>
+        <tr><td>只有臉說話</td><td>採用臉，但強度固定為 low、信心上限 0.6——沒有引用撐腰的讀數不該看起來跟有證據的一樣確定</td></tr>
+        <tr><td>兩邊一致</td><td>提高信心</td></tr>
+        <tr class="key"><td>兩邊真的衝突</td><td><b>文字勝出，並記錄衝突</b>，不做平均</td></tr>
+      </tbody>
+    </table>
+    <div class="quote">平均出來的標籤「會是唯一一個沒有人能在檢討會上為它辯護的東西」；而「叫模型去調解兩個標籤，它只會發明第三個」。所以融合寫成純算術，不再呼叫第二次模型，輸出同時帶著融合結果與兩邊的原始輸入，事後檢討看得到推導過程而不只是一個結論。</div>
+
+    <h4>應用：即時教練提示</h4>
+    <p class="lead">當負向情緒的信心 ≥ 0.55 且持續 1.5 秒，畫面就在對話區旁邊浮出提示卡主動提供協助——不是等到對練結束才在報告裡告訴學員「你剛才看起來很挫折」。</p>
+    </div>
+
+    <div class="subsec">
+      <div class="eyebrow">Avatar</div>
+      <h3>虛擬人角色與表情驅動</h3>
+    <p class="lead">「模型輸出動畫參數、Web 負責 3D 渲染」這條路線的實作：52 維 ARKit blendshape 係數 → morph target → 3D 角色。純前端，離線可跑。</p>
+
+    <div class="shots">
+      <div class="shot">
+        <h3>角色素材</h3>
+        <img src="img/avatar/cast.png" alt="八個練習對象，涵蓋 20 到 65 歲、男女各半" loading="lazy">
+        <p>角色來自 Microsoft Rocketbox（MIT 授權，可商用）。4 個底模搭配年齡變體組成 8 個練習對象，涵蓋 20／30／40／50／65 歲、男女各半。每個角色帶 175 個 blendshape，其中 <code>AK_*</code> 開頭的 52 個就是完整的 ARKit 52，動畫資料可以原封驅動。</p>
+      </div>
+      <div class="shot">
+        <h3>老化管線</h3>
+        <img src="img/avatar/aging.png" alt="同一個底模在 30、50、65 歲的臉部貼圖比較" loading="lazy">
+        <p>年齡差異不是執行期調色，而是事先烤好的臉部與髮片貼圖：皺紋由老化 GAN 產生，白髮由亮度遮罩推出。關鍵是只取 delta（aged − original）疊回原貼圖，而不是整張換掉——delta 才是老化特徵，原本的五官與光影因此全部保留。</p>
+      </div>
+      <div class="shot">
+        <h3>表情驅動</h3>
+        <img src="img/avatar/expressions.png" alt="同一個角色的六種表情：中性、開心、驚訝、生氣、難過、懷疑" loading="lazy">
+        <p>同一個角色、同一份 morph target，只改 52 維係數的結果。驅動分三層疊加：口型層做幀間線性插值並保留平滑包絡避免逐音節抽搐；情緒層在說話時仍保留 35% 權重，讓情緒的嘴角形狀在講話過程中依然可辨識；Idle 層負責 procedural 眨眼、眼球 saccade 與頭部微動。</p>
+      </div>
+    </div>
+
+    <h4>骨架與動作</h4>
+    <p class="lead">角色是綁好骨架的完整人體，不是只有一顆會動的頭。</p>
+    <div class="grid three" style="margin-top:32px">
+      <div class="card">
+        <span class="en">Retarget</span>
+        <h3>Mixamo 動作即時重定向</h3>
+        <p>點擊後即時 retarget 到角色骨架播放，切換動作以 0.3 秒 crossfade 銜接。骨骼名稱對應表同時涵蓋 Mixamo 與 3ds Max Biped 命名，25 根關鍵骨骼全數命中。</p>
+      </div>
+      <div class="card">
+        <span class="en">Virtual T-pose</span>
+        <h3>A-pose 與 T-pose 的 rest 差異</h3>
+        <p>角色綁定姿勢是 A-pose，Mixamo 動作卻是相對 T-pose 記錄的，直接套會讓手臂多轉一次。逐骨骼求出把目標 rest 轉到來源 rest 的最小旋轉後，關節誤差降到 0.000002°。</p>
+      </div>
+      <div class="card">
+        <span class="en">Two-bone IK</span>
+        <h3>雙骨 IK 修正</h3>
+        <p>兩套骨架的肩膀階層與臂長不同，雙手靠近的動作（例如握手）會對不齊，改以逐幀取樣加 IK 修正。</p>
+      </div>
+    </div>
     </div>
   </div>
 </section>
@@ -600,6 +720,50 @@
       <div class="dim"><b>70</b><span>風險揭露</span></div>
     </div>
     <p class="lead" style="margin-top:24px">最終報告每個維度都附理由與改善建議，例如需求探索 40 分的理由是「未主動詢問投資目標、持有期間、風險承受能力或緊急資金需求」——分數指得出是哪一句沒做到，不是一個沒有來源的數字。</p>
+
+    <div class="subsec">
+      <div class="eyebrow">Compliance</div>
+      <h3>合規審查</h3>
+      <p class="lead">對練中若出現禁止話術，系統會在當下標記，並附上禁止的理由、逐字稿佐證與建議改法。</p>
+      <div class="video" style="margin-top:40px">
+        <video controls preload="metadata" playsinline src="media/compliance.mp4">
+          您的瀏覽器不支援內嵌影片，<a href="media/compliance.mp4">請直接下載觀看</a>。
+        </video>
+      </div>
+      <div class="grid two" style="margin-top:40px">
+        <div class="card">
+          <span class="en">Flagged</span>
+          <h3>「保證保本」當場攔截</h3>
+          <p>學員說出「這個保證保本，你完全不用擔心。」，系統立刻標記為<b>不實承諾／重大風險</b>，說明投資型保單不保證本金、帳戶價值可能低於已繳保費，並引用該句逐字原話為佐證，再給出可以照著說的改法。</p>
+        </div>
+        <div class="card">
+          <span class="en">Not flagged</span>
+          <h3>正確劃清界線不會被標記</h3>
+          <p>同一段對談前半，學員被問到稅務時回答「稅務我不能給建議，請以會計師或稅務專業意見為準」——合規檢查針對的是逾越界線的話術，不是禁止談論某個主題。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsec">
+      <div class="eyebrow">Progress</div>
+      <h3>分數累積成學員進度</h3>
+      <p class="lead">單場對練的評分不只停在報告，會累積成學員的長期進度。</p>
+      <div class="shot" style="margin-top:40px">
+        <img class="on-light" src="img/progress.jpg" alt="學員進度儀表板：技能總分、十項維度、分數與合規趨勢、情境歷程與下一步建議" loading="lazy">
+      </div>
+      <div class="grid two" style="margin-top:40px">
+        <div class="card">
+          <span class="en">Ten dimensions</span>
+          <h3>十項維度各有及格線</h3>
+          <p>及格線 80，每一分都能追到逐字稿佐證，並與團隊平均對照指出最擅長與待加強的維度。</p>
+        </div>
+        <div class="card">
+          <span class="en">Gate</span>
+          <h3>合規是關卡型維度</h3>
+          <p>出現重大發現即不通過，不會被其他維度的高分平均掉——上圖那場 68 分的練習就是因為 2 個合規旗標而未通過。</p>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -614,7 +778,7 @@
         <tr><td>AI 模型</td><td><span class="tag">EastRouter</span><span class="tag">ElevenLabs</span><span class="tag">GMI</span></td><td>對話大腦與評測引擎、擬真語音與情緒交互、智能情緒化感知、知識向量化</td></tr>
         <tr><td>前端</td><td><span class="tag">React</span><span class="tag">Vite</span><span class="tag">Three.js</span><span class="tag">WebRTC</span></td><td>對練介面、3D 虛擬人渲染與口型同步、低延遲語音串流</td></tr>
         <tr><td>後端</td><td><span class="tag">Python</span><span class="tag">FastAPI</span><span class="tag">WebSocket</span></td><td>對話編排、RAG 檢索、評估引擎、API 與即時通道</td></tr>
-        <tr><td>資料</td><td><span class="tag">PostgreSQL</span></td><td>使用者、對練紀錄與評分、文件與錄音物件儲存</td></tr>
+        <tr><td>資料</td><td><span class="tag">PostgreSQL</span><span class="tag">Qdrant</span></td><td>使用者、對練紀錄與評分、文件與錄音物件儲存、企業知識向量索引</td></tr>
         <tr><td>Sponsor 技術</td><td><span class="tag">GMI</span><span class="tag">ElevenLabs</span><span class="tag">EastRouter</span><span class="tag">CertiK</span><span class="tag">國泰金控</span></td><td>情緒感知、語音交互、對話與評測引擎、合規審計、企業知識庫導入（RAG）</td></tr>
       </tbody>
     </table>
@@ -651,18 +815,14 @@
   <div class="wrap">
     <div class="eyebrow">Demo</div>
     <h2>作品展示</h2>
-    <p class="lead">兩分鐘評選影片：從選擇情境、語音對練到評估報告的完整流程。</p>
+    <p class="lead">實際操作錄影：從選擇情境、語音對練到評估報告的流程（39 秒、有聲）。</p>
     <div class="video">
-      <!-- 影片就緒後，把下面 .ph 換成：
-      <iframe src="https://www.youtube.com/embed/VIDEO_ID" title="AI Coach Demo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-      -->
-      <div class="ph">
-        <div class="play"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div>
-        評選影片即將上線
-      </div>
+      <video controls preload="metadata" playsinline src="media/demo.mp4">
+        您的瀏覽器不支援內嵌影片，<a href="media/demo.mp4">請直接下載觀看</a>。
+      </video>
     </div>
     <div class="cta">
-      <a class="btn todo" href="#" aria-disabled="true">線上 Demo（即將開放）</a>
+      <a class="btn primary" href="media/demo.mp4" target="_blank" rel="noopener">下載影片</a>
       <a class="btn" href="https://github.com/james397520/futuremode-hackathon-AI_Coach#安裝與執行" target="_blank" rel="noopener">安裝與執行說明</a>
     </div>
   </div>
