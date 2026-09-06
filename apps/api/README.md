@@ -35,10 +35,11 @@ Hard rules, in priority order:
    (§66). Free-form model text never crosses a layer boundary untyped.
 4. **`app/domain/` mirrors `packages/shared` exactly** — same field names, same
    enum literal values. A change to either side is a change to both, in one commit.
-5. **Provider credentials never leave this process.** `OPENAI_API_KEY` /
-   `ELEVENLABS_API_KEY` are read only by `app.core.config`; no response body, header,
-   cookie or error message may contain them (§56 / §70 / §71). `/integrations` accepts
-   a `secret_ref` into the secrets manager, never raw credential material.
+5. **Provider credentials never leave this process.** `MINIMAX_API_KEY`, `GMI_API_KEY`,
+   `OPENAI_API_KEY` and `ELEVENLABS_API_KEY` are read only by `app.core.config`; no
+   response body, header, cookie or error message may contain them (§56 / §70 / §71).
+   `/integrations` accepts a `secret_ref` into the secrets manager, never raw
+   credential material.
 6. **Uploads and downloads are signed URLs, not proxied bytes** (§40.2 / §73).
 
 ### Platform services vs domain services
@@ -382,14 +383,16 @@ Copy the repository-root `.env.example` to `.env`; the API reads these names:
 ```text
 APP_ENV  DATABASE_URL  REDIS_URL  QDRANT_URL
 S3_ENDPOINT  S3_ACCESS_KEY  S3_SECRET_KEY  S3_BUCKET
-OPENAI_API_KEY  ELEVENLABS_API_KEY  JWT_SECRET
+MINIMAX_API_KEY  GMI_API_KEY  OPENAI_API_KEY  ELEVENLABS_API_KEY  JWT_SECRET
 NEXT_PUBLIC_ENABLE_WEBGPU        # reused as the default RuntimePolicy.webgpu (§61)
 ```
 
 Optional extras, all with safe defaults (`app/core/config.py` is the reference):
 `API_PREFIX`, `LOG_LEVEL`, `DEBUG_SQL`, `CORS_ALLOW_ORIGINS`, `JWT_ALGORITHM`,
 `ACCESS_TOKEN_TTL_SECONDS`, `REFRESH_TOKEN_TTL_SECONDS`, `COOKIE_DOMAIN`,
-`LLM_PROVIDER`, `LLM_MODEL`, `TTS_PROVIDER` (`elevenlabs|openai|local|none`), `LOCAL_TTS_URL`
+`LLM_PROVIDER` (`minimax|gmi|openai|azure_openai|aup|none`), `MINIMAX_BASE_URL`,
+`MINIMAX_MODEL`, `GMI_BASE_URL`, `GMI_MODEL`, `GMI_ORGANIZATION_ID`, `LLM_MODEL`,
+`TTS_PROVIDER` (`elevenlabs|openai|local|none`), `LOCAL_TTS_URL`
 (the `services/local-tts` model server, default `http://127.0.0.1:8795`), `EMBEDDING_MODEL`, `EMBEDDING_DIMENSION`,
 `RATE_LIMIT_*`, `ALLOW_LOCAL_MODEL_CACHE`, `ALLOW_SENSITIVE_DATA_CACHE`,
 `CLEAR_ON_LOGOUT`, `TRANSCRIPT_RETENTION_DAYS`, `OTEL_*`, `S3_REGION`,
@@ -398,8 +401,14 @@ Optional extras, all with safe defaults (`app/core/config.py` is the reference):
 **Fail-fast:** outside `APP_ENV=local|test` the process refuses to boot if `JWT_SECRET`
 is still `change-me` or shorter than 32 chars, if `OPENAI_API_KEY` is missing while the
 OpenAI provider is enabled, if `ELEVENLABS_API_KEY` is missing while ElevenLabs TTS is
-enabled, if `CORS_ALLOW_ORIGINS` is empty or contains `*`, or if
+enabled, if a selected MiniMax/GMI provider is missing its key, if
+`CORS_ALLOW_ORIGINS` is empty or contains `*`, or if
 `ALLOW_SENSITIVE_DATA_CACHE` is true in production.
+
+With `LLM_PROVIDER=minimax`, setting `GMI_API_KEY` enables GMI Cloud as the first
+fallback. Direct MiniMax remains primary. Failover happens only for a timeout,
+rate-limit, or transport failure before streaming emits any content, and audit logs
+record the provider that actually answered.
 
 ### Migrate
 

@@ -3,6 +3,7 @@
 Layering
 --------
     Agent -> LlmPort (protocol) -> RoutedLlmClient -+-> MiniMaxClient
+                                                    +-> GmiCloudClient
                                                     +-> OpenAiClient
                                                     +-> PrivateLlmClient (AMD AUP)
 
@@ -488,6 +489,80 @@ class OpenAiClient(_OpenAiCompatibleClient):
         )
 
 
+class GmiCloudClient(_OpenAiCompatibleClient):
+    """MiniMax served by GMI Cloud's OpenAI-compatible inference endpoint.
+
+    This provider has its own credential and provider identity so routing and audit
+    logs can distinguish a GMI fallback from a response served by MiniMax directly.
+    GMI documents JSON-object mode, but not OpenAI's strict JSON-schema dialect, so
+    schema validation remains authoritative in the agent layer.
+    """
+
+    provider = "gmi"
+
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        api_key: str,
+        default_model: str,
+        organization_id: str | None = None,
+        client: httpx.AsyncClient | None = None,
+    ) -> None:
+        super().__init__(
+            base_url=base_url,
+            api_key=api_key,
+            default_model=default_model,
+            models=dict.fromkeys(ModelPurpose, default_model),
+            client=client,
+            supports_json_schema=False,
+        )
+        self._organization_id = organization_id
+
+    @classmethod
+    def from_settings(cls, client: httpx.AsyncClient | None = None) -> GmiCloudClient:
+        from app.core.config import get_settings
+
+        settings = get_settings()
+        return cls(
+            base_url=getattr(settings, "gmi_base_url", "https://api.gmi-serving.com/v1"),
+            api_key=_secret(getattr(settings, "gmi_api_key", "")),
+            default_model=getattr(settings, "gmi_model", "MiniMaxAI/MiniMax-M3"),
+            organization_id=getattr(settings, "gmi_organization_id", None),
+            client=client,
+        )
+
+    def _headers(self) -> dict[str, str]:
+        headers = super()._headers()
+        if self._organization_id:
+            headers["X-Organization-ID"] = self._organization_id
+        return headers
+
+    def _body(
+        self,
+        messages: Sequence[LlmMessage],
+        *,
+        model: str,
+        temperature: float,
+        max_tokens: int | None,
+        schema: Mapping[str, Any] | None,
+        schema_name: str,
+        stream: bool,
+    ) -> dict[str, Any]:
+        # MiniMax reasoning and visible output share one token budget. Match the
+        # direct adapter's floor so a fallback does not return an empty answer when
+        # an agent requests a small visible-output budget.
+        return super()._body(
+            messages,
+            model=model,
+            temperature=temperature,
+            max_tokens=max(max_tokens or 0, 16384),
+            schema=schema,
+            schema_name=schema_name,
+            stream=stream,
+        )
+
+
 class PrivateLlmClient(_OpenAiCompatibleClient):
     """Self-hosted / AMD AUP OpenAI-compatible endpoint (spec §72).
 
@@ -950,6 +1025,7 @@ class RoutedLlmClient:
 __all__ = [
     "DEFAULT_ROUTES",
     "DEFAULT_TIMEOUT_S",
+    "GmiCloudClient",
     "InMemoryQuotaGuard",
     "LlmAuditSink",
     "LlmCompletion",

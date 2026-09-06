@@ -7,8 +7,8 @@ so that ``.env.example`` stays the single source of truth for required variables
 
 Security invariants enforced here (spec §56 / §70 / §71 / §73):
 
-* ``OPENAI_API_KEY`` / ``ELEVENLABS_API_KEY`` are read *only* in this process. They are
-  never serialised into a response model and never returned by any router.
+* Provider API keys are read *only* in this process. They are never serialised into
+  a response model and never returned by any router.
 * Outside ``APP_ENV=local`` the process refuses to boot with a default ``JWT_SECRET``
   or with a missing ``OPENAI_API_KEY`` while the OpenAI provider is enabled.
 """
@@ -23,7 +23,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 AppEnv = Literal["local", "test", "staging", "production"]
 WebGpuMode = Literal["auto", "on", "off"]
-LlmProvider = Literal["openai", "azure_openai", "aup", "minimax", "none"]
+LlmProvider = Literal["openai", "azure_openai", "aup", "minimax", "gmi", "none"]
 TtsProvider = Literal["elevenlabs", "openai", "local", "none"]
 SttProvider = Literal["mac", "elevenlabs", "openai", "none"]
 VectorBackend = Literal["qdrant", "memory", "chroma", "faiss"]
@@ -82,6 +82,7 @@ class Settings(BaseSettings):
     # ---- provider secrets (.env.example) — never leave this process ---------
     openai_api_key: SecretStr | None = Field(default=None, validation_alias="OPENAI_API_KEY")
     minimax_api_key: SecretStr | None = Field(default=None, validation_alias="MINIMAX_API_KEY")
+    gmi_api_key: SecretStr | None = Field(default=None, validation_alias="GMI_API_KEY")
     elevenlabs_api_key: SecretStr | None = Field(
         default=None, validation_alias="ELEVENLABS_API_KEY"
     )
@@ -123,6 +124,15 @@ class Settings(BaseSettings):
         # deployment's .env is authoritative; this is only the fallback.
         default="MiniMax-M3",
         validation_alias="MINIMAX_MODEL",
+    )
+    gmi_base_url: str = Field(
+        default="https://api.gmi-serving.com/v1", validation_alias="GMI_BASE_URL"
+    )
+    gmi_model: str = Field(
+        default="MiniMaxAI/MiniMax-M3", validation_alias="GMI_MODEL"
+    )
+    gmi_organization_id: str | None = Field(
+        default=None, validation_alias="GMI_ORGANIZATION_ID"
     )
     llm_timeout_seconds: float = Field(default=30.0, validation_alias="LLM_TIMEOUT_SECONDS")
     embedding_model: str = Field(
@@ -211,6 +221,10 @@ class Settings(BaseSettings):
         return self.llm_provider == "minimax"
 
     @property
+    def gmi_enabled(self) -> bool:
+        return self.llm_provider == "gmi"
+
+    @property
     def cookie_secure(self) -> bool:
         """Secure cookies everywhere except plain-HTTP local development (§73)."""
         return not self.is_local
@@ -278,6 +292,8 @@ class Settings(BaseSettings):
             )
         if self.minimax_enabled and not self.minimax_api_key:
             problems.append("MINIMAX_API_KEY is required when LLM_PROVIDER=minimax")
+        if self.gmi_enabled and not self.gmi_api_key:
+            problems.append("GMI_API_KEY is required when LLM_PROVIDER=gmi")
         if self.elevenlabs_enabled and not self.elevenlabs_api_key:
             problems.append("ELEVENLABS_API_KEY is required when TTS_PROVIDER=elevenlabs")
         if not self.cors_allow_origins:

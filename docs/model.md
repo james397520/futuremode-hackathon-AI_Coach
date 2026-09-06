@@ -89,6 +89,8 @@ text-embedding-3-\* → Vector Database*). They must never be selected as a sile
 | Provider | Model | Used for | Configured by |
 |---|---|---|---|
 | OpenAI | `text-embedding-3-small`, `text-embedding-3-large` | document and query embedding | `EMBEDDING_MODEL` (default `text-embedding-3-large`, 3072 dimensions) |
+| MiniMax | `MiniMax-M3` (Anthropic-compatible Messages API) | the multi-agent turn loop (§19/§66) — primary | `LLM_PROVIDER=minimax`, `MINIMAX_API_KEY`, `MINIMAX_MODEL` |
+| GMI Cloud | `MiniMaxAI/MiniMax-M3` (MiniMax served through GMI's OpenAI-compatible endpoint) | first fallback for the turn loop when MiniMax direct times out, is rate-limited, or fails before streaming emits content; audit records the provider that answered | `GMI_API_KEY`, `GMI_BASE_URL`, `GMI_MODEL` |
 | OpenAI | `gpt-4o` and siblings | the multi-agent turn loop (§19/§66), question generation, evaluation | `LLM_PROVIDER=openai`, `LLM_MODEL` |
 | OpenAI | speech models | STT, and TTS when `TTS_PROVIDER=openai` | `TTS_PROVIDER` |
 | ElevenLabs | TTS voices | persona voice (§22) | `TTS_PROVIDER=elevenlabs` |

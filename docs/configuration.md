@@ -11,6 +11,9 @@
 | `LLM_PROVIDER` | `minimax` | 對談模型供應者 |
 | `MINIMAX_API_KEY` | 空 | 僅 API/worker 可讀 |
 | `MINIMAX_MODEL` | `MiniMax-M2.7-highspeed` | 可設為可用的 MiniMax 模型 |
+| `GMI_API_KEY` | 空 | 設定後，`LLM_PROVIDER=minimax` 時 GMI Cloud 成為第一備援；僅 API/worker 可讀 |
+| `GMI_BASE_URL` | `https://api.gmi-serving.com/v1` | GMI Cloud OpenAI 相容端點 |
+| `GMI_MODEL` | `MiniMaxAI/MiniMax-M3` | 請以 GMI 的 `GET /v1/models` 確認帳號可用的模型 ID |
 | `JWT_SECRET` | `change-me` | production 必須為 32+ 字元隨機值 |
 
 ## 本機最小模式
