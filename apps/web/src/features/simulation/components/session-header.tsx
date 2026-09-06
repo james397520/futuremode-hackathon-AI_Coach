@@ -119,11 +119,11 @@ export function SessionHeader({
             icon={mode === 'assessment' ? <ShieldIcon size={11} /> : undefined}
             title={
               mode === 'assessment'
-                ? 'Assessment — coaching affordances are disabled to keep the score valid'
-                : 'Training — hints and coaching are available'
+                ? '評測模式 — 為了維持評分效力，教練輔助功能已停用'
+                : '訓練模式 — 可以使用提示與教練輔助'
             }
           >
-            {mode === 'assessment' ? 'Assessment' : 'Training'}
+            {mode === 'assessment' ? '評測' : '訓練'}
           </TonePill>
         </div>
         <p className="mt-1 truncate text-meta text-text-secondary">
@@ -207,16 +207,16 @@ export function SessionHeader({
         style={{ borderColor: tint('neutral', 16) }}
       >
         <HeaderIconButton
-          label={paused ? 'Resume session' : 'Pause session'}
+          label={paused ? '繼續練習' : '暫停練習'}
           onClick={onPauseResume}
           disabled={finished || status === 'idle' || status === 'connecting'}
         >
           {paused ? <PlayIcon size={16} /> : <PauseIcon size={16} />}
         </HeaderIconButton>
-        <HeaderIconButton label="Restart session" onClick={onRestart}>
+        <HeaderIconButton label="重新開始（會開一場新的練習）" onClick={onRestart}>
           <RestartIcon size={16} />
         </HeaderIconButton>
-        <HeaderIconButton label="End session" onClick={onEnd} disabled={finished} tone="danger">
+        <HeaderIconButton label="結束練習" onClick={onEnd} disabled={finished} tone="danger">
           <StopIcon size={16} />
         </HeaderIconButton>
       </div>

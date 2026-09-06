@@ -43,16 +43,16 @@ export function MiningReviewPage({ kbId }: { kbId: string }) {
     <div className="space-y-5 pb-4">
       <PageHeader
         breadcrumbs={[
-          { label: 'Knowledge Base', href: '/knowledge' },
+          { label: '知識庫', href: '/knowledge' },
           { label: kb?.name ?? kbId, href: `/knowledge/${kbId}` },
-          { label: 'Knowledge mining' },
+          { label: '知識探勘' },
         ]}
-        title="Knowledge mining review"
-        description="Golden phrases, objection patterns and scenario seeds mined from top-performer transcripts, coaching notes and escalation logs."
+        title="知識探勘審核"
+        description="從頂尖業務逐字稿、教練筆記與客訴升級紀錄中，探勘出的金句、常見異議模式與情境種子。"
         meta={
           <>
-            <Pill tone="warning" size="sm">{pendingCount} awaiting review</Pill>
-            <Pill tone="neutral" size="sm">All sources anonymised</Pill>
+            <Pill tone="warning" size="sm">{pendingCount} 筆待審核</Pill>
+            <Pill tone="neutral" size="sm">所有來源皆已去識別化</Pill>
           </>
         }
       />
@@ -60,22 +60,22 @@ export function MiningReviewPage({ kbId }: { kbId: string }) {
       <GlassCard className="p-5">
         <div className="flex items-center gap-2">
           <ShieldCheck size={16} strokeWidth={1.8} aria-hidden className="text-accent-mint" />
-          <h2 className="text-card-title">Mining pipeline</h2>
+          <h2 className="text-card-title">探勘流程</h2>
         </div>
         <ol className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-2 text-body-sm text-text-secondary">
           {[
-            'Transcript',
-            'Anonymisation',
-            'Segmentation',
-            'Objection / intent extraction',
-            'Best-response mining',
-            'Human review',
-            'Publish to playbook',
+            '逐字稿',
+            '去識別化',
+            '段落切分',
+            '異議／意圖擷取',
+            '最佳回應探勘',
+            '人工審核',
+            '發布到話術手冊',
           ].map((stage, index, all) => (
             <li key={stage} className="flex items-center gap-2">
               <span
                 className={
-                  stage === 'Human review'
+                  stage === '人工審核'
                     ? 'rounded-pill bg-glass-card px-2.5 py-1 font-medium text-text-primary'
                     : 'rounded-pill px-2.5 py-1'
                 }
@@ -92,18 +92,18 @@ export function MiningReviewPage({ kbId }: { kbId: string }) {
         value={filter}
         onValueChange={(value: string) => setFilter(value as Filter)}
         items={[
-          { value: 'pending_review', label: 'Awaiting review', count: pendingCount },
-          { value: 'approved', label: 'Approved' },
-          { value: 'rejected', label: 'Rejected' },
-          { value: 'all', label: 'All', count: MOCK_MINING_CANDIDATES.length },
+          { value: 'pending_review', label: '待審核', count: pendingCount },
+          { value: 'approved', label: '已通過' },
+          { value: 'rejected', label: '已退回' },
+          { value: 'all', label: '全部', count: MOCK_MINING_CANDIDATES.length },
         ]}
       />
 
       {candidates.length === 0 ? (
         <GlassCard className="dot-matrix p-8 text-center">
-          <p className="text-body font-medium">Nothing in this queue</p>
+          <p className="text-body font-medium">這個佇列目前是空的</p>
           <p className="mt-1 text-body-sm text-text-secondary">
-            New candidates appear after each batch of completed sessions is mined.
+            每批練習結束並完成探勘後，新的候選項目就會出現在這裡。
           </p>
         </GlassCard>
       ) : (
@@ -129,12 +129,12 @@ export function MiningReviewPage({ kbId }: { kbId: string }) {
                         size="sm"
                       >
                         {candidate.status === 'pending_review'
-                          ? 'Awaiting review'
+                          ? '待審核'
                           : candidate.status === 'approved'
-                            ? 'Approved'
-                            : 'Rejected'}
+                            ? '已通過'
+                            : '已退回'}
                       </Pill>
-                      {candidate.anonymised ? <Pill tone="neutral" size="sm">Anonymised</Pill> : null}
+                      {candidate.anonymised ? <Pill tone="neutral" size="sm">已去識別化</Pill> : null}
                     </div>
 
                     <h3 className="text-card-title">{candidate.title}</h3>
@@ -144,25 +144,25 @@ export function MiningReviewPage({ kbId }: { kbId: string }) {
 
                     <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1.5 text-body-sm">
                       <div className="flex gap-2">
-                        <dt className="text-text-tertiary">Source</dt>
+                        <dt className="text-text-tertiary">來源</dt>
                         <dd>{candidate.source_label}</dd>
                       </div>
                       <div className="flex gap-2">
-                        <dt className="text-text-tertiary">Reference</dt>
+                        <dt className="text-text-tertiary">參考編號</dt>
                         <dd>{candidate.source_session_ref}</dd>
                       </div>
                       <div className="flex gap-2">
-                        <dt className="text-text-tertiary">Occurrences</dt>
+                        <dt className="text-text-tertiary">出現次數</dt>
                         <dd className="tabular-nums">{candidate.occurrences}</dd>
                       </div>
                       <div className="flex gap-2">
-                        <dt className="text-text-tertiary">Confidence</dt>
+                        <dt className="text-text-tertiary">信心度</dt>
                         <dd className="tabular-nums">{Math.round(candidate.confidence * 100)}%</dd>
                       </div>
                     </dl>
 
                     <p className="mt-2 text-body-sm">
-                      <span className="meta-label mr-2">Publishes to</span>
+                      <span className="meta-label mr-2">發布至</span>
                       <span className="text-text-secondary">{candidate.suggested_target}</span>
                     </p>
                   </div>
@@ -175,7 +175,7 @@ export function MiningReviewPage({ kbId }: { kbId: string }) {
                         onClick={() => setDecisions((prev) => ({ ...prev, [candidate.id]: 'rejected' }))}
                       >
                         <X size={15} strokeWidth={2} aria-hidden />
-                        Reject
+                        退回
                       </Button>
                       <Button
                         variant="primary"
@@ -183,7 +183,7 @@ export function MiningReviewPage({ kbId }: { kbId: string }) {
                         onClick={() => setDecisions((prev) => ({ ...prev, [candidate.id]: 'approved' }))}
                       >
                         <Check size={15} strokeWidth={2} aria-hidden />
-                        Approve
+                        通過
                       </Button>
                     </div>
                   ) : null}
@@ -195,14 +195,14 @@ export function MiningReviewPage({ kbId }: { kbId: string }) {
       )}
 
       <p className="text-tiny text-text-tertiary">
-        Approved items land in{' '}
+        審核通過的項目會進入
         <Link
           href="/knowledge/kb_playbook"
           className="text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))] hover:underline"
         >
-          Top Performer Playbook
-        </Link>{' '}
-        and become retrievable for scenarios that select it.
+          頂尖業務話術手冊
+        </Link>
+        ，之後選用該知識庫的情境就能檢索到這些內容。
       </p>
     </div>
   );

@@ -24,11 +24,11 @@ export function SkillHeatmap({
   return (
     <div className={cn('overflow-x-auto', className)}>
       <table className="w-full border-separate border-spacing-1 text-body-sm">
-        <caption className="sr-only-live">Skill matrix by team. Lower numbers indicate a weaker skill.</caption>
+        <caption className="sr-only-live">各團隊技能矩陣。數字越低，代表該項技能越弱。</caption>
         <thead>
           <tr>
             <th scope="col" className="sticky left-0 bg-transparent px-2 text-left text-tiny font-medium text-text-tertiary">
-              Team
+              團隊
             </th>
             {columns.map((column) => (
               <th

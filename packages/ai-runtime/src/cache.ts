@@ -352,7 +352,7 @@ export class ModelCache {
         throw new BackendFailure({
           reason: 'aborted',
           backend: 'server',
-          message: 'Model download was cancelled.',
+          message: '模型下載已取消。',
         });
       }
       throw new Error(`network error for ${url}: ${errorText(error)}`);

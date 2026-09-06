@@ -270,12 +270,12 @@ export type {
  * does not belong on a trainee's screen.
  */
 export const RUNTIME_LABEL = {
-  checking: 'Checking device…',
-  preparing: 'Preparing local AI…',
-  gpu: 'Local AI · GPU accelerated',
-  local: 'Local AI ready',
-  cloud: 'AI ready',
-  unavailable: 'AI unavailable',
+  checking: '偵測裝置中…',
+  preparing: '準備本機 AI…',
+  gpu: '本機 AI · GPU 加速',
+  local: '本機 AI 就緒',
+  cloud: 'AI 就緒',
+  unavailable: 'AI 無法使用',
 } as const;
 
 export type RuntimeLabelKey = keyof typeof RUNTIME_LABEL;

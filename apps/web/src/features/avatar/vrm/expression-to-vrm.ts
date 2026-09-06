@@ -65,19 +65,24 @@ const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 export const ARKIT_EXPRESSION_PRESETS: Record<AvatarExpressionName, ArkitWeights> = {
   neutral: {},
   listening: { browInnerUp: 0.18, eyeWideLeft: 0.08, eyeWideRight: 0.08 },
+  // Authored for the Rocketbox heads, which render smaller and flatter than the
+  // stylised bodies these numbers came from: at the old values the VRM's `angry`
+  // channel — the brow — topped out at 0.41 and a sceptical customer was a face
+  // you had to be *told* was sceptical. The asymmetry is kept on purpose; it is
+  // what stops the pose reading as a mask.
   skeptical: {
-    browDownLeft: 0.55, browDownRight: 0.2, browInnerUp: 0.2,
-    eyeSquintLeft: 0.4, eyeSquintRight: 0.2,
-    mouthPressLeft: 0.4, mouthPressRight: 0.4, mouthLeft: 0.2, noseSneerLeft: 0.15,
+    browDownLeft: 0.72, browDownRight: 0.45, browInnerUp: 0.2,
+    eyeSquintLeft: 0.5, eyeSquintRight: 0.3,
+    mouthPressLeft: 0.5, mouthPressRight: 0.5, mouthLeft: 0.2, noseSneerLeft: 0.2,
   },
   concerned: {
-    browInnerUp: 0.55, mouthFrownLeft: 0.3, mouthFrownRight: 0.3, mouthShrugLower: 0.2,
+    browInnerUp: 0.75, mouthFrownLeft: 0.45, mouthFrownRight: 0.42, mouthShrugLower: 0.25,
     eyeLookDownLeft: 0.12, eyeLookDownRight: 0.12,
   },
   frustrated: {
-    browDownLeft: 0.6, browDownRight: 0.6, eyeSquintLeft: 0.3, eyeSquintRight: 0.3,
-    noseSneerLeft: 0.25, noseSneerRight: 0.25, mouthFrownLeft: 0.3, mouthFrownRight: 0.3,
-    mouthPressLeft: 0.25, mouthPressRight: 0.25, jawForward: 0.1,
+    browDownLeft: 0.85, browDownRight: 0.8, eyeSquintLeft: 0.4, eyeSquintRight: 0.4,
+    noseSneerLeft: 0.35, noseSneerRight: 0.32, mouthFrownLeft: 0.45, mouthFrownRight: 0.42,
+    mouthPressLeft: 0.35, mouthPressRight: 0.35, jawForward: 0.12,
   },
   interested: {
     mouthSmileLeft: 0.45, mouthSmileRight: 0.4, cheekSquintLeft: 0.2, cheekSquintRight: 0.2,
@@ -99,6 +104,11 @@ export const ARKIT_EXPRESSION_PRESETS: Record<AvatarExpressionName, ArkitWeights
  * 0–1 *product* number that sits around 0.3–0.7 in practice. Scaling linearly
  * would leave every face at half strength, so the gain lifts the working range
  * while still letting intensity 0 mean "nothing".
+ *
+ * Raising this does *not* make faces stronger at the intensities the director
+ * actually produces: measured on 張若瑄 at 懷疑, `scale` was already clamped to
+ * 1, so 1.4 and 1.9 gave an identical brow. What limits the face is the pose,
+ * not the gain — see the presets above.
  */
 const INTENSITY_GAIN = 1.4;
 

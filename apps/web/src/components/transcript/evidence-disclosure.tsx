@@ -46,7 +46,7 @@ export function EvidenceDisclosure({
           <ScoreBar label={label} score={skill.score} threshold={threshold} confidence={skill.confidence} />
         </div>
         <span className="flex shrink-0 items-center gap-1.5 text-tiny text-text-tertiary">
-          {skill.evidence.length} {skill.evidence.length === 1 ? 'excerpt' : 'excerpts'}
+          {skill.evidence.length} 則佐證
           <ChevronDown
             size={15}
             strokeWidth={1.8}
@@ -60,15 +60,14 @@ export function EvidenceDisclosure({
         <div id={panelId} className="space-y-3 border-t border-border-soft px-4 py-3.5">
           {skill.rubric_note ? (
             <p className="text-body-sm text-text-secondary">
-              <span className="meta-label mr-2">Rubric</span>
+              <span className="meta-label mr-2">評分規準</span>
               {skill.rubric_note}
             </p>
           ) : null}
 
           {skill.evidence.length === 0 ? (
             <p className="text-body-sm text-text-tertiary">
-              No transcript excerpt was attached to this dimension — the score is provisional and needs
-              coach review before it counts.
+              此維度沒有附上逐字稿佐證——分數僅供參考，需經教練複核後才算正式成績。
             </p>
           ) : null}
 
@@ -76,7 +75,7 @@ export function EvidenceDisclosure({
             {skill.evidence.map((evidence, index) => (
               <li key={`${panelId}-${index}`} className="rounded-card-sm border border-border-soft px-3.5 py-3">
                 <div className="mb-1.5 flex flex-wrap items-center gap-2 text-tiny text-text-tertiary">
-                  <span className="tabular-nums">Evidence at {formatClock(evidence.timestamp_ms)}</span>
+                  <span className="tabular-nums">佐證時間 {formatClock(evidence.timestamp_ms)}</span>
                   {evidence.transcript_turn_ids.map((turnId) => (
                     <button
                       key={turnId}
@@ -84,7 +83,7 @@ export function EvidenceDisclosure({
                       onClick={() => onJumpToTurn?.(turnId)}
                       className="ink-indigo rounded-button hover:underline"
                     >
-                      Jump to turn
+                      跳到該回合
                     </button>
                   ))}
                 </div>
@@ -98,14 +97,14 @@ export function EvidenceDisclosure({
                   <p className="mt-2 text-body-sm">
                     {/* 11px labels: raw warning is 1.6:1 and raw success 1.7:1 on
                         the light glass; the ink mixes measure 4.9:1 / 4.9:1. */}
-                    <span className="meta-label ink-warning mr-2">Issue</span>
+                    <span className="meta-label ink-warning mr-2">問題</span>
                     <span className="text-text-secondary">{evidence.issue}</span>
                   </p>
                 ) : null}
 
                 {evidence.better_approach ? (
                   <p className="mt-1.5 text-body-sm">
-                    <span className="meta-label ink-success mr-2">Better approach</span>
+                    <span className="meta-label ink-success mr-2">更好的做法</span>
                     <span className="text-text-secondary">{evidence.better_approach}</span>
                   </p>
                 ) : null}
@@ -115,7 +114,7 @@ export function EvidenceDisclosure({
 
           {skill.improvement_suggestion ? (
             <p className="rounded-card-sm bg-glass-card px-3.5 py-2.5 text-body-sm text-text-secondary">
-              <span className="meta-label mr-2">Next time</span>
+              <span className="meta-label mr-2">下次試試</span>
               {skill.improvement_suggestion}
             </p>
           ) : null}

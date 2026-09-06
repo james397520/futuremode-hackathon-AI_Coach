@@ -117,11 +117,11 @@ export function SessionCompleteSummary({
   return (
     <GlassCard className={cn('sim-card-enter p-6', className)}>
       <CardTitle
-        eyebrow="Session complete"
+        eyebrow="練習完成"
         action={
           evaluation ? (
             <TonePill tone={passed ? 'mint' : 'warning'} fill={17}>
-              {passed ? 'Passed' : 'Needs another attempt'}
+              {passed ? '通過' : '再練一次會更好'}
             </TonePill>
           ) : null
         }
@@ -129,7 +129,7 @@ export function SessionCompleteSummary({
         {scenarioName}
       </CardTitle>
 
-      <p className="mt-1 text-meta text-text-tertiary">Simulation with {personaName}</p>
+      <p className="mt-1 text-meta text-text-tertiary">與 {personaName} 的模擬對話</p>
 
       {/* Headline ----------------------------------------------------------- */}
       <div className="mt-5 grid gap-5 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">
@@ -147,7 +147,7 @@ export function SessionCompleteSummary({
               {formatScore(overall)}
             </span>
           )}
-          <span className="text-tiny uppercase tracking-[0.08em] text-text-tertiary">Overall</span>
+          <span className="text-tiny uppercase tracking-[0.08em] text-text-tertiary">總分</span>
         </div>
 
         <div className="grid gap-3">
@@ -159,19 +159,19 @@ export function SessionCompleteSummary({
                   fill={16}
                   icon={<CheckIcon size={11} />}
                 >
-                  {evaluation.goal_achieved ? 'Goal achieved' : 'Goal not achieved'}
+                  {evaluation.goal_achieved ? '目標達成' : '目標未達成'}
                 </TonePill>
                 <TonePill tone={riskTone} fill={16} icon={<ShieldIcon size={11} />}>
-                  Compliance · {COMPLIANCE_RISK_LABEL[evaluation.compliance_status] ?? evaluation.compliance_status}
+                  合規 · {COMPLIANCE_RISK_LABEL[evaluation.compliance_status] ?? evaluation.compliance_status}
                 </TonePill>
                 {typeof minimumScore === 'number' ? (
-                  <span className="text-tiny text-text-tertiary">Pass mark {minimumScore}</span>
+                  <span className="text-tiny text-text-tertiary">及格 {minimumScore} 分</span>
                 ) : null}
               </>
             ) : (
               <span className="flex items-center gap-2 text-body-sm text-text-secondary">
                 <SparkleIcon size={13} />
-                {loading ? 'Scoring your session…' : 'The evaluation will appear here shortly.'}
+                {loading ? '正在為這場練習評分…' : '評分結果稍後會出現在這裡。'}
               </span>
             )}
           </div>
@@ -180,13 +180,13 @@ export function SessionCompleteSummary({
             <div className="grid gap-2.5 sm:grid-cols-2">
               <InsetBlock tone="mint" fill={9}>
                 <div className="text-tiny uppercase tracking-[0.08em] text-text-tertiary">
-                  Key strength
+                  主要優勢
                 </div>
                 <p className="mt-1.5 text-body-sm text-text-secondary">{evaluation.key_strength}</p>
               </InsetBlock>
               <InsetBlock tone="warning" fill={9}>
                 <div className="text-tiny uppercase tracking-[0.08em] text-text-tertiary">
-                  Main improvement
+                  首要改進
                 </div>
                 <p className="mt-1.5 text-body-sm text-text-secondary">{evaluation.main_improvement}</p>
               </InsetBlock>
@@ -203,7 +203,7 @@ export function SessionCompleteSummary({
       {/* Skills ------------------------------------------------------------- */}
       <div className="mt-6 border-t pt-4" style={{ borderColor: 'var(--border-soft)' }}>
         <div className="text-tiny uppercase tracking-[0.08em] text-text-tertiary">
-          {evaluation ? 'Skill breakdown' : 'Live scores from this session'}
+          {evaluation ? '各項技能' : '本場練習的即時分數'}
         </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {evaluation
@@ -213,7 +213,7 @@ export function SessionCompleteSummary({
                   label={SKILL_LABEL[skill.skill as SkillKey] ?? String(skill.skill)}
                   value={skill.score}
                   tone={skill.score >= 80 ? 'mint' : skill.score >= 60 ? 'blue' : 'warning'}
-                  hint={`confidence ${Math.round(skill.confidence * 100)}%`}
+                  hint={`信心 ${Math.round(skill.confidence * 100)}%`}
                 />
               ))
             : fallbackScores.map((score) => (
@@ -225,7 +225,7 @@ export function SessionCompleteSummary({
                 />
               ))}
           {!evaluation && fallbackScores.length === 0 ? (
-            <p className="text-body-sm text-text-tertiary">No live scores were recorded.</p>
+            <p className="text-body-sm text-text-tertiary">這場練習沒有記錄到即時分數。</p>
           ) : null}
         </div>
       </div>
@@ -234,7 +234,7 @@ export function SessionCompleteSummary({
       {recommendedNextTraining ? (
         <InsetBlock tone="indigo" fill={10} className="mt-5">
           <div className="text-tiny uppercase tracking-[0.08em] text-text-tertiary">
-            Recommended next training
+            建議的下一場訓練
           </div>
           <p className="mt-1.5 text-body font-medium text-text-primary">
             {recommendedNextTraining.name}
@@ -245,12 +245,12 @@ export function SessionCompleteSummary({
 
       {/* Actions ------------------------------------------------------------ */}
       <div className="mt-6 flex flex-wrap gap-2.5">
-        <ActionButton label="Full report" icon={<ReportIcon size={16} />} onClick={onFullReport} primary />
-        <ActionButton label="Replay" icon={<PlayIcon size={16} />} onClick={onReplay} />
-        <ActionButton label="Retry" icon={<RestartIcon size={16} />} onClick={onRetry} />
-        <ActionButton label="Compare" icon={<CompareIcon size={16} />} onClick={onCompare} />
-        <ActionButton label="Share" icon={<ShareIcon size={16} />} onClick={onShare} />
-        <ActionButton label="Export PDF" icon={<DownloadIcon size={16} />} onClick={onExportPdf} />
+        <ActionButton label="完整報告" icon={<ReportIcon size={16} />} onClick={onFullReport} primary />
+        <ActionButton label="重播" icon={<PlayIcon size={16} />} onClick={onReplay} />
+        <ActionButton label="再練一次" icon={<RestartIcon size={16} />} onClick={onRetry} />
+        <ActionButton label="比較" icon={<CompareIcon size={16} />} onClick={onCompare} />
+        <ActionButton label="分享" icon={<ShareIcon size={16} />} onClick={onShare} />
+        <ActionButton label="匯出逐字稿" icon={<DownloadIcon size={16} />} onClick={onExportPdf} />
       </div>
     </GlassCard>
   );

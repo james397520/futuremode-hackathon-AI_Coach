@@ -54,8 +54,30 @@ export interface AffectAnalyzer {
   dispose?: () => void;
 }
 
-/** Readings below this are treated as no reading at all. */
-export const MIN_CONFIDENCE = 0.45;
+/**
+ * Readings below this are treated as no reading at all.
+ *
+ * The fourth of four floors on the same signal, and the earliest: a reading
+ * dropped here never reaches the nudge, the socket, or the customer. All four
+ * are 0.25 — this one, `affect-nudge`'s, and the API's `FACE_REACT_MIN_CONFIDENCE`
+ * and `FACE_MIN_CONFIDENCE`. They have to agree, or the highest one silently
+ * decides and the other three are decoration.
+ *
+ * 0.25, and the number it is compared against changed too — see below.
+ *
+ * `neutral` competes in the same ranking, scoring `1 − 1.6 × activation`, so a
+ * negative rule only becomes the top label once it has *already beaten* neutral.
+ * Solving the crossover: a pure frown outranks neutral at driver 0.455, where
+ * the negative rule's own score is only **0.273**. So the winning label's score
+ * can essentially never reach 0.42 for a real expression — that threshold
+ * required a driver of ~0.70, a theatrical pout rather than the way anyone
+ * frowns at a screen, and 0.42 / 0.32 were both above the band where genuine
+ * frowns live.
+ *
+ * Which is why "the top label is negative" now does the work, and this floor
+ * only rejects noise underneath it.
+ */
+export const MIN_CONFIDENCE = 0.25;
 
 /** Sampling rate. 4 fps is plenty for an emotion trend and costs almost nothing. */
 export const SAMPLE_INTERVAL_MS = 250;
@@ -84,6 +106,27 @@ const listeners = new Set<() => void>();
 export function subscribeToAffectAnalyzer(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
+}
+
+/**
+ * Dev-only seam (`window.__aiCoachAffectDriver`), mirroring `window.__aiCoachVrm`.
+ * Distinct from `window.__aiCoachAffect`, which `mediapipe-affect.ts` uses to
+ * expose the real analyser instance: this one *swaps* the analyser.
+ *
+ * The frown → "need a hand?" → coach-hint chain is the one demo beat that
+ * cannot be exercised without a face in front of a camera, which no automated
+ * check has. Registering a stand-in analyser here lets that path be driven and
+ * measured end to end. Stripped from production builds.
+ */
+function installDevHandle(): void {
+  if (process.env.NODE_ENV === 'production' || typeof window === 'undefined') return;
+  const handle = {
+    setAnalyzer: setAffectAnalyzer,
+    /** Feed one fixed reading, e.g. `fake('angry', 0.7)`. */
+    fake: (label: AffectLabel, confidence = 0.7) =>
+      setAffectAnalyzer({ id: `fake:${label}`, analyze: () => ({ label, confidence }) }),
+  };
+  (window as Window & { __aiCoachAffectDriver?: typeof handle }).__aiCoachAffectDriver = handle;
 }
 
 export function setAffectAnalyzer(analyzer: AffectAnalyzer | null): void {
@@ -120,9 +163,12 @@ export const FACE_TO_AFFECT_LABEL: Record<AffectLabel, string> = {
   neutral: '平穩',
   happy: '正向',
   sad: '挫折',
-  angry: '不耐煩',
-  disgusted: '不耐煩',
-  contempt: '不耐煩',
+  // 苦惱 rather than 不耐煩 — see `FACE_TO_LABEL` in the API's `domain/affect.py`.
+  angry: '苦惱',
+  disgusted: '苦惱',
+  contempt: '苦惱',
   fearful: '緊張',
   surprised: '不明確',
 };
+
+installDevHandle();

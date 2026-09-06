@@ -30,11 +30,11 @@ const STATE_TONE: Record<PreflightCheckState, ToneKey> = {
 };
 
 const STATE_LABEL: Record<PreflightCheckState, string> = {
-  pending: 'Waiting',
-  running: 'Starting',
-  ok: 'Ready',
-  skipped: 'Not used',
-  failed: 'Unavailable',
+  pending: '等待中',
+  running: '啟動中',
+  ok: '就緒',
+  skipped: '未使用',
+  failed: '無法使用',
 };
 
 /** The checks that may legitimately hold Start Training (§52 ∩ §53). */
@@ -59,7 +59,7 @@ export function AvatarPreflight({ visible = true, className }: AvatarPreflightPr
   return (
     <section
       className={cn('grid gap-2', className)}
-      aria-label="Simulation readiness"
+      aria-label="練習就緒狀態"
       // The list mutates as checks settle; announce it politely, never assertively.
       aria-live="polite"
       aria-busy={!settled}
@@ -100,10 +100,10 @@ export function AvatarPreflight({ visible = true, className }: AvatarPreflightPr
 
       <p className="text-tiny" style={{ color: 'var(--text-tertiary)' }}>
         {blocking.length > 0
-          ? `Waiting on ${blocking.map((check) => check.label.toLowerCase()).join(', ')}.`
+          ? `正在等待：${blocking.map((check) => check.label).join('、')}。`
           : status === 'unavailable'
-            ? 'Video avatar is not installed on this machine — training runs in portrait mode.'
-            : 'All set. Training can start.'}
+            ? '這台電腦沒有安裝影像虛擬人 — 練習會以人像模式進行。'
+            : '一切就緒，可以開始練習。'}
       </p>
     </section>
   );

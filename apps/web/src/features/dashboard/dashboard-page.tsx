@@ -5,7 +5,7 @@ import { ArrowUpRight, CalendarClock, Play, Sparkles, Target } from 'lucide-reac
 import { Button, GlassCard, Pill, ProgressBar, StatTile } from '@/components/ui';
 import { MiniBars, Sparkline, TrendLine } from '@/components/data-viz';
 import { DifficultyPill, ModePill, RiskPill } from '@/components/status';
-import { PageHeader } from '@/components/app-shell';
+import { HeroLanding } from './hero-landing';
 import { useAuth } from '@/lib/auth-context';
 import { ACTIVITY_BY_DAY, DASHBOARD_KPIS } from '@/lib/fixtures/reports';
 import { ASSIGNMENT_STATUS_LABEL, MOCK_ASSIGNMENT_PROGRESS } from '@/lib/fixtures/training';
@@ -51,112 +51,10 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-4">
-      <PageHeader
-        title={`${greeting}，${firstName}`}
-        description={`${workspace?.name ?? '此工作區'} 的訓練總覽 — 指派任務、準備度與今日目標。`}
-        meta={
-          <>
-            <Pill tone="neutral" size="sm">第 12 週 · 2026</Pill>
-            <Pill tone="success" size="sm">本週有 2 項指派即將到期</Pill>
-          </>
-        }
-        actions={
-          <>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/reports/team">
-                團隊報表
-                <ArrowUpRight size={15} strokeWidth={1.8} aria-hidden />
-              </Link>
-            </Button>
-            <Button variant="primary" size="sm" asChild>
-              <Link href="/simulations">
-                <Play size={15} strokeWidth={2} aria-hidden />
-                開始模擬練習
-              </Link>
-            </Button>
-          </>
-        }
-      />
+      <HeroLanding />
 
-      {/* Hero — the only place with dot matrix on this page (§2). */}
-      <GlassCard className="relative overflow-hidden p-0">
-        <div className="dot-matrix pointer-events-none absolute inset-y-0 left-0 w-1/2 opacity-80" aria-hidden />
-        <div className="relative grid gap-6 p-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-          <div>
-            <p className="meta-label">訓練總覽</p>
-            <h2 className="mt-2 text-display">
-              {Math.round(MOCK_ASSIGNMENT_PROGRESS.reduce((sum, item) => sum + item.completion_rate, 0) / MOCK_ASSIGNMENT_PROGRESS.length * 100)}%
-            </h2>
-            <p className="mt-1 text-body text-text-secondary">
-              {MOCK_ASSIGNMENT_PROGRESS.length} 項進行中指派的平均完成率
-            </p>
+      <div id="dashboard-overview" className="scroll-mt-6" />
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              {DASHBOARD_KPIS.slice(0, 3).map((kpi) => (
-                <div key={kpi.id} className="border-l border-border-soft pl-4 first:border-l-0 first:pl-0">
-                  <p className="meta-label">{kpi.label}</p>
-                  <p className="mt-1 flex items-baseline gap-2">
-                    <span className="text-section tabular-nums">{kpi.value}</span>
-                    {kpi.delta ? (
-                      <span className="text-tiny font-medium text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]">
-                        {kpi.delta}
-                      </span>
-                    ) : null}
-                  </p>
-                  <p className="text-tiny text-text-tertiary">{kpi.hint}</p>
-                  {kpi.trend ? <Sparkline values={kpi.trend} /> : null}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* §13.1 "Today / Objective" floating card. */}
-          <div className="rounded-card border border-border-soft bg-[var(--surface-purple)] p-5">
-            <div className="flex items-center gap-2">
-              <Target size={16} strokeWidth={1.8} aria-hidden className="text-accent-indigo" />
-              <p className="meta-label">今日目標</p>
-            </div>
-            {todaysFocus ? (
-              <>
-                <h3 className="mt-2.5 text-card-title">{todaysFocus.scenario_name}</h3>
-                <p className="mt-1 text-body-sm text-text-secondary">
-                  模擬人物：{todaysFocus.persona_name}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  <DifficultyPill difficulty={todaysFocus.difficulty} />
-                  <ModePill mode={todaysFocus.mode} />
-                  {todaysFocus.mandatory ? <Pill tone="warning" size="sm">必修</Pill> : null}
-                </div>
-                <dl className="mt-4 space-y-2 text-body-sm">
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-text-tertiary">及格分數</dt>
-                    <dd className="tabular-nums">{todaysFocus.minimum_score}</dd>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-text-tertiary">已嘗試次數</dt>
-                    <dd className="tabular-nums">
-                      {todaysFocus.attempts_used} / {todaysFocus.max_attempts ?? '∞'}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-text-tertiary">狀態</dt>
-                    <dd>{ASSIGNMENT_STATUS_LABEL[todaysFocus.status]}</dd>
-                  </div>
-                </dl>
-                <Button variant="primary" size="sm" className="mt-4 w-full" asChild>
-                  <Link href={`/simulations/${todaysFocus.scenario_id}/setup`}>前往設定練習</Link>
-                </Button>
-              </>
-            ) : (
-              <p className="mt-3 text-body-sm text-text-secondary">
-                目前沒有待完成的項目。可從情境庫挑選任一情境繼續練習。
-              </p>
-            )}
-          </div>
-        </div>
-      </GlassCard>
-
-      {/* §13.3 KPI row — big tiles, not a grid of small squares. */}
       <GlassCard className="grid overflow-hidden p-0 sm:grid-cols-2 lg:grid-cols-3">
         {DASHBOARD_KPIS.map((kpi) => (
           <StatTile
@@ -351,7 +249,7 @@ export function DashboardPage() {
                     {scenario?.name ?? session.scenario_id}
                   </Link>
                   <p className="text-tiny text-text-tertiary">
-                    {learner?.display_name ?? session.user_id} · {session.turn_count} turns ·{' '}
+                    {learner?.display_name ?? session.user_id} · {session.turn_count} 輪對話 ·{' '}
                     {formatRelative(session.ended_at ?? session.started_at)}
                   </p>
                 </div>

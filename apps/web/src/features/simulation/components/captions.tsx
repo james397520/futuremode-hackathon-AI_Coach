@@ -90,7 +90,7 @@ export function Captions({
 
         {!hasContent ? (
           <p className="text-body text-text-tertiary">
-            Captions appear here as soon as either side starts talking.
+            只要任一方開口說話，字幕就會出現在這裡。
           </p>
         ) : null}
       </div>

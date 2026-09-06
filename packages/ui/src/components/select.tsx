@@ -203,7 +203,7 @@ export function Select({
   defaultValue,
   onValueChange,
   options,
-  placeholder = 'Select…',
+  placeholder = '請選擇…',
   disabled,
   name,
   id,

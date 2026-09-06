@@ -11,9 +11,9 @@ export function ReportTabs({ current }: { current: 'team' | 'skill' | 'complianc
       value={current}
       onValueChange={(value: string) => router.push(`/reports/${value}`)}
       items={[
-        { value: 'team', label: 'Team' },
-        { value: 'skill', label: 'Skill' },
-        { value: 'compliance', label: 'Compliance' },
+        { value: 'team', label: '團隊' },
+        { value: 'skill', label: '技能' },
+        { value: 'compliance', label: '合規' },
       ]}
     />
   );

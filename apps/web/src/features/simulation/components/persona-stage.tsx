@@ -25,6 +25,7 @@ export interface PersonaStageProps {
   /** Picks the 3D body (male / female suit). Resolved by the page from the persona. */
   personaGender?: AvatarBodyGender;
   personaAge?: number | null;
+  onPersonaVisible?: () => void;
   /** e.g. `陳先生 · Mortgage Insurance` second line. */
   subtitle?: string;
   avatarUrl?: string;
@@ -58,6 +59,7 @@ export function PersonaStage({
   personaName,
   personaGender,
   personaAge,
+  onPersonaVisible,
   subtitle,
   avatarUrl,
   eyebrow = '客戶模擬',
@@ -100,6 +102,7 @@ export function PersonaStage({
             personaName={personaName}
             {...(personaGender === undefined ? {} : { personaGender })}
             {...(personaAge === undefined ? {} : { personaAge })}
+            {...(onPersonaVisible === undefined ? {} : { onPersonaVisible })}
             {...(avatarUrl === undefined ? {} : { portraitUrl: avatarUrl })}
             {...(sessionId === undefined ? {} : { sessionId })}
             personaState={personaState}
@@ -161,10 +164,15 @@ export function PersonaStage({
             ) : null}
           </div>
 
-          {/* Bottom status — a chip, never a video-conference control bar (§20.1). */}
-          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4">
+          {/* Bottom status — a chip, never a video-conference control bar (§20.1).
+              A slim full-width rail rather than the old `p-4` block: the context
+              cards are bottom-anchored over the same edge, and every pixel this
+              strip takes is a pixel the cards lose (they were being sliced
+              through the middle of a progress bar). `h-10` here is what
+              `pb-11` on the overlay host reserves — keep the two in step. */}
+          <div className="absolute inset-x-0 bottom-0 flex h-10 items-center gap-2.5 px-3">
             <span
-              className="flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-tiny backdrop-blur"
+              className="flex shrink-0 items-center gap-1.5 rounded-pill px-2.5 py-1 text-tiny backdrop-blur"
               // Over the portrait, so: ink scrim + `--text-on-media` (§20.1), never
               // the card's toned text, which is tuned for glass and unreadable on
               // a photo. The tone lives in the dot.
@@ -193,7 +201,10 @@ export function PersonaStage({
               )}
             </span>
 
-            {waveform ? <div className="h-8 min-w-0 flex-1">{waveform}</div> : null}
+            {/* The waveform fills the rest of the rail instead of sitting in a
+                fixed box beside the chip, so it reads as one instrument panel
+                and stays legible when the stage is narrow. */}
+            {waveform ? <div className="h-6 min-w-0 flex-1 opacity-80">{waveform}</div> : null}
           </div>
 
           {/* §43 Live Speaking: bottom glow only. */}

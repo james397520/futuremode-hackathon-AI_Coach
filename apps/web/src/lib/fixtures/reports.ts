@@ -17,7 +17,7 @@ export interface TeamKpi {
 export const TEAM_KPIS: TeamKpi[] = [
   {
     team_id: 'team_taipei_north',
-    team_name: 'Taipei North Agency',
+    team_name: '台北北區營業處',
     members: 14,
     average_score: 81,
     pass_rate: 0.79,
@@ -29,7 +29,7 @@ export const TEAM_KPIS: TeamKpi[] = [
   },
   {
     team_id: 'team_taichung',
-    team_name: 'Taichung Agency',
+    team_name: '台中營業處',
     members: 11,
     average_score: 74,
     pass_rate: 0.58,
@@ -41,7 +41,7 @@ export const TEAM_KPIS: TeamKpi[] = [
   },
   {
     team_id: 'team_bank_desk',
-    team_name: 'Bank Desk Advisors',
+    team_name: '銀行臨櫃顧問組',
     members: 13,
     average_score: 77,
     pass_rate: 0.68,
@@ -63,7 +63,7 @@ export interface SkillMatrixRow {
 export const SKILL_MATRIX: SkillMatrixRow[] = [
   {
     team_id: 'team_taipei_north',
-    team_name: 'Taipei North',
+    team_name: '台北北區',
     scores: {
       professional_knowledge: 85,
       empathy: 76,
@@ -79,7 +79,7 @@ export const SKILL_MATRIX: SkillMatrixRow[] = [
   },
   {
     team_id: 'team_taichung',
-    team_name: 'Taichung',
+    team_name: '台中',
     scores: {
       professional_knowledge: 76,
       empathy: 68,
@@ -95,7 +95,7 @@ export const SKILL_MATRIX: SkillMatrixRow[] = [
   },
   {
     team_id: 'team_bank_desk',
-    team_name: 'Bank Desk',
+    team_name: '銀行臨櫃',
     scores: {
       professional_knowledge: 80,
       empathy: 73,
@@ -123,11 +123,11 @@ export interface LeaderboardRow {
 }
 
 export const TEAM_LEADERBOARD: LeaderboardRow[] = [
-  { user_id: 'usr_chang', display_name: 'Chang Wei-Ting', team_name: 'Taipei North', overall_score: 82, improvement: 6.4, sessions: 27, weakest_skill: 'compliance', readiness: 'developing' },
-  { user_id: 'usr_hsu', display_name: 'Hsu Mei-Ling', team_name: 'Taipei North', overall_score: 89, improvement: 3.1, sessions: 34, weakest_skill: 'closing_ability', readiness: 'ready' },
-  { user_id: 'usr_kuo', display_name: 'Kuo Chia-Hao', team_name: 'Taichung', overall_score: 63, improvement: -1.8, sessions: 11, weakest_skill: 'needs_discovery', readiness: 'at_risk' },
-  { user_id: 'usr_yeh', display_name: 'Yeh Shu-Chen', team_name: 'Taichung', overall_score: 91, improvement: 1.2, sessions: 41, weakest_skill: 'product_knowledge', readiness: 'ready' },
-  { user_id: 'usr_tsai', display_name: 'Tsai Ming-Hui', team_name: 'Bank Desk', overall_score: 78, improvement: 5.5, sessions: 19, weakest_skill: 'empathy', readiness: 'developing' },
+  { user_id: 'usr_chang', display_name: '張維庭', team_name: '台北北區', overall_score: 82, improvement: 6.4, sessions: 27, weakest_skill: 'compliance', readiness: 'developing' },
+  { user_id: 'usr_hsu', display_name: '許美玲', team_name: '台北北區', overall_score: 89, improvement: 3.1, sessions: 34, weakest_skill: 'closing_ability', readiness: 'ready' },
+  { user_id: 'usr_kuo', display_name: '郭家豪', team_name: '台中', overall_score: 63, improvement: -1.8, sessions: 11, weakest_skill: 'needs_discovery', readiness: 'at_risk' },
+  { user_id: 'usr_yeh', display_name: '葉淑貞', team_name: '台中', overall_score: 91, improvement: 1.2, sessions: 41, weakest_skill: 'product_knowledge', readiness: 'ready' },
+  { user_id: 'usr_tsai', display_name: '蔡明慧', team_name: '銀行臨櫃', overall_score: 78, improvement: 5.5, sessions: 19, weakest_skill: 'empathy', readiness: 'developing' },
 ];
 
 /** §47 Part I — knowledge gap analysis feeding the skill report. */
@@ -140,10 +140,10 @@ export interface KnowledgeGap {
 }
 
 export const KNOWLEDGE_GAPS: KnowledgeGap[] = [
-  { topic: '等待期與除外責任', document_name: 'Critical Illness Definitions 2026', miss_rate: 0.42, affected_users: 16, linked_skill: 'compliance' },
-  { topic: '團保與個人保單差異', document_name: 'Product SOP v3 §3.3', miss_rate: 0.31, affected_users: 12, linked_skill: 'professional_knowledge' },
-  { topic: '保障缺口計算', document_name: '2026 Premium Bands', miss_rate: 0.27, affected_users: 9, linked_skill: 'needs_discovery' },
-  { topic: '禁用話術清單', document_name: 'Forbidden Phrases 2026', miss_rate: 0.24, affected_users: 21, linked_skill: 'compliance' },
+  { topic: '等待期與除外責任', document_name: '重大疾病定義 2026', miss_rate: 0.42, affected_users: 16, linked_skill: 'compliance' },
+  { topic: '團保與個人保單差異', document_name: '商品 SOP v3 §3.3', miss_rate: 0.31, affected_users: 12, linked_skill: 'professional_knowledge' },
+  { topic: '保障缺口計算', document_name: '2026 保費級距表', miss_rate: 0.27, affected_users: 9, linked_skill: 'needs_discovery' },
+  { topic: '禁用話術清單', document_name: '禁用話術清單 2026', miss_rate: 0.24, affected_users: 21, linked_skill: 'compliance' },
 ];
 
 export interface ScenarioMastery {
@@ -158,7 +158,7 @@ export interface ScenarioMastery {
 export const SCENARIO_MASTERY: ScenarioMastery[] = [
   { scenario_id: 'scn_needs_discovery', scenario_name: '首次面談 — 需求探索基本功', difficulty: 'easy', attempts: 96, pass_rate: 0.84, average_score: 81 },
   { scenario_id: 'scn_already_insured', scenario_name: '「我已經有保險了」', difficulty: 'hard', attempts: 74, pass_rate: 0.61, average_score: 76 },
-  { scenario_id: 'scn_founder_speed', scenario_name: 'High-income founder', difficulty: 'medium', attempts: 22, pass_rate: 0.55, average_score: 72 },
+  { scenario_id: 'scn_founder_speed', scenario_name: '高資產創辦人', difficulty: 'medium', attempts: 22, pass_rate: 0.55, average_score: 72 },
   { scenario_id: 'scn_compliance_assessment', scenario_name: '合規話術年度考核', difficulty: 'expert', attempts: 41, pass_rate: 0.46, average_score: 69 },
 ];
 
@@ -174,9 +174,9 @@ export interface DashboardKpi {
 
 export const DASHBOARD_KPIS: DashboardKpi[] = [
   { id: 'learners', label: '活躍學員', value: '38', delta: '+4', hint: '共 42 個名額', trend: [28, 30, 31, 34, 36, 38] },
-  { id: 'completion', label: '完成率', value: '71%', delta: '+9 pts', hint: '必修指派', trend: [52, 55, 60, 63, 66, 71] },
+  { id: 'completion', label: '完成率', value: '71%', delta: '+9 個百分點', hint: '必修指派', trend: [52, 55, 60, 63, 66, 71] },
   { id: 'avg-score', label: '平均分數', value: '79', delta: '+3.2', hint: '最近 30 天', trend: [72, 73, 75, 76, 78, 79] },
-  { id: 'compliance', label: '合規安全率', value: '94%', delta: '−1 pt', hint: '2 項待處理的重大發現', trend: [96, 95, 96, 95, 95, 94] },
+  { id: 'compliance', label: '合規安全率', value: '94%', delta: '−1 個百分點', hint: '2 項待處理的重大發現', trend: [96, 95, 96, 95, 95, 94] },
   { id: 'hours', label: '模擬練習時數', value: '412', delta: '+38', hint: '含 96 小時語音練習', trend: [280, 305, 330, 356, 374, 412] },
   { id: 'improvement', label: '進步幅度', value: '+6.4', hint: '每月平均分數變化', trend: [1.2, 2.4, 3.1, 4.6, 5.5, 6.4] },
 ];

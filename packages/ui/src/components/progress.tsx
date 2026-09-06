@@ -129,6 +129,11 @@ export interface StepProgressProps extends Omit<React.HTMLAttributes<HTMLDivElem
  * indigo→blue 上 2.6:1。complete 改成與 Pill 同款的 tint + ink，active 用 flat
  * --accent-solid。
  */
+/** §47 說「不能只靠顏色表達狀態」，而圖示沒有文字——只有這行說得出步驟狀態。 */
+const STEP_STATUS_LABEL: Record<StepStatus, string> = {
+  complete: '已完成', active: '進行中', pending: '尚未開始', error: '發生錯誤',
+};
+
 const statusDot: Record<StepStatus, string> = {
   complete:
     'border-transparent bg-[color:color-mix(in_srgb,var(--success)_22%,transparent)] text-state-success-ink',
@@ -253,7 +258,7 @@ export const StepProgress = React.forwardRef<HTMLDivElement, StepProgressProps>(
                   <span className="text-meta text-text-tertiary">{step.description}</span>
                 ) : null}
                 {/* §47 no color-only status */}
-                <span className="sr-only">{step.status}</span>
+                <span className="sr-only">{STEP_STATUS_LABEL[step.status]}</span>
               </span>
             </li>
           ))}

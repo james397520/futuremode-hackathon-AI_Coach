@@ -89,7 +89,7 @@ export function IconRail() {
           type="button"
           onClick={togglePin}
           aria-pressed={pinned}
-          aria-label={pinned ? 'Unpin navigation' : 'Pin navigation open'}
+          aria-label={pinned ? '取消固定側邊導覽' : '固定展開側邊導覽'}
           // No drop shadow: --shadow-soft is an 18/50px card shadow and under a
           // 32px mark on the shell glass it read as a smudge.
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[7px] transition-shadow duration-150 ease-out-soft hover:shadow-soft"
@@ -98,7 +98,7 @@ export function IconRail() {
         </button>
         {expanded ? (
           <div className="rail-expanded-only min-w-0 flex-1">
-            <p className="truncate text-body-sm font-semibold tracking-[-0.01em]">AI Coach</p>
+            <p className="truncate text-body-sm font-semibold tracking-[-0.01em]">SkillCoach</p>
             <p className="truncate text-tiny text-text-tertiary">企業訓練工作區</p>
           </div>
         ) : null}
@@ -166,7 +166,7 @@ export function IconRail() {
           </Tooltip>
         )}
 
-        <UserMenu expanded={expanded} name={user?.display_name ?? 'Signed out'} roleLabel={user ? user.roles.map((role) => ROLE_LABEL[role]).join(' · ') : ''} onSignOut={signOut} />
+        <UserMenu expanded={expanded} name={user?.display_name ?? '未登入'} roleLabel={user ? user.roles.map((role) => ROLE_LABEL[role]).join(' · ') : ''} onSignOut={signOut} />
       </div>
     </nav>
   );
@@ -218,19 +218,19 @@ function UserMenu({
             <span className="block truncate text-tiny text-text-tertiary">{roleLabel}</span>
           </span>
         ) : (
-          <span className="sr-only-live">{`Account menu for ${name}`}</span>
+          <span className="sr-only-live">{`${name} 的帳號選單`}</span>
         )}
       </button>
 
       {open ? (
         <div
           role="menu"
-          aria-label="Account"
+          aria-label="帳號"
           className="glass-card absolute bottom-full left-0 z-30 mb-2 w-56 p-2 shadow-floating animate-card-enter"
         >
           <div className="px-2 pb-2">
             <p className="truncate text-body-sm font-semibold">{name}</p>
-            <p className="truncate text-tiny text-text-tertiary">{roleLabel || 'No role assigned'}</p>
+            <p className="truncate text-tiny text-text-tertiary">{roleLabel || '尚未指定身份'}</p>
           </div>
           <Link role="menuitem" href="/settings/profile" className="rail-item w-full justify-start px-2 text-body-sm">
             個人資料與偏好設定

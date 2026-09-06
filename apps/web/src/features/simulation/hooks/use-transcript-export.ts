@@ -39,9 +39,9 @@ export function useTranscriptExport(): TranscriptExport {
   const sessionId = useSessionStore((s) => s.sessionId);
 
   const header = useMemo(() => {
-    const scenario = bootstrap?.scenario.name ?? 'Live Simulation';
-    const persona = bootstrap?.persona.name ?? 'AI Persona';
-    const mode = bootstrap?.mode === 'assessment' ? 'Assessment' : 'Training';
+    const scenario = bootstrap?.scenario.name ?? '即時模擬練習';
+    const persona = bootstrap?.persona.name ?? 'AI 模擬人物';
+    const mode = bootstrap?.mode === 'assessment' ? '評測' : '訓練';
     return { scenario, persona, mode };
   }, [bootstrap]);
 
@@ -49,12 +49,12 @@ export function useTranscriptExport(): TranscriptExport {
     const lines: string[] = [
       `# ${header.scenario}`,
       '',
-      `- Persona: ${header.persona}`,
-      `- Mode: ${header.mode}`,
-      `- Session: ${sessionId}`,
-      `- Turns: ${turns.length}`,
+      `- 客戶：${header.persona}`,
+      `- 模式：${header.mode}`,
+      `- 練習編號：${sessionId}`,
+      `- 回合數：${turns.length}`,
       '',
-      '## Transcript',
+      '## 逐字稿',
       '',
     ];
 
@@ -63,18 +63,18 @@ export function useTranscriptExport(): TranscriptExport {
       lines.push(`**${who}** · ${relative(turn, startedAtMs)}`);
       lines.push('');
       lines.push(turn.text.trim());
-      if (turn.intent) lines.push(`> Intent: ${humaniseSlug(turn.intent)}`);
+      if (turn.intent) lines.push(`> 意圖：${humaniseSlug(turn.intent)}`);
       if (turn.citations?.length) {
         for (const c of turn.citations) {
           const page = c.page ? ` p.${c.page}` : '';
-          lines.push(`> Source: ${c.document_name} v${c.document_version}${page}`);
+          lines.push(`> 來源：${c.document_name} v${c.document_version}${page}`);
         }
       }
       lines.push('');
     }
 
     if (findings.length > 0) {
-      lines.push('## Compliance findings', '');
+      lines.push('## 合規檢查結果', '');
       for (const f of findings) {
         lines.push(
           `- [${f.severity}] ${COMPLIANCE_TYPE_LABEL[f.type] ?? f.type} @ ${formatClock(

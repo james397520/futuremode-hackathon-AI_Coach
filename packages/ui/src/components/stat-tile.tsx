@@ -38,6 +38,11 @@ const deltaToneClass: Record<StatDeltaTone, string> = {
   neutral: 'text-text-tertiary',
 };
 
+/** 螢幕報讀器用的方向詞——圖示本身沒有文字，只有這裡說得出漲跌。 */
+const DELTA_DIRECTION_LABEL: Record<StatDeltaDirection, string> = {
+  up: '上升', down: '下降', flat: '持平',
+};
+
 /** 把字串形式的 delta 正規化成 StatDelta；方向由正負號推導。 */
 function normalizeDelta(delta: StatDelta | string): StatDelta {
   if (typeof delta !== 'string') return delta;
@@ -153,7 +158,7 @@ export const StatTile = React.forwardRef<HTMLDivElement, StatTileProps>(function
           >
             <DeltaIcon direction={delta.direction} />
             {delta.value}
-            <span className="sr-only">{delta.direction}</span>
+            <span className="sr-only">{DELTA_DIRECTION_LABEL[delta.direction]}</span>
           </span>
           {delta.label != null ? (
             <span className="text-meta text-text-tertiary">{delta.label}</span>

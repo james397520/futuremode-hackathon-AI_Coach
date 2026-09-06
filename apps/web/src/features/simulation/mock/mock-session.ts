@@ -24,9 +24,9 @@ export function createMockBootstrap(sessionId: string, mode: SessionMode = 'trai
       id: 'scn-family-protection',
       name: '家庭保障需求探索',
       version: 4,
-      category: 'Insurance',
-      industry: 'Insurance',
-      trainingType: 'Consultative Sales',
+      category: '保險',
+      industry: '保險',
+      trainingType: '顧問式銷售',
       difficulty: 'hard',
       openingContext:
         '陳先生是既有客戶轉介，已持有一張基本壽險。他同意見面 15 分鐘，但明確表示「我已經有保險了」。',
@@ -47,7 +47,7 @@ export function createMockBootstrap(sessionId: string, mode: SessionMode = 'trai
         '這個報酬率有保證嗎？',
       ],
       restrictedTopics: ['保證報酬率', '其他公司商品比較', '稅務規避建議'],
-      successCondition: '完成需求探索 + 正確說明保障 + 無 Critical 合規風險 + Trust ≥ 70',
+      successCondition: '完成需求探索 + 正確說明保障 + 無重大合規風險 + 信任度 ≥ 70',
       timeLimitSeconds: 900,
       maxTurns: 24,
       minimumScore: 80,
@@ -61,7 +61,7 @@ export function createMockBootstrap(sessionId: string, mode: SessionMode = 'trai
       background: '已婚，兩名小孩（6 歲 / 3 歲），家中主要收入來源，有房貸。',
       subtitle: '既有客戶 · 家庭保障',
       gender: 'male',
-      traitSummary: ['Rational', 'Price-sensitive', 'Family-oriented', 'Skeptical'],
+      traitSummary: ['理性', '對價格敏感', '重視家庭', '存有戒心'],
       language: 'zh-TW',
     },
   };
@@ -214,5 +214,5 @@ export function createMockEvaluation(sessionId: string): Evaluation {
 export const MOCK_NEXT_TRAINING = {
   scenarioId: 'scn-compliance-language',
   name: '合規話術：收益說明不越線',
-  reason: '本次出現一次 False Promise 用語，建議先補強收益說明的合規句型。',
+  reason: '本次出現一次不實承諾的用語，建議先補強收益說明的合規句型。',
 };

@@ -23,23 +23,23 @@ export interface AppNotification {
 }
 
 export const NOTIFICATION_KIND_LABEL: Record<NotificationKind, string> = {
-  training_assigned: 'New training',
-  deadline_soon: 'Deadline soon',
-  training_overdue: 'Overdue',
-  report_ready: 'Report ready',
-  manager_comment: 'Manager comment',
-  reviewer_request: 'Reviewer request',
-  knowledge_updated: 'Knowledge updated',
-  security_warning: 'Security warning',
-  review_required: 'Review required',
+  training_assigned: '新的訓練指派',
+  deadline_soon: '期限將至',
+  training_overdue: '已逾期',
+  report_ready: '報告已產出',
+  manager_comment: '主管留言',
+  reviewer_request: '審核者請求',
+  knowledge_updated: '知識庫已更新',
+  security_warning: '安全警示',
+  review_required: '待審核',
 };
 
 export const MOCK_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'ntf_01',
     kind: 'security_warning',
-    title: 'Critical finding on an assessment session',
-    body: 'ses_1205 — missing disclosure of waiting period and exclusions. Assessment marked as not passed pending review.',
+    title: '評測練習出現重大合規缺失',
+    body: 'ses_1205 — 未揭露等待期與除外責任。該場評測在覆核前先判定為不通過。',
     at: '2026-03-18T09:18:00.000Z',
     read: false,
     href: '/security',
@@ -48,8 +48,8 @@ export const MOCK_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'ntf_02',
     kind: 'review_required',
-    title: '20 AI-generated questions await review',
-    body: 'Generated from Product SOP v3 and 2026 Premium Bands. Nothing is published until a reviewer approves it.',
+    title: '20 道 AI 生成題目待審核',
+    body: '依據商品 SOP v3 與 2026 保費級距表生成；審核者核准前不會發布。',
     at: '2026-03-18T09:10:00.000Z',
     read: false,
     href: '/questions?status=generated',
@@ -58,8 +58,8 @@ export const MOCK_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'ntf_03',
     kind: 'report_ready',
-    title: 'Session report ready — Chang Wei-Ting',
-    body: 'Overall 82 / 100 · passed · 1 acknowledged compliance finding.',
+    title: '練習報告已產出 — 張維庭',
+    body: '總分 82 / 100 · 通過 · 1 項已確認的合規缺失。',
     at: '2026-03-18T07:56:00.000Z',
     read: false,
     href: '/simulations/ses_1207/review',
@@ -68,8 +68,8 @@ export const MOCK_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'ntf_04',
     kind: 'knowledge_updated',
-    title: 'Product SOP v3 re-indexed',
-    body: '128 documents · 4,820 chunks. Retrieval is live for all scenarios using this knowledge base.',
+    title: '商品 SOP v3 已重新索引',
+    body: '128 份文件 · 4,820 個切片。使用此知識庫的所有情境都已可即時檢索。',
     at: '2026-03-18T09:12:00.000Z',
     read: true,
     href: '/knowledge/kb_product_sop',
@@ -78,8 +78,8 @@ export const MOCK_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'ntf_05',
     kind: 'deadline_soon',
-    title: '「我已經有保險了」 due in 4 days',
-    body: '10 of 14 assignees have met the minimum score of 80.',
+    title: '「我已經有保險了」還有 4 天到期',
+    body: '14 位受指派學員中已有 10 位達到 80 分的最低標準。',
     at: '2026-03-18T06:00:00.000Z',
     read: true,
     href: '/training',
@@ -88,8 +88,8 @@ export const MOCK_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'ntf_06',
     kind: 'training_overdue',
-    title: 'Needs discovery drill is overdue',
-    body: 'Kuo Chia-Hao — 1 attempt, best score 64 (minimum 70).',
+    title: '需求探索練習已逾期',
+    body: '郭家豪 — 已練習 1 次，最佳成績 64 分（最低標準 70 分）。',
     at: '2026-03-17T09:00:00.000Z',
     read: true,
     href: '/performance/usr_kuo',
@@ -98,7 +98,7 @@ export const MOCK_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'ntf_07',
     kind: 'manager_comment',
-    title: 'Tsai Ming-Hui commented on your session',
+    title: '蔡明慧在你的練習上留言',
     body: '「缺口計算那段很好，下次把它提前。」',
     at: '2026-03-17T04:20:00.000Z',
     read: true,
@@ -108,8 +108,8 @@ export const MOCK_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'ntf_08',
     kind: 'reviewer_request',
-    title: 'Compliance rubric v2 needs approval',
-    body: 'Ong Li-Wei requested your sign-off on the updated weightings.',
+    title: '合規考核評分規準 v2 待核准',
+    body: '翁立偉請你確認更新後的權重配置。',
     at: '2026-03-16T11:05:00.000Z',
     read: true,
     href: '/settings',
@@ -118,8 +118,8 @@ export const MOCK_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'ntf_09',
     kind: 'training_assigned',
-    title: '合規話術年度考核 assigned to 3 teams',
-    body: 'Assessment mode · 1 attempt · minimum score 85 · due in 11 days.',
+    title: '合規話術年度考核已指派給 3 個團隊',
+    body: '評測模式 · 限 1 次 · 最低 85 分 · 11 天後到期。',
     at: '2026-03-16T02:00:00.000Z',
     read: true,
     href: '/training',

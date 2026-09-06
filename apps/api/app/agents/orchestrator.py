@@ -227,8 +227,26 @@ class ConversationOrchestrator:
         await self.emitter.agent_thinking("knowledge")
         knowledge_leg = self._knowledge_leg(payload, intent_decision)
         compliance_model_leg = self._compliance_model_leg(compliance_request)
-        knowledge_verdict, trainee_model_findings = await gather_degrading(
-            knowledge_leg, compliance_model_leg
+        # The affect read joins this batch rather than running after the reply.
+        # It only ever needed the trainee's own turn, and putting it here costs
+        # no wall clock — it is a short temperature-0 call that finishes inside
+        # the knowledge lookup — while making the reading available *before* the
+        # customer speaks, which is the whole point: a customer who only learns
+        # you were annoyed after answering cannot react to it.
+        affect_leg = (
+            self.affect.read(
+                AffectRequest(
+                    session_id=payload.session_id,
+                    locale=payload.locale,
+                    trainee_text=payload.text,
+                    recent_turns=list(payload.recent_turns),
+                )
+            )
+            if self.affect is not None
+            else None
+        )
+        knowledge_verdict, trainee_model_findings, text_affect = await gather_degrading(
+            knowledge_leg, compliance_model_leg, affect_leg
         )
         if knowledge_verdict is None and self.knowledge is not None:
             degraded.append("knowledge")
@@ -239,6 +257,16 @@ class ConversationOrchestrator:
             citations = build_citations(evidence, knowledge_verdict.used_citation_indexes)
         if citations:
             await self.emitter.knowledge_citation(turn_id, citations)
+
+        # Fuse now, so the customer can react in *this* reply. Deterministic
+        # arithmetic (`app.domain.affect`), no second model call.
+        fused: TraineeAffect | None = None
+        if text_affect is not None or payload.face_affect is not None:
+            fused = fuse_affect(
+                text_affect if isinstance(text_affect, TextAffect) else None,
+                payload.face_affect,
+            )
+            await self.emitter.trainee_affect_updated(fused)
 
         # --- 4. customer agent (streamed) ------------------------------
         await self.emitter.agent_thinking("customer")
@@ -260,9 +288,7 @@ class ConversationOrchestrator:
             # Known at turn start (the browser sends it before the message), so
             # the persona can react to it in *this* reply — unlike the text
             # reading, which needs the reply to exist first.
-            trainee_face=(
-                payload.face_affect.model_dump() if payload.face_affect is not None else {}
-            ),
+            trainee_face=(fused.model_dump() if fused is not None else {}),
         )
         reply = await self._customer_leg(customer_request, persona_turn_id, degraded)
 
@@ -279,31 +305,19 @@ class ConversationOrchestrator:
             state_delta=decision.state_delta,
         )
         await self.emitter.agent_response_final(persona_turn)
+        # §8.1 — when the trainee's line named nothing, the persona has just
+        # asked which part was meant. Send the same candidates the intent step
+        # inferred from the transcript, so the answer is one tap away instead of
+        # a second round of guessing.
+        if intent_decision.candidate_intents:
+            await self.emitter.persona_clarify_options(
+                persona_turn_id,
+                intent_decision.clarifying_question or "",
+                intent_decision.candidate_intents,
+            )
         # One state update per turn, after the persona has spoken, carrying the
         # hidden-need reveal when the reply triggered it.
         await self.emitter.persona_state_updated(state)
-
-        # --- 5. trainee affect (before the coach, which consumes it) ----
-        # Two signals watch the trainee: what they said — auditable, because the
-        # agent must quote this turn verbatim — and what their face did, which
-        # arrives from an untrusted client and is uncalibrated. Fusion is plain
-        # arithmetic in `app.domain.affect`; a model asked to reconcile two
-        # labels invents a third. This is one short temperature-0 call, so it
-        # runs on its own rather than racing the coach that depends on it.
-        fused: TraineeAffect | None = None
-        if self.affect is not None or payload.face_affect is not None:
-            text_affect: TextAffect | None = None
-            if self.affect is not None:
-                text_affect = await self.affect.read(
-                    AffectRequest(
-                        session_id=payload.session_id,
-                        locale=payload.locale,
-                        trainee_text=payload.text,
-                        recent_turns=list(payload.recent_turns),
-                    )
-                )
-            fused = fuse_affect(text_affect, payload.face_affect)
-            await self.emitter.trainee_affect_updated(fused)
 
         # --- 6/7/8. post-checks, coach, evaluator (concurrent) ---------
         await self.emitter.agent_thinking("compliance")

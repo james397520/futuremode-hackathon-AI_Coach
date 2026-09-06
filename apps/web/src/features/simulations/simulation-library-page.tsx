@@ -33,6 +33,26 @@ export function SimulationLibraryPage() {
   });
   const allScenarios = data?.items ?? [];
 
+  /*
+   * Personas, from the same database as the scenarios. The card used to resolve
+   * `scenario.persona_id` through `personaById` — a *fixture* lookup keyed on
+   * ids like `per_chen`. A scenario loaded from the API carries a real 32-char
+   * id, the fixture missed every time, and the card fell back to printing the
+   * raw hash where the customer's name belongs. The fixture stays as a second
+   * chance so a fixture-only scenario still resolves.
+   */
+  const { data: personaPage } = useQuery({
+    queryKey: ['personas', 'library'],
+    queryFn: () => endpoints.listPersonas({ limit: 100 }),
+  });
+  const personaNames = useMemo(() => {
+    const byId = new Map<string, string>();
+    for (const persona of personaPage?.items ?? []) byId.set(persona.id, persona.name);
+    return byId;
+  }, [personaPage]);
+  const personaNameFor = (personaId: string): string | undefined =>
+    personaNames.get(personaId) ?? personaById(personaId)?.name;
+
   const scenarios = useMemo(() => {
     const term = query.trim().toLowerCase();
     return allScenarios.filter((scenario) => {
@@ -105,7 +125,7 @@ export function SimulationLibraryPage() {
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
           {scenarios.map((scenario) => {
-            const persona = personaById(scenario.persona_id);
+            const personaName = personaNameFor(scenario.persona_id);
             const mastery = masteryFor(scenario.id);
             const startable = scenario.status === 'published';
 
@@ -130,7 +150,7 @@ export function SimulationLibraryPage() {
                         <Users size={13} strokeWidth={1.8} aria-hidden />
                         模擬人物
                       </dt>
-                      <dd className="truncate">{persona?.name ?? scenario.persona_id}</dd>
+                      <dd className="truncate">{personaName ?? '—'}</dd>
                     </div>
                     <div className="flex items-center gap-2">
                       <dt className="flex w-24 shrink-0 items-center gap-1.5 text-text-tertiary">

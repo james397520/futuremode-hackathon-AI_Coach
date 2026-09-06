@@ -50,20 +50,20 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
     <div className="space-y-5 pb-4">
       <PageHeader
         breadcrumbs={[
-          { label: 'Knowledge Base', href: '/knowledge' },
+          { label: '知識庫', href: '/knowledge' },
           { label: kb?.name ?? kbId, href: `/knowledge/${kbId}` },
-          { label: 'Retrieval playground' },
+          { label: '檢索測試場' },
         ]}
-        title="Retrieval playground"
-        description="Ask what a trainee would ask and see exactly which chunks the agent would ground on."
+        title="檢索測試場"
+        description="用學員會問的問題實際問一次，看看 AI 會根據哪些切片作答。"
         meta={
           <>
-            <Pill tone="neutral" size="sm">{kb?.embedding_model ?? 'embedding model'}</Pill>
+            <Pill tone="neutral" size="sm">{kb?.embedding_model ?? '嵌入模型'}</Pill>
             <Pill tone={rerank ? 'success' : 'neutral'} size="sm">
-              Reranker {rerank ? 'on' : 'off'}
+              重排序{rerank ? '已開啟' : '已關閉'}
             </Pill>
             <Pill tone={hybrid ? 'success' : 'neutral'} size="sm">
-              Hybrid {hybrid ? 'on' : 'off'}
+              混合檢索{hybrid ? '已開啟' : '已關閉'}
             </Pill>
           </>
         }
@@ -84,12 +84,12 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
               </span>
               <Input
                 value={query}
-                placeholder="Test your knowledge retrieval…"
-                aria-label="Retrieval query"
+                placeholder="測試你的知識檢索…"
+                aria-label="檢索查詢"
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)}
               />
               <Button type="submit" variant="primary" size="md">
-                Run
+                執行
               </Button>
             </form>
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -116,11 +116,11 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
 
           <div className="flex items-center justify-between gap-3">
             <p className="text-body-sm text-text-secondary">
-              {ranked.length} result{ranked.length === 1 ? '' : 's'} for「{submitted}」
+              「{submitted}」共 {ranked.length} 筆結果
             </p>
             <p className="flex items-center gap-1.5 text-tiny text-text-tertiary">
               <Zap size={12} strokeWidth={2} aria-hidden />
-              38 ms vector · 61 ms rerank
+              向量 38 ms · 重排序 61 ms
             </p>
           </div>
 
@@ -137,7 +137,7 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
                           <p className="text-body font-medium">{citation.document_name}</p>
                           <p className="text-tiny text-text-tertiary">
                             v{citation.document_version}
-                            {citation.page !== undefined ? ` · page ${citation.page}` : ''}
+                            {citation.page !== undefined ? ` · 第 ${citation.page} 頁` : ''}
                             {citation.section ? ` · ${citation.section}` : ''} · {citation.chunk_id}
                           </p>
                         </div>
@@ -145,11 +145,11 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
 
                       <dl className="flex items-center gap-4 text-body-sm">
                         <div className="text-right">
-                          <dt className="meta-label">Similarity</dt>
+                          <dt className="meta-label">相似度</dt>
                           <dd className="tabular-nums">{citation.similarity.toFixed(2)}</dd>
                         </div>
                         <div className="text-right">
-                          <dt className="meta-label">Rerank</dt>
+                          <dt className="meta-label">重排序</dt>
                           <dd className="tabular-nums">
                             {citation.rerank_score !== undefined ? citation.rerank_score.toFixed(2) : '—'}
                           </dd>
@@ -160,7 +160,7 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
                     <p className="mt-3 text-body text-text-secondary">{citation.snippet}</p>
 
                     <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border-soft pt-3.5">
-                      <span className="meta-label">Was this relevant?</span>
+                      <span className="meta-label">這筆結果相關嗎？</span>
                       <button
                         type="button"
                         onClick={() => mark(citation.chunk_id, 'relevant')}
@@ -173,7 +173,7 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
                         )}
                       >
                         <ThumbsUp size={12} strokeWidth={2} aria-hidden />
-                        Relevant
+                        相關
                       </button>
                       <button
                         type="button"
@@ -187,13 +187,13 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
                         )}
                       >
                         <ThumbsDown size={12} strokeWidth={2} aria-hidden />
-                        Not relevant
+                        不相關
                       </button>
                       <Link
                         href={`/knowledge/${kbId}/chunks`}
                         className="ml-auto text-tiny text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))] hover:underline"
                       >
-                        Open in chunk viewer
+                        在切片檢視中開啟
                       </Link>
                     </div>
                   </GlassCard>
@@ -204,9 +204,9 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
 
           {ranked.length === 0 ? (
             <GlassCard className="dot-matrix p-8 text-center">
-              <p className="text-body font-medium">Nothing passed the threshold</p>
+              <p className="text-body font-medium">沒有結果通過門檻</p>
               <p className="mt-1 text-body-sm text-text-secondary">
-                Lower the similarity threshold, or check whether the source document finished indexing.
+                試著調低相似度門檻，或確認來源文件是否已完成索引。
               </p>
             </GlassCard>
           ) : null}
@@ -215,7 +215,7 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
         {/* §31 floating notes card */}
         <div className="space-y-4">
           <GlassCard tone="strong" className="p-5">
-            <h2 className="text-card-title">Retrieval settings</h2>
+            <h2 className="text-card-title">檢索設定</h2>
             <div className="mt-4 space-y-5">
               <Slider
                 label="Top K"
@@ -226,33 +226,31 @@ export function RetrievalPlaygroundPage({ kbId }: { kbId: string }) {
                 onValueChange={setTopK}
               />
               <Slider
-                label="Threshold"
+                label="相似度門檻"
                 formatValue={(value) => value.toFixed(2)}
-                hint="Chunks below this similarity are discarded before reranking."
+                hint="相似度低於此值的切片，會在重排序之前先被捨棄。"
                 min={0.4}
                 max={0.95}
                 step={0.01}
                 value={threshold}
                 onValueChange={setThreshold}
               />
-              <Switch checked={hybrid} onCheckedChange={setHybrid} label="Hybrid (BM25 + vector)" />
-              <Switch checked={rerank} onCheckedChange={setRerank} label="Reranker" />
+              <Switch checked={hybrid} onCheckedChange={setHybrid} label="混合檢索（BM25 + 向量）" />
+              <Switch checked={rerank} onCheckedChange={setRerank} label="重排序" />
             </div>
 
             <p className="mt-5 border-t border-border-soft pt-4 text-tiny text-text-tertiary">
-              These settings are for testing only. Scenario retrieval uses the workspace defaults in
-              Settings → Models.
+              這裡的設定僅供測試使用。情境實際檢索時，採用的是工作區在「設定 → 模型」中的預設值。
             </p>
           </GlassCard>
 
           <GlassCard className="p-5">
             <div className="flex items-center gap-2">
               <Sparkles size={15} strokeWidth={1.8} aria-hidden className="text-accent-indigo" />
-              <h2 className="text-card-title">Why rerank matters</h2>
+              <h2 className="text-card-title">為什麼需要重排序</h2>
             </div>
             <p className="mt-2 text-body-sm text-text-secondary">
-              In this query the forbidden-phrases chunk scores 0.74 on similarity but only 0.41 after
-              reranking — vector similarity alone would have grounded the answer on the wrong document.
+              在這個查詢中，禁用話術那個切片的相似度有 0.74，重排序後卻只剩 0.41 —— 只看向量相似度的話，答案就會建立在錯誤的文件上。
             </p>
           </GlassCard>
         </div>

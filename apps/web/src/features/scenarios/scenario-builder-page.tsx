@@ -48,12 +48,12 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
     <div className="space-y-5 pb-4">
       <PageHeader
         breadcrumbs={[
-          { label: 'Scenarios', href: '/scenarios' },
-          { label: isNew ? 'New scenario' : name || 'Scenario' },
-          { label: 'Builder' },
+          { label: '情境', href: '/scenarios' },
+          { label: isNew ? '新增情境' : name || '情境' },
+          { label: '編輯器' },
         ]}
-        title={isNew ? 'New scenario' : name || 'Scenario builder'}
-        description={`Step ${step + 1} of ${total} — ${currentStep?.label ?? ''}`}
+        title={isNew ? '新增情境' : name || '情境編輯器'}
+        description={`第 ${step + 1} / ${total} 步 — ${currentStep?.label ?? ''}`}
         meta={
           <>
             {source ? <ContentStatusPill status={source.status} /> : <ContentStatusPill status="draft" />}
@@ -66,10 +66,10 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
           <>
             <Button variant="secondary" size="sm" disabled={!canEdit}>
               <Save size={15} strokeWidth={1.8} aria-hidden />
-              Save draft
+              儲存草稿
             </Button>
             <Button variant="primary" size="sm" disabled={!canPublish || step < total - 1}>
-              Publish
+              發布
             </Button>
           </>
         }
@@ -78,7 +78,7 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
       <GlassCard className="p-5">
         <StepProgress
           orientation="horizontal"
-          aria-label="Scenario builder steps"
+          aria-label="情境編輯步驟"
           steps={SCENARIO_WIZARD_STEPS.map((wizardStep) => ({ id: wizardStep.id, label: wizardStep.label }))}
           current={step}
         />
@@ -87,40 +87,40 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
       <GlassCard className="p-6">
         {step === 0 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Basic information</h2>
+            <h2 className="text-section">基本資料</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Name" hint="What trainees will see in the library.">
+              <Field label="名稱" hint="學員在情境庫中看到的名稱。">
                 <Input value={name} disabled={!canEdit} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)} />
               </Field>
-              <Field label="Industry">
+              <Field label="產業">
                 <Input value={industry} disabled={!canEdit} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIndustry(e.target.value)} />
               </Field>
-              <Field label="Training type">
+              <Field label="訓練類型">
                 <Input value={trainingType} disabled={!canEdit} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTrainingType(e.target.value)} />
               </Field>
-              <Field label="Difficulty" hint="The difficulty engine can still adapt within the session.">
+              <Field label="難度" hint="難度引擎仍可能在練習過程中自動調整。">
                 <Select
                   value={difficulty}
                   onValueChange={(value: string) => setDifficulty(value as typeof difficulty)}
                   options={[
-                    { value: 'easy', label: 'Easy' },
-                    { value: 'medium', label: 'Medium' },
-                    { value: 'hard', label: 'Hard' },
-                    { value: 'expert', label: 'Expert' },
+                    { value: 'easy', label: '初階' },
+                    { value: 'medium', label: '中階' },
+                    { value: 'hard', label: '進階' },
+                    { value: 'expert', label: '專家' },
                   ]}
                 />
               </Field>
             </div>
-            <Field label="Description">
+            <Field label="說明">
               <Textarea rows={4} value={description} disabled={!canEdit} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)} />
             </Field>
-            <Field label="Mode" hint="Assessment mode removes hints, coach cards and knowledge peeking.">
+            <Field label="模式" hint="評測模式會關閉提示、教練卡片與知識庫查看。">
               <Select
                 value={mode}
                 onValueChange={(value: string) => setMode(value as typeof mode)}
                 options={[
-                  { value: 'training', label: 'Training — coaching allowed' },
-                  { value: 'assessment', label: 'Assessment — no assistance' },
+                  { value: 'training', label: '訓練模式 — 可使用教練輔助' },
+                  { value: 'assessment', label: '評測模式 — 無任何輔助' },
                 ]}
               />
             </Field>
@@ -129,10 +129,9 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
 
         {step === 1 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Select knowledge bases</h2>
+            <h2 className="text-section">選擇知識庫</h2>
             <p className="text-body-sm text-text-secondary">
-              Retrieval is limited to what you select here, intersected with the trainee’s own access
-              control list. Nothing outside the workspace is reachable.
+              檢索範圍只限於這裡勾選的知識庫，並會再與學員自身的存取權限取交集。工作區以外的資料一律無法取得。
             </p>
             <ul className="space-y-2">
               {MOCK_KNOWLEDGE_BASES.map((kb) => (
@@ -141,7 +140,7 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
                     <p className="text-body-sm font-medium">{kb.name}</p>
                     <p className="mt-0.5 text-body-sm text-text-secondary">{kb.description}</p>
                     <p className="mt-1 text-tiny text-text-tertiary">
-                      {kb.document_count} documents · {kb.chunk_count.toLocaleString('en-US')} chunks · scope{' '}
+                      {kb.document_count} 份文件 · {kb.chunk_count.toLocaleString('en-US')} 個片段 · 範圍{' '}
                       {kb.acl.scope} · {kb.embedding_model}
                     </p>
                   </div>
@@ -149,7 +148,7 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
                     checked={selectedKbs.includes(kb.id)}
                     onCheckedChange={() => toggleKb(kb.id)}
                     disabled={!canEdit}
-                    aria-label={`Use ${kb.name} for retrieval`}
+                    aria-label={`檢索時使用 ${kb.name}`}
                   />
                 </li>
               ))}
@@ -159,7 +158,7 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
 
         {step === 2 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Select persona</h2>
+            <h2 className="text-section">選擇客戶角色</h2>
             <ul className="grid gap-3 sm:grid-cols-2">
               {MOCK_PERSONAS.filter((option) => option.status !== 'archived').map((option) => (
                 <li key={option.id}>
@@ -188,8 +187,8 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
             </ul>
             {persona ? (
               <p className="text-body-sm text-text-secondary">
-                Selected: <span className="font-medium">{persona.name}</span> — main objection「
-                {persona.hidden?.objections[0] ?? 'not configured'}」
+                已選擇：<span className="font-medium">{persona.name}</span> — 主要異議「
+                {persona.hidden?.objections[0] ?? '尚未設定'}」
               </p>
             ) : null}
           </section>
@@ -197,27 +196,27 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
 
         {step === 3 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Define the scenario</h2>
-            <Field label="Opening context" hint="Time, place, mood — what the trainee walks into.">
+            <h2 className="text-section">定義情境</h2>
+            <Field label="開場情境" hint="時間、地點、氣氛 — 學員一開始面對的是什麼場面。">
               <Textarea rows={3} value={openingContext} disabled={!canEdit} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setOpeningContext(e.target.value)} />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Learning objectives" hint="One per line.">
+              <Field label="學習目標" hint="每行一項。">
                 <Textarea rows={5} defaultValue={(source?.learning_objectives ?? []).join('\n')} disabled={!canEdit} />
               </Field>
-              <Field label="Required talking points" hint="One per line.">
+              <Field label="必談重點" hint="每行一項。">
                 <Textarea rows={5} defaultValue={(source?.required_talking_points ?? []).join('\n')} disabled={!canEdit} />
               </Field>
-              <Field label="Required knowledge" hint="One per line.">
+              <Field label="必備知識" hint="每行一項。">
                 <Textarea rows={4} defaultValue={(source?.required_knowledge ?? []).join('\n')} disabled={!canEdit} />
               </Field>
-              <Field label="Key objections" hint="One per line.">
+              <Field label="主要異議" hint="每行一項。">
                 <Textarea rows={4} defaultValue={(source?.key_objections ?? []).join('\n')} disabled={!canEdit} />
               </Field>
-              <Field label="Success condition">
+              <Field label="成功條件">
                 <Textarea rows={2} defaultValue={source?.success_condition ?? ''} disabled={!canEdit} />
               </Field>
-              <Field label="Failure condition">
+              <Field label="失敗條件">
                 <Textarea rows={2} defaultValue={source?.failure_condition ?? ''} disabled={!canEdit} />
               </Field>
             </div>
@@ -226,32 +225,32 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
 
         {step === 4 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Dynamic behaviour</h2>
+            <h2 className="text-section">動態行為</h2>
             <p className="text-body-sm text-text-secondary">
-              §18 Difficulty Engine — how far the scenario may adapt while it is running.
+              §18 難度引擎 — 情境在進行中可以自動調整到什麼程度。
             </p>
             <Switch
               checked={adaptive}
               onCheckedChange={setAdaptive}
               disabled={!canEdit}
-              label="Allow in-session difficulty adaptation"
+              label="允許練習過程中動態調整難度"
             />
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Time limit (seconds)">
+              <Field label="時間上限（秒）">
                 <Input type="number" defaultValue={source?.time_limit_seconds ?? 900} disabled={!canEdit} />
               </Field>
-              <Field label="Max turns">
+              <Field label="最多輪數">
                 <Input type="number" defaultValue={source?.max_turns ?? 40} disabled={!canEdit} />
               </Field>
-              <Field label="Minimum score">
+              <Field label="及格分數">
                 <Input type="number" defaultValue={source?.minimum_score ?? 80} disabled={!canEdit} />
               </Field>
             </div>
             <ul className="space-y-2">
               {[
-                ['Escalate when the trainee is ahead of pace', 'Persona raises a second-order objection.'],
-                ['De-escalate after two consecutive failures', 'Persona offers a clearer signal instead of exiting.'],
-                ['Hold difficulty in assessment mode', 'Adaptation is always disabled for assessments.'],
+                ['學員進度超前時提高難度', '客戶會再提出更深一層的異議。'],
+                ['連續兩次失手後降低難度', '客戶會給出更明確的訊號，而不是直接結束對話。'],
+                ['評測模式維持固定難度', '評測情境一律關閉動態調整。'],
               ].map(([title, body]) => (
                 <li key={title} className="border border-border-soft bg-glass-card rounded-card-sm p-4">
                   <p className="text-body-sm font-medium">{title}</p>
@@ -264,14 +263,14 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
 
         {step === 5 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Evaluation rubric</h2>
-            <Field label="Rubric" hint="Reports are pinned to the rubric version used at session time.">
+            <h2 className="text-section">評分規準</h2>
+            <Field label="評分規準" hint="報告會鎖定練習當下所使用的規準版本。">
               <Select
                 value={rubricId}
                 onValueChange={setRubricId}
                 options={MOCK_RUBRICS.map((rubric) => ({
                   value: rubric.id,
-                  label: `${rubric.name} v${rubric.version} — threshold ${rubric.pass_threshold}`,
+                  label: `${rubric.name} v${rubric.version} — 及格門檻 ${rubric.pass_threshold}`,
                 }))}
               />
             </Field>
@@ -292,7 +291,7 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
                   </ul>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <p className="meta-label">Required evidence</p>
+                      <p className="meta-label">必要佐證</p>
                       <ul className="mt-2 space-y-1 text-body-sm text-text-secondary">
                         {rubric.required_evidence.map((item) => (
                           <li key={item}>{item}</li>
@@ -300,7 +299,7 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
                       </ul>
                     </div>
                     <div>
-                      <p className="meta-label text-[color:color-mix(in_srgb,var(--danger)_55%,var(--text-primary))]">Forbidden behaviours</p>
+                      <p className="meta-label text-[color:color-mix(in_srgb,var(--danger)_55%,var(--text-primary))]">禁止行為</p>
                       <ul className="mt-2 space-y-1 text-body-sm text-text-secondary">
                         {rubric.forbidden_behaviors.map((item) => (
                           <li key={item}>{item}</li>
@@ -316,23 +315,23 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
 
         {step === 6 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Compliance & safety</h2>
-            <Field label="Restricted topics" hint="One per line. Mentioning these raises a finding.">
+            <h2 className="text-section">合規與安全</h2>
+            <Field label="受限主題" hint="每行一項。對話中提到就會產生一筆合規事件。">
               <Textarea rows={4} defaultValue={(source?.restricted_topics ?? []).join('\n')} disabled={!canEdit} />
             </Field>
             <ul className="space-y-2">
               {[
-                ['Compliance policy', 'Insurance TW 2026 — inherited from workspace settings.'],
-                ['PII handling', 'Identifiers are masked at ingest and never stored in the transcript.'],
-                ['Injection detection', 'Enabled — attempts are recorded as security findings.'],
-                ['Critical finding behaviour', 'Assessment sessions fail immediately on a critical finding.'],
+                ['合規政策', 'Insurance TW 2026 — 沿用工作區設定。'],
+                ['個資處理', '識別資訊在匯入時就會遮蔽，不會存進逐字稿。'],
+                ['注入偵測', '已啟用 — 每次嘗試都會記錄為安全事件。'],
+                ['重大違規處理', '評測情境一旦出現重大違規，立即判定為不通過。'],
               ].map(([title, body]) => (
                 <li key={title} className="border border-border-soft bg-glass-card flex items-start justify-between gap-3 rounded-card-sm p-4">
                   <div className="min-w-0">
                     <p className="text-body-sm font-medium">{title}</p>
                     <p className="mt-0.5 text-body-sm text-text-secondary">{body}</p>
                   </div>
-                  <Pill tone="success" size="sm">Enforced</Pill>
+                  <Pill tone="success" size="sm">已強制執行</Pill>
                 </li>
               ))}
             </ul>
@@ -341,26 +340,25 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
 
         {step === 7 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Preview & test</h2>
+            <h2 className="text-section">預覽與測試</h2>
             <p className="text-body-sm text-text-secondary">
-              Run the scenario yourself before it is assigned. Test runs are marked as such and never
-              counted in a learner’s report.
+              在指派出去之前先自己跑一次。試跑會被標記為測試，絕不會計入學員的報告。
             </p>
             <dl className="grid gap-4 sm:grid-cols-2">
               <div>
-                <dt className="meta-label">Persona</dt>
+                <dt className="meta-label">客戶角色</dt>
                 <dd className="text-body-sm">{persona?.name ?? '—'}</dd>
               </div>
               <div>
-                <dt className="meta-label">Knowledge bases</dt>
-                <dd className="text-body-sm">{selectedKbs.length} selected</dd>
+                <dt className="meta-label">知識庫</dt>
+                <dd className="text-body-sm">已選 {selectedKbs.length} 個</dd>
               </div>
               <div>
-                <dt className="meta-label">Mode</dt>
-                <dd className="text-body-sm">{mode === 'assessment' ? 'Assessment' : 'Training'}</dd>
+                <dt className="meta-label">模式</dt>
+                <dd className="text-body-sm">{mode === 'assessment' ? '評測模式' : '訓練模式'}</dd>
               </div>
               <div>
-                <dt className="meta-label">Time limit</dt>
+                <dt className="meta-label">時間上限</dt>
                 <dd className="text-body-sm">
                   {formatDuration(source?.time_limit_seconds ?? 900)}
                 </dd>
@@ -370,12 +368,12 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
               {source ? (
                 <Link href={`/simulations/${source.id}/setup`}>
                   <Play size={15} strokeWidth={2} aria-hidden />
-                  Run a test session
+                  執行試跑
                 </Link>
               ) : (
                 <>
                   <Play size={15} strokeWidth={2} aria-hidden />
-                  Save the draft first
+                  請先儲存草稿
                 </>
               )}
             </Button>
@@ -384,18 +382,17 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
 
         {step === 8 ? (
           <section className="space-y-4">
-            <h2 className="text-section">Publish</h2>
+            <h2 className="text-section">發布</h2>
             <p className="text-body-sm text-text-secondary">
-              Publishing creates a new immutable version. Sessions already running keep the version they
-              started with, so existing reports stay reproducible.
+              發布會建立一個不可再變更的新版本。已在進行的練習仍沿用原本的版本，因此既有報告依然可以重現。
             </p>
             <ul className="space-y-2">
               {[
-                ['Name and description', name.trim().length > 0],
-                ['Persona selected', Boolean(persona)],
-                ['At least one knowledge base', selectedKbs.length > 0],
-                ['Rubric assigned', Boolean(rubricId)],
-                ['Opening context written', openingContext.trim().length > 0],
+                ['已填寫名稱與說明', name.trim().length > 0],
+                ['已選擇客戶角色', Boolean(persona)],
+                ['至少一個知識庫', selectedKbs.length > 0],
+                ['已指定評分規準', Boolean(rubricId)],
+                ['已填寫開場情境', openingContext.trim().length > 0],
               ].map(([label, done]) => (
                 <li key={String(label)} className="flex items-center gap-2.5 text-body-sm">
                   <span
@@ -409,13 +406,13 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
                     <Check size={15} strokeWidth={2.2} />
                   </span>
                   <span className={done ? '' : 'text-text-tertiary'}>{String(label)}</span>
-                  {!done ? <Pill tone="warning" size="sm">Incomplete</Pill> : null}
+                  {!done ? <Pill tone="warning" size="sm">尚未完成</Pill> : null}
                 </li>
               ))}
             </ul>
             {!canPublish ? (
               <p className="text-body-sm text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]">
-                Your role can save drafts but not publish. Submit for review instead.
+                你的角色可以儲存草稿，但無法發布。請改為送出審核。
               </p>
             ) : null}
           </section>
@@ -425,10 +422,10 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
         <div className="mt-8 flex items-center justify-between gap-3 border-t border-border-soft pt-5">
           <Button variant="ghost" size="sm" disabled={step === 0} onClick={() => setStep((prev) => Math.max(0, prev - 1))}>
             <ArrowLeft size={15} strokeWidth={1.8} aria-hidden />
-            Back
+            上一步
           </Button>
           <p className="text-tiny text-text-tertiary">
-            Step {step + 1} of {total}
+            第 {step + 1} / {total} 步
           </p>
           <Button
             variant="primary"
@@ -436,7 +433,7 @@ export function ScenarioBuilderPage({ scenarioId }: { scenarioId: string }) {
             disabled={step === total - 1}
             onClick={() => setStep((prev) => Math.min(total - 1, prev + 1))}
           >
-            Next
+            下一步
             <ArrowRight size={15} strokeWidth={1.8} aria-hidden />
           </Button>
         </div>

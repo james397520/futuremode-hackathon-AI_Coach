@@ -17,10 +17,10 @@ of the guardrails is theirs and is kept, because each clause is load-bearing:
 
 from __future__ import annotations
 
-from app.agents.prompts.common import untrusted_block
+from app.agents.prompts.common import INJECTION_GUARD
 
 #: Their six labels, kept verbatim so the two systems can be compared directly.
-AFFECT_LABELS = ("平穩", "緊張", "不耐煩", "挫折", "正向", "不明確")
+AFFECT_LABELS = ("平穩", "緊張", "苦惱", "挫折", "正向", "不明確")
 AFFECT_INTENSITIES = ("low", "medium", "high", "unknown")
 
 
@@ -37,6 +37,9 @@ def affect_system_prompt(locale: str = "zh-TW") -> str:
             "明確標籤必須引用本輪學員原話作為 evidence_quote（逐字，不得改寫）。",
             "另外提供簡短 reason，以及一句改善溝通方式的 suggestion。",
             f"以{locale}繁體中文輸出。",
-            untrusted_block(),
+            # Was `untrusted_block()` with no arguments — a TypeError on every call,
+            # swallowed by `AffectAgent.read()`, so the text-affect path never
+            # produced a reading. The guard clause is what belongs here.
+            INJECTION_GUARD,
         ]
     )

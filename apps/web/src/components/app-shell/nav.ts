@@ -37,7 +37,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/dashboard',
     icon: LayoutDashboard,
     permission: 'dashboard.view',
-    description: 'Training overview, today’s objective and live KPIs',
+    description: '訓練總覽、今日目標與即時指標',
   },
   {
     id: 'simulations',
@@ -45,7 +45,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/simulations',
     icon: PlayCircle,
     permission: 'simulation.start',
-    description: 'Scenario library, live sessions and session review',
+    description: '情境庫、進行中的練習與成果回顧',
   },
   {
     id: 'training',
@@ -53,7 +53,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/training',
     icon: GraduationCap,
     permission: 'training.view_assigned',
-    description: 'Assignments, deadlines and completion rules',
+    description: '指派任務、截止日與完成條件',
   },
   {
     id: 'personas',
@@ -61,7 +61,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/personas',
     icon: UserRound,
     permission: 'persona.manage',
-    description: 'Persona builder, hidden state and test lab',
+    description: '人物編輯器、隱藏狀態與測試室',
   },
   {
     id: 'scenarios',
@@ -69,7 +69,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/scenarios',
     icon: SlidersHorizontal,
     permission: 'scenario.manage',
-    description: 'Nine-step scenario builder and versioning',
+    description: '九步驟情境編輯器與版本管理',
   },
   {
     id: 'knowledge',
@@ -77,7 +77,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/knowledge',
     icon: BookOpen,
     permission: 'knowledge.view',
-    description: 'Documents, chunks, retrieval playground and mining',
+    description: '文件、切片、檢索測試與知識探勘',
   },
   {
     id: 'questions',
@@ -85,7 +85,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/questions',
     icon: ListChecks,
     permission: 'question.manage',
-    description: 'Question bank, AI generation and human review',
+    description: '題庫、AI 出題與人工審核',
   },
   {
     id: 'performance',
@@ -93,7 +93,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/performance',
     icon: TrendingUp,
     permission: 'performance.view_own',
-    description: 'Individual growth, evidence-backed scores and timelines',
+    description: '個人成長軌跡、有憑有據的評分與時間軸',
   },
   {
     id: 'reports',
@@ -102,7 +102,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: BarChart3,
     permission: 'report.view_team',
     matches: ['/reports'],
-    description: 'Team, skill and compliance reporting',
+    description: '團隊、技能與合規報表',
   },
   {
     id: 'team',
@@ -110,7 +110,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/team',
     icon: Users,
     permission: 'team.review',
-    description: 'People, roles and readiness',
+    description: '成員、身份與備戰狀態',
   },
   {
     id: 'security',
@@ -118,7 +118,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/security',
     icon: ShieldCheck,
     permission: 'security.view',
-    description: 'Findings, safety posture and the audit log',
+    description: '風險事件、安全狀態與稽核紀錄',
   },
   {
     id: 'integrations',
@@ -126,7 +126,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/integrations',
     icon: Plug,
     permission: 'integration.manage',
-    description: 'Model, voice, vector, CRM, LMS and identity connectors',
+    description: '模型、語音、向量資料庫、CRM、LMS 與身分驗證連接器',
   },
   {
     id: 'settings',
@@ -134,7 +134,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/settings',
     icon: Settings,
     permission: 'settings.view',
-    description: 'Models, AI runtime, voice, appearance, profile and billing',
+    description: '模型、AI 執行環境、語音、外觀、個人資料與帳務',
   },
 ];
 

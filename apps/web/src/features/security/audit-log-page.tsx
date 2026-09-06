@@ -8,7 +8,7 @@ import { RiskPill } from '@/components/status';
 import { AUDIT_ACTION_GROUPS, MOCK_AUDIT_EVENTS } from '@/lib/fixtures/security';
 import { userById } from '@/lib/fixtures/identity';
 import { useCan } from '@/lib/auth-context';
-import { titleize } from '@/lib/utils';
+import { AUDIT_RESULT_LABEL } from '@/lib/enum-labels';
 
 /**
  * §42 Audit Log — Time / User / Action / Resource / Workspace / IP-Session /
@@ -40,15 +40,15 @@ export function AuditLogPage() {
   return (
     <div className="space-y-5 pb-4">
       <PageHeader
-        breadcrumbs={[{ label: 'Security & Audit', href: '/security' }, { label: 'Audit log' }]}
-        title="Audit log"
-        description="Append-only record of authentication, knowledge changes, prompt and model changes, permission changes, exports and API access."
-        meta={<Pill tone="neutral" size="sm">Retention: 24 months</Pill>}
+        breadcrumbs={[{ label: '資安與稽核', href: '/security' }, { label: '稽核紀錄' }]}
+        title="稽核紀錄"
+        description="只增不改的紀錄，涵蓋登入驗證、知識異動、提示詞與模型變更、權限變更、匯出與 API 存取。"
+        meta={<Pill tone="neutral" size="sm">保留期限：24 個月</Pill>}
         actions={
           canExport ? (
             <Button variant="secondary" size="sm">
               <Download size={15} strokeWidth={1.8} aria-hidden />
-              Export CSV
+              匯出 CSV
             </Button>
           ) : null
         }
@@ -59,7 +59,7 @@ export function AuditLogPage() {
           <Select
             value={group}
             onValueChange={setGroup}
-            ariaLabel="Activity type"
+            ariaLabel="活動類型"
             options={AUDIT_ACTION_GROUPS.map((entry) => ({ value: entry.id, label: entry.label }))}
           />
         </div>
@@ -67,12 +67,12 @@ export function AuditLogPage() {
           <Select
             value={result}
             onValueChange={setResult}
-            ariaLabel="Result"
+            ariaLabel="結果"
             options={[
-              { value: 'all', label: 'Any result' },
-              { value: 'success', label: 'Success' },
-              { value: 'denied', label: 'Denied' },
-              { value: 'error', label: 'Error' },
+              { value: 'all', label: '所有結果' },
+              { value: 'success', label: '成功' },
+              { value: 'denied', label: '拒絕' },
+              { value: 'error', label: '錯誤' },
             ]}
           />
         </div>
@@ -86,8 +86,8 @@ export function AuditLogPage() {
           <Input
             type="search"
             value={query}
-            placeholder="Search action, resource, user, IP…"
-            aria-label="Search the audit log"
+            placeholder="搜尋動作、資源、使用者或 IP…"
+            aria-label="搜尋稽核紀錄"
             className="pl-9"
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)}
           />
@@ -98,11 +98,11 @@ export function AuditLogPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-body-sm">
             <caption className="sr-only-live">
-              Audit events, newest first. {events.length} rows shown.
+              稽核事件，最新的排在前面。目前顯示 {events.length} 筆。
             </caption>
             <thead>
               <tr className="border-b border-border-soft text-left">
-                {['Time', 'User', 'Action', 'Resource', 'IP / session', 'Result', 'Risk'].map((heading) => (
+                {['時間', '使用者', '動作', '資源', 'IP / 工作階段', '結果', '風險'].map((heading) => (
                   <th key={heading} scope="col" className="whitespace-nowrap px-4 py-3 text-tiny font-medium uppercase tracking-wide text-text-tertiary">
                     {heading}
                   </th>
@@ -115,7 +115,7 @@ export function AuditLogPage() {
                 return (
                   <tr key={event.id} className="border-b border-border-soft/60 last:border-b-0">
                     <td className="whitespace-nowrap px-4 py-3 tabular-nums text-text-secondary">
-                      {new Date(event.at).toLocaleString('en-GB', {
+                      {new Date(event.at).toLocaleString('zh-TW', {
                         year: 'numeric',
                         month: 'short',
                         day: '2-digit',
@@ -125,7 +125,7 @@ export function AuditLogPage() {
                       })}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      {user?.display_name ?? (event.user_id ? event.user_id : 'Service token')}
+                      {user?.display_name ?? (event.user_id ? event.user_id : '服務憑證')}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 font-medium">{event.action}</td>
                     <td className="max-w-xs truncate px-4 py-3 text-text-secondary" title={event.resource}>
@@ -140,7 +140,7 @@ export function AuditLogPage() {
                         tone={event.result === 'success' ? 'success' : event.result === 'denied' ? 'warning' : 'danger'}
                         size="sm"
                       >
-                        {titleize(event.result)}
+                        {AUDIT_RESULT_LABEL[event.result] ?? event.result}
                       </Pill>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
@@ -154,13 +154,12 @@ export function AuditLogPage() {
         </div>
 
         {events.length === 0 ? (
-          <p className="py-10 text-center text-body-sm text-text-tertiary">No event matches those filters.</p>
+          <p className="py-10 text-center text-body-sm text-text-tertiary">沒有符合這些篩選條件的事件。</p>
         ) : null}
       </GlassCard>
 
       <p className="text-tiny text-text-tertiary">
-        Audit entries cannot be edited or deleted from the product. Retention and legal hold are configured
-        by the workspace administrator.
+        稽核紀錄無法在產品中編輯或刪除。保留期限與法務保全由工作區管理者設定。
       </p>
     </div>
   );

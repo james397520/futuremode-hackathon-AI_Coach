@@ -51,6 +51,7 @@ export interface PersonaColumnProps {
   personaName: string;
   personaGender?: AvatarBodyGender;
   personaAge?: number | null;
+  onPersonaVisible?: () => void;
   personaSubtitle?: string;
   personaAvatarUrl?: string;
 
@@ -107,6 +108,7 @@ export function PersonaColumn(props: PersonaColumnProps) {
     personaName,
     personaGender,
     personaAge,
+    onPersonaVisible,
     personaSubtitle,
     personaAvatarUrl,
     speaking,
@@ -141,6 +143,7 @@ export function PersonaColumn(props: PersonaColumnProps) {
       personaName={personaName}
       personaGender={personaGender}
       personaAge={personaAge}
+      onPersonaVisible={onPersonaVisible}
       subtitle={personaSubtitle}
       avatarUrl={personaAvatarUrl}
       speaking={speaking}
@@ -228,8 +231,22 @@ export function PersonaColumn(props: PersonaColumnProps) {
             (說話中／聆聽中／待命中) and the waveform sit in an `inset-x-0 bottom-0
             p-4` strip up to 48 px tall, and without this the bottom card was
             painted over 「待命中」. */}
-        <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3 pb-14">
-          <div className="sim-scroll sim-stage-overlay pointer-events-auto grid max-h-[36%] w-full grid-cols-1 content-start items-stretch gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+        <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3 pb-11">
+          <div className={cn(
+                      'sim-stage-overlay pointer-events-auto grid w-full items-stretch gap-2',
+                      // Two columns of equal height whose tops line up, each
+                      // scrolling inside its own rounded box. `sm:grid-rows-1`
+                      // is what makes that work: Tailwind emits
+                      // `minmax(0, 1fr)`, so the row is the container's height
+                      // rather than the content's, and `min-h-0` on the cards
+                      // lets them shrink into it. Without it the row sized to
+                      // the tallest card (522px inside a 275px box) and the
+                      // container simply cut it off — the meters were sliced
+                      // through the middle and nothing scrolled.
+                      'max-h-[38%] grid-cols-1 overflow-y-auto',
+                      'sm:grid-cols-2 sm:grid-rows-1 sm:overflow-hidden',
+                      '[&>*]:min-h-0 [&>*]:overflow-y-auto',
+                    )}>
             {cards}
           </div>
         </div>

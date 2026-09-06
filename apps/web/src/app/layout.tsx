@@ -6,12 +6,12 @@ import { Providers } from './providers';
 
 export const metadata: Metadata = {
   title: {
-    default: 'AI Coach — Enterprise Simulation & Assessment',
-    template: '%s · AI Coach',
+    default: 'SkillCoach — 企業對話模擬與人才評測',
+    template: '%s · SkillCoach',
   },
   description:
-    'Conversational scenario simulation and talent assessment: personas, RAG-grounded knowledge, voice sessions, evidence-based scoring and compliance review.',
-  applicationName: 'AI Coach',
+    '對話式情境模擬與人才評測平台：模擬人物、RAG 知識依據、語音練習、有憑有據的評分與合規審查。',
+  applicationName: 'SkillCoach',
   robots: { index: false, follow: false },
 };
 

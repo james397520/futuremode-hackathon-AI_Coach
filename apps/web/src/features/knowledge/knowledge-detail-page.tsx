@@ -7,6 +7,7 @@ import { Button, GlassCard, Pill, Tooltip } from '@/components/ui';
 import { PageHeader } from '@/components/app-shell';
 import { ContentStatusPill, DocumentPipeline, DocumentStatePill } from '@/components/status';
 import { documentsForKb, knowledgeBaseById, knowledgeReadiness } from '@/lib/fixtures/knowledge';
+import { ACL_SCOPE_LABEL, KB_PERMISSION_LABEL } from '@/lib/enum-labels';
 import { useCan } from '@/lib/auth-context';
 import { formatBytes, formatCount, formatRelative } from '@/lib/utils';
 import { UploadModal } from './upload-modal';
@@ -28,12 +29,12 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
     return (
       <div className="space-y-4 pb-4">
         <PageHeader
-          breadcrumbs={[{ label: 'Knowledge Base', href: '/knowledge' }]}
-          title="Knowledge base not found"
-          description="It may be scoped to a team or role you are not part of."
+          breadcrumbs={[{ label: '知識庫', href: '/knowledge' }]}
+          title="找不到這個知識庫"
+          description="它可能僅開放給你尚未加入的團隊或角色。"
         />
         <Button variant="secondary" size="sm" asChild>
-          <Link href="/knowledge">Back to knowledge bases</Link>
+          <Link href="/knowledge">返回知識庫列表</Link>
         </Button>
       </div>
     );
@@ -45,31 +46,31 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
   return (
     <div className="space-y-5 pb-4">
       <PageHeader
-        breadcrumbs={[{ label: 'Knowledge Base', href: '/knowledge' }, { label: kb.name }]}
+        breadcrumbs={[{ label: '知識庫', href: '/knowledge' }, { label: kb.name }]}
         title={kb.name}
         description={kb.description}
         meta={
           <>
             <ContentStatusPill status={kb.status} />
             <Pill tone="neutral" size="sm">{kb.embedding_model}</Pill>
-            <Pill tone="neutral" size="sm">Scope: {kb.acl.scope}</Pill>
+            <Pill tone="neutral" size="sm">範圍：{ACL_SCOPE_LABEL[kb.acl.scope] ?? kb.acl.scope}</Pill>
           </>
         }
         actions={
           <>
             <Button variant="ghost" size="sm" asChild>
-              <Link href={`/knowledge/${kb.id}/chunks`}>Chunk viewer</Link>
+              <Link href={`/knowledge/${kb.id}/chunks`}>切片檢視</Link>
             </Button>
             <Button variant="ghost" size="sm" asChild>
               <Link href={`/knowledge/${kb.id}/playground`}>
                 <Database size={15} strokeWidth={1.8} aria-hidden />
-                Playground
+                測試場
               </Link>
             </Button>
             {canManage ? (
               <Button variant="primary" size="sm" onClick={() => setUploadOpen(true)}>
                 <Upload size={15} strokeWidth={1.8} aria-hidden />
-                Upload
+                上傳文件
               </Button>
             ) : null}
           </>
@@ -79,27 +80,27 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <GlassCard className="relative overflow-hidden p-6">
           <div className="dot-matrix pointer-events-none absolute inset-y-0 right-0 w-2/5 opacity-60" aria-hidden />
-          <p className="meta-label">Knowledge readiness</p>
+          <p className="meta-label">知識就緒度</p>
           <p className="mt-2 text-display tabular-nums">{readiness}%</p>
           <p className="mt-1 text-body-sm text-text-secondary">
-            {formatCount(kb.document_count)} documents · {formatCount(kb.chunk_count)} chunks · last indexed{' '}
+            {formatCount(kb.document_count)} 份文件 · {formatCount(kb.chunk_count)} 個切片 · 最近索引於{' '}
             {formatRelative(kb.updated_at)}
           </p>
 
-          <p className="mt-6 meta-label">Most recent batch</p>
+          <p className="mt-6 meta-label">最近一批處理</p>
           <div className="mt-2 grid gap-4 sm:grid-cols-3">
             <div>
-              <p className="meta-label">Ready</p>
+              <p className="meta-label">已就緒</p>
               <p className="mt-1 text-section tabular-nums">
                 {documents.filter((doc) => doc.state === 'ready').length}
               </p>
             </div>
             <div>
-              <p className="meta-label">Processing</p>
+              <p className="meta-label">處理中</p>
               <p className="mt-1 text-section tabular-nums">{processing.length}</p>
             </div>
             <div>
-              <p className="meta-label">Failed</p>
+              <p className="meta-label">失敗</p>
               <p className="mt-1 text-section tabular-nums">
                 {documents.filter((doc) => doc.state === 'failed').length}
               </p>
@@ -109,25 +110,25 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
 
         <div className="space-y-4">
           <GlassCard className="p-5">
-            <h2 className="text-card-title">Retrieval configuration</h2>
+            <h2 className="text-card-title">檢索設定</h2>
             <dl className="mt-3 space-y-2 text-body-sm">
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-text-tertiary">Embedding model</dt>
+                <dt className="text-text-tertiary">嵌入模型</dt>
                 <dd className="truncate">{kb.embedding_model}</dd>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-text-tertiary">Vector database</dt>
-                <dd>Qdrant · collection {kb.id}</dd>
+                <dt className="text-text-tertiary">向量資料庫</dt>
+                <dd>Qdrant · 集合 {kb.id}</dd>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-text-tertiary">Retrieval status</dt>
+                <dt className="text-text-tertiary">檢索狀態</dt>
                 <dd>
-                  <Pill tone="success" size="sm">Live</Pill>
+                  <Pill tone="success" size="sm">運作中</Pill>
                 </dd>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-text-tertiary">Hybrid + rerank</dt>
-                <dd>Enabled</dd>
+                <dt className="text-text-tertiary">混合檢索 + 重排序</dt>
+                <dd>已啟用</dd>
               </div>
             </dl>
           </GlassCard>
@@ -136,17 +137,16 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
           <GlassCard className="p-5">
             <div className="flex items-center gap-2">
               <Lock size={15} strokeWidth={1.8} aria-hidden className="text-accent-violet" />
-              <h2 className="text-card-title">Access control</h2>
+              <h2 className="text-card-title">存取控管</h2>
             </div>
             <p className="mt-1 text-body-sm text-text-secondary">
-              Scope <span className="font-medium">{kb.acl.scope}</span> ·{' '}
-              {kb.acl.subject_ids.length} subject(s). Retrieval outside this scope is impossible, not merely
-              discouraged.
+              範圍 <span className="font-medium">{ACL_SCOPE_LABEL[kb.acl.scope] ?? kb.acl.scope}</span> ·{' '}
+              共 {kb.acl.subject_ids.length} 個授權對象。超出這個範圍的檢索是做不到的，而不只是不建議。
             </p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {kb.acl.permissions.map((permission) => (
                 <Pill key={permission} tone="neutral" size="sm">
-                  {permission.replace(/_/g, ' ')}
+                  {KB_PERMISSION_LABEL[permission] ?? permission.replace(/_/g, ' ')}
                 </Pill>
               ))}
             </div>
@@ -154,7 +154,7 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
 
           {processing.length > 0 ? (
             <GlassCard className="p-5">
-              <h2 className="text-card-title">In the pipeline</h2>
+              <h2 className="text-card-title">處理佇列中</h2>
               <div className="mt-4 space-y-5">
                 {processing.map((doc) => (
                   <div key={doc.id}>
@@ -171,8 +171,8 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
       {/* §27 Document cards */}
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-section">Documents</h2>
-          <p className="text-body-sm text-text-tertiary">{documents.length} in this knowledge base</p>
+          <h2 className="text-section">文件</h2>
+          <p className="text-body-sm text-text-tertiary">這個知識庫共 {documents.length} 份</p>
         </div>
 
         <ul className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
@@ -197,26 +197,26 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
 
                 <dl className="mt-4 grid grid-cols-2 gap-2 text-body-sm">
                   <div>
-                    <dt className="meta-label">Size</dt>
+                    <dt className="meta-label">大小</dt>
                     <dd className="tabular-nums">{formatBytes(doc.size_bytes)}</dd>
                   </div>
                   <div>
-                    <dt className="meta-label">Version</dt>
+                    <dt className="meta-label">版本</dt>
                     <dd className="tabular-nums">v{doc.active_version}</dd>
                   </div>
                   <div>
-                    <dt className="meta-label">Updated</dt>
+                    <dt className="meta-label">更新時間</dt>
                     <dd>{formatRelative(doc.updated_at)}</dd>
                   </div>
                   <div>
-                    <dt className="meta-label">Progress</dt>
+                    <dt className="meta-label">進度</dt>
                     <dd className="tabular-nums">{doc.progress}%</dd>
                   </div>
                 </dl>
 
                 {doc.state === 'failed' && doc.failure_reason ? (
                   <p className="mt-3 rounded-card-sm border border-border-soft px-3 py-2 text-body-sm text-text-secondary">
-                    <span className="meta-label mr-2 text-[color:color-mix(in_srgb,var(--danger)_55%,var(--text-primary))]">Error</span>
+                    <span className="meta-label mr-2 text-[color:color-mix(in_srgb,var(--danger)_55%,var(--text-primary))]">錯誤</span>
                     {doc.failure_reason}
                   </p>
                 ) : null}
@@ -224,18 +224,18 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
                 {/* §27 hover actions — always keyboard reachable, not hover-only. */}
                 <div className="mt-4 flex items-center gap-2 border-t border-border-soft pt-4">
                   <Button variant="secondary" size="sm" asChild>
-                    <Link href={`/knowledge/${kb.id}/documents/${doc.id}`}>View</Link>
+                    <Link href={`/knowledge/${kb.id}/documents/${doc.id}`}>檢視</Link>
                   </Button>
                   {canManage ? (
-                    <Tooltip content="Re-run parse → chunk → embed → index">
+                    <Tooltip content="重新執行解析 → 切片 → 嵌入 → 索引">
                       <Button variant="ghost" size="sm">
                         <RefreshCw size={15} strokeWidth={1.8} aria-hidden />
-                        Reprocess
+                        重新處理
                       </Button>
                     </Tooltip>
                   ) : null}
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/knowledge/${kb.id}/chunks?document=${doc.id}`}>Chunks</Link>
+                    <Link href={`/knowledge/${kb.id}/chunks?document=${doc.id}`}>切片</Link>
                   </Button>
                 </div>
               </GlassCard>
@@ -248,15 +248,14 @@ export function KnowledgeDetailPage({ kbId }: { kbId: string }) {
         <div className="flex items-start gap-3">
           <Sparkles size={17} strokeWidth={1.8} aria-hidden className="mt-0.5 text-accent-indigo" />
           <div>
-            <h2 className="text-card-title">Turn this knowledge into training assets</h2>
+            <h2 className="text-card-title">把這些知識轉成訓練素材</h2>
             <p className="text-body-sm text-text-secondary">
-              Mine top-performer transcripts and coaching notes into golden phrases, objection patterns and
-              scenario seeds. Everything needs human review before publish.
+              從頂尖業務的逐字稿與教練筆記中，探勘出金句、常見異議模式與情境種子。所有內容都必須經過人工審核才能發布。
             </p>
           </div>
         </div>
         <Button variant="secondary" size="sm" asChild>
-          <Link href={`/knowledge/${kb.id}/mining`}>Open knowledge mining</Link>
+          <Link href={`/knowledge/${kb.id}/mining`}>開啟知識探勘</Link>
         </Button>
       </GlassCard>
 

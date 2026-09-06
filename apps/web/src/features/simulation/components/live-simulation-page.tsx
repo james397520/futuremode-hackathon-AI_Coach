@@ -18,6 +18,7 @@
  *     events (§62 / §94).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Citation } from '@ai-coach/shared';
 
 import { useQuery } from '@tanstack/react-query';
@@ -79,6 +80,9 @@ import { SessionHeader } from './session-header';
 import { SimulationStyles } from './simulation-styles';
 import { buildTranscriptItems, type SystemNotice } from './transcript-feed';
 import { TrainingGrid } from './training-grid';
+
+/** How long the opening line waits for the 3D body before playing anyway. */
+const PERSONA_VISIBLE_TIMEOUT_MS = 6000;
 
 export interface LiveSimulationPageProps {
   sessionId: string;
@@ -155,6 +159,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
   const sttEngineRef = useRef(sttEngine);
   sttEngineRef.current = sttEngine;
 
+  const router = useRouter();
   const voice = useVoiceSession({
     enabled: Boolean(bootstrap?.voiceEnabled) && micWanted,
     sessionId,
@@ -210,6 +215,46 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
   });
   voiceRef.current = voice;
 
+  // One line, one utterance, and not before the persona is on screen — see the
+  // same block in `voice-simulation-page.tsx`. A persona turn arrives as
+  // `agent.response.final` *and* `speech.final`, so without the turn-id guard
+  // the opening line was spoken twice (three times with the local engine's
+  // fallback chain), and it started before the 25 MB body had loaded.
+  const spokenTurnsRef = useRef<Set<string>>(new Set());
+  const personaVisibleRef = useRef(false);
+  const pendingSpeechRef = useRef<{ text: string; url: string | null } | null>(null);
+
+  const flushPendingSpeech = useCallback(() => {
+    const pending = pendingSpeechRef.current;
+    pendingSpeechRef.current = null;
+    if (pending) void voiceRef.current?.speakTurn(pending.text, pending.url);
+  }, []);
+
+  const onPersonaVisible = useCallback(() => {
+    if (personaVisibleRef.current) return;
+    personaVisibleRef.current = true;
+    flushPendingSpeech();
+  }, [flushPendingSpeech]);
+
+  const speakOnce = useCallback(
+    (key: string, text: string, url: string | null) => {
+      if (spokenTurnsRef.current.has(key)) return;
+      spokenTurnsRef.current.add(key);
+      if (!personaVisibleRef.current) {
+        pendingSpeechRef.current = { text, url };
+        window.setTimeout(() => {
+          if (!personaVisibleRef.current) {
+            personaVisibleRef.current = true;
+            flushPendingSpeech();
+          }
+        }, PERSONA_VISIBLE_TIMEOUT_MS);
+        return;
+      }
+      void voiceRef.current?.speakTurn(text, url);
+    },
+    [flushPendingSpeech],
+  );
+
   const socket = useSessionSocket({
     sessionId,
     mode,
@@ -222,7 +267,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
       if (event.type === 'agent.response.final' || event.type === 'speech.final') {
         const turn = event.turn;
         if (turn?.speaker === 'persona' && turn.text && bootstrap?.voiceEnabled) {
-          void voiceRef.current?.speakTurn(turn.text, turn.audio_url ?? null);
+          speakOnce(turn.id || turn.text, turn.text, turn.audio_url ?? null);
         }
       }
     },
@@ -336,12 +381,37 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
     else socket.pause();
   }, [socket, status]);
 
+  // Restart has to reset the *server* session, not just this page. Clearing the
+  // store and remounting the socket left the transcript, the turn count and the
+  // persona state on the API, so the next connect replayed all of it and the
+  // whole conversation reappeared a second later — the button looked broken
+  // precisely because it did something.
+  //
+  // A training product already has the right word for this: another attempt.
+  // Creating a fresh session of the same scenario is the only reset that is
+  // actually clean, and it keeps the finished attempt intact for review.
   const handleRestart = useCallback(() => {
     voice.cancelTts();
     actions.resetForRestart();
     setNotices([]);
     setEpoch((n) => n + 1);
-  }, [actions, voice]);
+    const scenarioId = bootstrap?.scenario?.id;
+    if (!scenarioId) return;
+    void endpoints
+      .createSession({
+        scenario_id: scenarioId,
+        mode: bootstrap.mode,
+        voice_enabled: bootstrap.voiceEnabled ?? false,
+        score_live_enabled: bootstrap.scoreLiveEnabled ?? true,
+      })
+      .then((created) => {
+        router.push(`/simulations/${created.session.session_id}/live`);
+      })
+      .catch(() => {
+        // The local reset above already happened; say nothing rather than
+        // stranding the user on a half-reset page with an error toast.
+      });
+  }, [actions, bootstrap, router, voice]);
 
   const handleEnd = useCallback(() => {
     voice.cancelTts();
@@ -413,9 +483,9 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
       <>
         <SimulationStyles />
         <GlassCard className="sim-card-enter m-auto max-w-lg p-6 text-center">
-          <h2 className="text-section text-text-primary">This session could not be loaded</h2>
+          <h2 className="text-section text-text-primary">無法載入這場練習</h2>
           <p className="mt-2 text-body text-text-secondary">
-            {bootstrapError ?? 'The session may have ended or you may not have access to it.'}
+            {bootstrapError ?? '這場練習可能已經結束，或者你沒有存取權限。'}
           </p>
           <button
             type="button"
@@ -427,14 +497,19 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
             }}
           >
             <RestartIcon size={16} />
-            Try again
+            重新載入
           </button>
         </GlassCard>
       </>
     );
   }
 
-  const personaSpeaking = status === 'persona_speaking';
+  // The mouth has to move while the audio is *actually playing*, not while the
+  // socket says the persona is speaking. `persona_speaking` is set by the text
+  // stream (`agent.response.partial`) and clears when the text ends, which is
+  // before the clip starts and long before it finishes — so the lipsync ran
+  // against silence and the avatar sat still through the whole reply.
+  const personaSpeaking = status === 'persona_speaking' || voice.ttsPlaying;
   const personaListening = status === 'listening' || status === 'transcribing';
   const personaThinking = status === 'processing';
 
@@ -474,14 +549,14 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
                 className="text-body font-medium"
                 style={{ color: toneText(sessionError.recoverable ? 'warning' : 'danger') }}
               >
-                {sessionError.recoverable ? 'The session hit a hiccup' : 'The session stopped'}
+                {sessionError.recoverable ? '練習遇到小狀況' : '練習已中斷'}
               </p>
               <p className="mt-0.5 text-body-sm text-text-secondary">{sessionError.message}</p>
             </div>
             <button
               type="button"
               onClick={actions.dismissError}
-              aria-label="Dismiss"
+              aria-label="關閉提示"
               className="sim-focusable shrink-0 text-text-tertiary hover:text-text-secondary"
             >
               <CloseIcon size={15} />
@@ -585,6 +660,7 @@ export function LiveSimulationPage({ sessionId }: LiveSimulationPageProps) {
               personaName={bootstrap.persona.name}
               personaGender={bootstrap.persona.gender}
               personaAge={bootstrap.persona.age}
+              onPersonaVisible={onPersonaVisible}
               personaSubtitle={bootstrap.persona.subtitle ?? bootstrap.persona.occupation}
               personaAvatarUrl={bootstrap.persona.avatarUrl}
               speaking={personaSpeaking}

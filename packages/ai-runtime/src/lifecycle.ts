@@ -256,7 +256,7 @@ export class RuntimeLifecycle {
             // server tier so nothing is downloaded.
             ...caps,
             selectedBackend: 'server',
-            webgpuUnavailableReason: 'Local acceleration has not been enabled for this device.',
+            webgpuUnavailableReason: '這台裝置尚未啟用本機加速。',
           };
 
       this.capabilityValue = effective;
@@ -311,7 +311,7 @@ export class RuntimeLifecycle {
         backend: tier,
         task,
         fatal: true,
-        message: 'Local acceleration has not been enabled on this device.',
+        message: '這台裝置尚未啟用本機加速。',
       });
     }
     if (this.policy.webgpu === 'off' || this.override === 'off') {
@@ -320,7 +320,7 @@ export class RuntimeLifecycle {
         backend: tier,
         task,
         fatal: true,
-        message: 'Local acceleration is disabled by policy.',
+        message: '政策已停用本機加速。',
       });
     }
 
@@ -385,7 +385,7 @@ export class RuntimeLifecycle {
       backend: tier,
       task,
       fatal: true,
-      message: 'There is not enough local storage for the on-device model.',
+      message: '本機儲存空間不足，無法放置裝置端模型。',
     });
   }
 

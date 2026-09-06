@@ -85,6 +85,11 @@ export interface ConversationPanelProps {
   onReportIssue: () => void;
   onOpenAudioDevice: () => void;
 
+  /** Hide the pause/restart/captions/transcript/… quick-actions row (default shown). */
+  showQuickActions?: boolean;
+  /** Hide the coach/compliance strip pinned above the composer (default shown). */
+  showInlineEvents?: boolean;
+
   className?: string;
 }
 
@@ -205,7 +210,7 @@ function CoachInlineEvents({
                 {insight.title}
               </span>
               <TonePill tone={COACH_KIND_TONE[insight.kind] ?? 'violet'} fill={14}>
-                {COACH_KIND_LABEL[insight.kind] ?? 'Coach'}
+                {COACH_KIND_LABEL[insight.kind] ?? '教練'}
               </TonePill>
             </div>
             <p className="mt-1 text-body-sm text-text-secondary">{insight.body}</p>
@@ -267,6 +272,8 @@ export function ConversationPanel(props: ConversationPanelProps) {
     onOpenTranscript,
     onReportIssue,
     onOpenAudioDevice,
+    showQuickActions = true,
+    showInlineEvents = true,
     className,
   } = props;
 
@@ -295,12 +302,14 @@ export function ConversationPanel(props: ConversationPanelProps) {
       />
 
       <div className="mt-3 border-t pt-3" style={{ borderColor: tint('neutral', 14) }}>
-        <CoachInlineEvents
-          mode={mode}
-          coachInsights={coachInsights}
-          complianceFindings={complianceFindings}
-          startedAtMs={startedAtMs}
-        />
+        {showInlineEvents ? (
+          <CoachInlineEvents
+            mode={mode}
+            coachInsights={coachInsights}
+            complianceFindings={complianceFindings}
+            startedAtMs={startedAtMs}
+          />
+        ) : null}
 
         <div className="flex items-center justify-between gap-3 px-1.5 pb-2">
           <AgentActivity agent={activeAgent} atMs={agentActivityAtMs} status={status} />
@@ -312,25 +321,32 @@ export function ConversationPanel(props: ConversationPanelProps) {
           ) : null}
         </div>
 
-        <QuickActions
-          className="px-1.5 pb-3"
-          mode={mode}
-          status={status}
-          training={training}
-          onPauseResume={onPauseResume}
-          onRestart={onRestart}
-          onEnd={onEnd}
-          captionsEnabled={captionsEnabled}
-          onToggleCaptions={onToggleCaptions}
-          onOpenTranscript={onOpenTranscript}
-          onReportIssue={onReportIssue}
-          onOpenAudioDevice={onOpenAudioDevice}
-        />
+        {showQuickActions ? (
+          <QuickActions
+            className="px-1.5 pb-3"
+            mode={mode}
+            status={status}
+            training={training}
+            onPauseResume={onPauseResume}
+            onRestart={onRestart}
+            onEnd={onEnd}
+            captionsEnabled={captionsEnabled}
+            onToggleCaptions={onToggleCaptions}
+            onOpenTranscript={onOpenTranscript}
+            onReportIssue={onReportIssue}
+            onOpenAudioDevice={onOpenAudioDevice}
+          />
+        ) : null}
 
         <AffectNudge
           reading={affectReading}
           cameraLive={cameraLive}
-          traineesTurn={status === 'listening' || status === 'idle' || status === 'ready'}
+          // Anything except the trainee actually talking. Looking stuck while
+          // the customer answers is the most natural moment to look stuck, and
+          // gating on the trainee's *turn* meant the frown that prompted the
+          // offer had usually passed by the time the turn came round — the card
+          // then appeared much later, attached to nothing.
+          traineesTurn={status !== 'connecting' && status !== 'completed' && status !== 'error'}
           onAskHint={onRequestHint}
         />
 

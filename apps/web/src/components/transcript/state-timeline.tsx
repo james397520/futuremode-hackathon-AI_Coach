@@ -6,10 +6,10 @@ import { Pill } from '@/components/ui';
 import { cn, formatClock, titleize } from '@/lib/utils';
 
 const MARKER_META = {
-  key_response: { label: 'Key response', Icon: Star, tone: 'success' as const },
-  missed_signal: { label: 'Missed signal', Icon: TriangleAlert, tone: 'warning' as const },
-  compliance_warning: { label: 'Compliance warning', Icon: AlertTriangle, tone: 'danger' as const },
-  state_change: { label: 'State change', Icon: CircleDot, tone: 'neutral' as const },
+  key_response: { label: '關鍵回應', Icon: Star, tone: 'success' as const },
+  missed_signal: { label: '錯過的訊號', Icon: TriangleAlert, tone: 'warning' as const },
+  compliance_warning: { label: '合規警示', Icon: AlertTriangle, tone: 'danger' as const },
+  state_change: { label: '狀態變化', Icon: CircleDot, tone: 'neutral' as const },
 };
 
 /**
@@ -34,7 +34,7 @@ export function StateTimeline({
   const unique = emotions.filter((emotion, index) => emotions[index - 1] !== emotion);
 
   return (
-    <section className={cn('space-y-4', className)} aria-label="Persona state timeline">
+    <section className={cn('space-y-4', className)} aria-label="客戶狀態時間軸">
       <div className="flex flex-wrap items-center gap-1.5 text-body-sm text-text-secondary">
         {unique.map((emotion, index) => (
           <span key={`${emotion}-${index}`} className="flex items-center gap-1.5">
@@ -72,15 +72,15 @@ export function StateTimeline({
                 {point.note ? <p className="mt-1 text-body-sm text-text-secondary">{point.note}</p> : null}
 
                 <div className="mt-1.5 flex flex-wrap items-center gap-3 text-tiny text-text-tertiary">
-                  <span className="tabular-nums">Trust {point.trust}</span>
-                  <span className="tabular-nums">Resistance {point.resistance}</span>
+                  <span className="tabular-nums">信任度 {point.trust}</span>
+                  <span className="tabular-nums">抗拒 {point.resistance}</span>
                   {onJumpToTurn ? (
                     <button
                       type="button"
                       onClick={() => onJumpToTurn(point.turn_id)}
                       className="ink-indigo rounded-button hover:underline"
                     >
-                      Jump to turn
+                      跳到該回合
                     </button>
                   ) : null}
                 </div>

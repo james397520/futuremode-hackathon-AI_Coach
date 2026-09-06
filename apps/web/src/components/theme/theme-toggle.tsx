@@ -6,9 +6,9 @@ import { cn } from '@/lib/utils';
 import { useTheme, type ThemeMode } from './theme-provider';
 
 const OPTIONS: Array<{ value: ThemeMode; label: string; Icon: typeof Sun }> = [
-  { value: 'light', label: 'Light', Icon: Sun },
-  { value: 'dark', label: 'Dark', Icon: Moon },
-  { value: 'system', label: 'System', Icon: Monitor },
+  { value: 'light', label: '淺色', Icon: Sun },
+  { value: 'dark', label: '深色', Icon: Moon },
+  { value: 'system', label: '跟隨系統', Icon: Monitor },
 ];
 
 /**
@@ -31,11 +31,11 @@ export function ThemeToggle({
   if (variant === 'compact') {
     const next = OPTIONS[(OPTIONS.findIndex((o) => o.value === mode) + 1) % OPTIONS.length]!;
     return (
-      <Tooltip content={`Theme: ${active.label} — switch to ${next.label}`} side="right">
+      <Tooltip content={`外觀主題：${active.label}——切換為${next.label}`} side="right">
         <button
           type="button"
           className={cn('rail-item justify-center', className)}
-          aria-label={`Theme: ${active.label}. Activate to switch to ${next.label}.`}
+          aria-label={`外觀主題：${active.label}。按下可切換為${next.label}。`}
           onClick={() => setMode(next.value)}
         >
           <active.Icon size={19} strokeWidth={1.6} aria-hidden />
@@ -46,11 +46,11 @@ export function ThemeToggle({
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
-      <span className="meta-label px-1">Appearance</span>
+      <span className="meta-label px-1">外觀</span>
       <SegmentedControl<ThemeMode>
         value={mode}
         onValueChange={setMode}
-        ariaLabel="Colour theme"
+        ariaLabel="色彩主題"
         size="sm"
         options={OPTIONS.map(({ value, label, Icon }) => ({
           value,
@@ -61,9 +61,9 @@ export function ThemeToggle({
       <p className="text-tiny text-text-tertiary px-1" aria-live="polite">
         {hydrated
           ? mode === 'system'
-            ? `Following your device — currently ${resolved}`
-            : `${active.label} mode`
-          : 'Resolving theme…'}
+            ? `跟隨裝置設定——目前為${resolved === 'dark' ? '深色' : '淺色'}`
+            : `${active.label}模式`
+          : '正在判斷主題…'}
       </p>
     </div>
   );

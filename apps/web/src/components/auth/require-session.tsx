@@ -1,7 +1,7 @@
 'use client';
 
 import { type ReactNode } from 'react';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import { Button, GlassCard } from '@/components/ui';
 import { useAuth } from '@/lib/auth-context';
@@ -31,12 +31,48 @@ export function RequireSession({ children }: { children: ReactNode }) {
           className="dot-matrix pointer-events-none absolute left-0 top-0 h-[52vh] w-[46vw] opacity-80"
           aria-hidden
         />
-        <output aria-live="polite" className="relative flex flex-col items-center gap-3">
-          <Image src="/brand/logo-mark.png" alt="" width={40} height={40} priority aria-hidden />
-          <span className="flex items-center gap-2 text-body-sm text-text-secondary">
-            <Loader2 size={15} strokeWidth={2} className="animate-spin" aria-hidden />
-            載入中…
-          </span>
+        <output aria-live="polite" className="relative w-full max-w-sm">
+          <GlassCard
+            tone="floating"
+            className="flex flex-col items-center px-8 py-10 text-center"
+          >
+            {/* The mark itself is untouched — it is framed, not redesigned. The
+                file is a square PNG with its own light ground, which is why it
+                read as a white tile floating on the aurora; a rounded, clipped
+                container with a hairline ring turns that same square into a
+                deliberate app icon. */}
+            <span
+              className="boot-glow relative grid size-16 place-items-center overflow-hidden rounded-[20px] shadow-soft"
+              style={{
+                background: 'var(--glass-card-strong)',
+                boxShadow:
+                  '0 10px 30px -12px color-mix(in srgb, var(--accent-indigo) 55%, transparent)',
+              }}
+              aria-hidden
+            >
+              <span
+                className="pointer-events-none absolute inset-0 rounded-[20px]"
+                style={{
+                  boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--text-primary) 10%, transparent)',
+                }}
+              />
+              <Image src="/brand/logo-mark.png" alt="" width={44} height={44} priority />
+            </span>
+
+            <h1 className="mt-5 text-section">SkillCoach</h1>
+            <p className="mt-1 text-body-sm text-text-secondary">企業訓練工作區</p>
+
+            {/* Indeterminate, because the honest answer is that we do not know
+                how long the API will take. A rail that pretends to know — a
+                percentage, a filling bar — would be a fabricated number. */}
+            <div
+              className="boot-rail relative mt-7 h-1 w-full overflow-hidden rounded-pill"
+              style={{ background: 'color-mix(in srgb, var(--text-primary) 12%, transparent)' }}
+              aria-hidden
+            />
+
+            <p className="mt-3 text-tiny text-text-tertiary">正在連線到工作區…</p>
+          </GlassCard>
         </output>
       </div>
     );

@@ -121,6 +121,10 @@ class CustomerTurnRequest(BaseModel):
     #: classifier, mapped into the shared six-label space). Empty when the
     #: camera is off. Untrusted and advisory — it shapes *how* the customer
     #: reacts, never what facts they know.
+    #: The *fused* reading (`app.domain.affect.TraineeAffect`), not the raw face.
+    #: Text and face are both in here, already reconciled, so a trainee who
+    #: types 「這太離譜了」 with the camera off reaches the customer exactly like a
+    #: frown does — which is what the scenario descriptions have been promising.
     trainee_face: dict[str, Any] = Field(default_factory=dict)
 
     @property
@@ -154,8 +158,23 @@ class CustomerAgent(Agent[CustomerTurnRequest, CustomerReply]):
         # An impatient customer talks in clipped sentences. This is also what
         # keeps a low-patience demo persona's replies inside the transcript
         # panel without scrolling — the rule is character-driven, not a UI hack.
+        #
+        # Brevity alone produced *short but composed* lines — 「說原因太抽象，
+        # 直接給我數字：這次調漲多少、一年多花多少錢。」 is 30 characters of
+        # perfectly balanced prose, which is not how someone with 30 patience
+        # talks. Someone that irritated interrupts with the one thing they want:
+        # 「為什麼漲？」 So the instruction now asks for the register, not just
+        # the length, and explicitly allows a bare question as a whole turn.
         reply_length = (
-            "最多兩句、合計 40 字以內。不客套、不重述對方的話、不解釋自己的情緒。"
+            "**一句話，20 字以內。** 通常就是一個問題，其他什麼都不要加。"
+            "\n不要客套、不要重述對方的話、不要解釋自己的情緒、不要說「我理解」"
+            "「我知道」「請你」這種緩衝語。不要用冒號或頓號把要求列成一串，"
+            "不要寫工整對仗的句子——那是有禮貌的人在有效率地講話，不是不耐煩。"
+            "\n該有的樣子：「為什麼要漲價？」「漲多少？」「所以呢？」「講重點。」"
+            "「這我剛剛問過了。」——直接、不修飾、一次只問一件事，"
+            "沒拿到答案就把同一個問題再問一次，而且更短。"
+            "\n不該有的樣子：「說原因太抽象，直接給我數字：這次調漲多少、"
+            "一年多花多少錢。」——這太整齊、一次列了兩個要求，像在寫需求單。"
             if patience is not None and patience < 35
             else "1–4 句，口語。"
         )
@@ -231,7 +250,7 @@ class CustomerAgent(Agent[CustomerTurnRequest, CustomerReply]):
         if request.trainee_face:
             blocks.append(
                 data_block(
-                    "trainee_face_right_now",
+                    "trainee_affect_right_now",
                     {
                         **request.trainee_face,
                         "how_to_use": self._face_directive(request.trainee_face),
@@ -251,27 +270,41 @@ class CustomerAgent(Agent[CustomerTurnRequest, CustomerReply]):
     #: Face readings below this are ignored: the browser classifier always
     #: returns its top rule, so a floor is what separates "looks annoyed" from
     #: "looks like nothing in particular".
-    FACE_REACT_MIN_CONFIDENCE = 0.55
+    #:
+    #: 0.42 rather than 0.55. The browser rule engine scores every frame against
+    #: all eight rules and returns its top one, so a real, held frown lands around
+    #: 0.45-0.6 — a 0.55 floor made the customer notice it perhaps half the time,
+    #: which in a live demo is indistinguishable from broken. 0.42 is still well
+    #: clear of a resting face: 平穩 and 不明確 are excluded by label regardless of
+    #: score, so what this floor actually governs is how *sure* a negative
+    #: expression has to be, not whether a neutral one can slip through.
+    FACE_REACT_MIN_CONFIDENCE = 0.25
 
     @classmethod
     def _face_directive(cls, face: dict[str, Any]) -> str:
-        """How a real customer reacts to the salesperson's expression.
+        """How a real customer reacts to the salesperson's state.
 
         A customer *notices* the person across the table. When the trainee looks
-        displeased the natural thing is to check, in one sentence, whether the
-        customer said something wrong — not to describe the trainee's emotion
-        back at them, and not to change the facts of the conversation.
+        or sounds displeased the natural thing is to check, in one sentence,
+        whether the customer said something wrong — not to describe the
+        trainee's emotion back at them, and not to change the facts.
+
+        Reads the fused affect, so this fires on a frown, on the words, or on
+        both. It used to take the raw face only, which meant the text fallback
+        every scenario description offers — 「文字同樣有效」 — quietly did nothing.
         """
         try:
             confidence = float(face.get("confidence") or 0.0)
         except (TypeError, ValueError):
             confidence = 0.0
         label = str(face.get("label") or "")
-        if confidence < cls.FACE_REACT_MIN_CONFIDENCE or label in ("", "不明確", "平穩"):
+        source = str(face.get("source") or "")
+        weak = confidence < cls.FACE_REACT_MIN_CONFIDENCE
+        if source == "none" or weak or label in ("", "不明確", "平穩"):
             return "表情沒有明顯訊號，照常回應，不要提到對方的表情。"
-        if label == "不耐煩":
+        if label == "苦惱":
             return (
-                "業務此刻看起來不太認同或不耐煩。像真人一樣先用**一句**確認："
+                "業務此刻看起來有點苦惱或不太認同。像真人一樣先用**一句**確認："
                 "「你好像不太認同我剛講的？」或「我是不是哪裡講錯了？」，"
                 "然後停下來等對方回答。不要分析對方情緒、不要道歉過頭、不要改變你的立場。"
             )

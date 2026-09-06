@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { SimulationSetupPage } from '@/features/simulations';
 
-export const metadata: Metadata = { title: 'Simulation setup' };
+export const metadata: Metadata = { title: '模擬設定' };
 
 /**
  * NOTE on the slug name: App Router requires every route at the same position to

@@ -32,7 +32,7 @@ export function PageHeader({
     <div className={cn('flex flex-wrap items-end justify-between gap-4 pb-5 pt-5', className)}>
       <div className="min-w-0 flex-1">
         {breadcrumbs && breadcrumbs.length > 0 ? (
-          <nav aria-label="Breadcrumb" className="mb-2">
+          <nav aria-label="麵包屑導覽" className="mb-2">
             <ol className="flex flex-wrap items-center gap-1 text-meta text-text-tertiary">
               {breadcrumbs.map((crumb, index) => {
                 const isLast = index === breadcrumbs.length - 1;

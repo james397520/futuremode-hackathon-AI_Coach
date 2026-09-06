@@ -40,7 +40,7 @@ export const PopoverContent = React.forwardRef<
     align = 'end',
     sideOffset = 8,
     showClose = false,
-    closeLabel = 'Close',
+    closeLabel = '關閉',
     padding = 'md',
     children,
     ...props

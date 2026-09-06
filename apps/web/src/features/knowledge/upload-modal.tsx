@@ -36,20 +36,20 @@ export function UploadModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Upload documents"
-      description={knowledgeBaseName ? `Into ${knowledgeBaseName}` : 'Choose a knowledge base after upload'}
+      title="上傳文件"
+      description={knowledgeBaseName ? `上傳至「${knowledgeBaseName}」` : '上傳完成後再選擇知識庫'}
       size="md"
       footer={
         <div className="flex items-center justify-between gap-3">
           <p className="text-tiny text-text-tertiary">
-            Processing runs asynchronously — you can leave this page.
+            處理會在背景進行，你可以先離開這個頁面。
           </p>
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-              Cancel
+              取消
             </Button>
             <Button variant="primary" size="sm" disabled={files.length === 0 && url.trim().length === 0}>
-              Start processing
+              開始處理
             </Button>
           </div>
         </div>
@@ -72,17 +72,17 @@ export function UploadModal({
           }`}
         >
           <Upload size={22} strokeWidth={1.7} aria-hidden className="text-accent-indigo" />
-          <p className="mt-3 text-body font-medium">Drop enterprise files here</p>
-          <p className="mt-1 text-body-sm text-text-secondary">PDF / DOCX / PPTX / TXT / CSV · up to 200 MB each</p>
+          <p className="mt-3 text-body font-medium">把企業文件拖曳到這裡</p>
+          <p className="mt-1 text-body-sm text-text-secondary">PDF / DOCX / PPTX / TXT / CSV · 每個檔案上限 200 MB</p>
 
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Button variant="secondary" size="sm">
               <Upload size={14} strokeWidth={1.8} aria-hidden />
-              Browse
+              瀏覽檔案
             </Button>
             <Button variant="secondary" size="sm">
               <FolderOpen size={14} strokeWidth={1.8} aria-hidden />
-              Folder
+              選擇資料夾
             </Button>
           </div>
         </div>
@@ -97,7 +97,7 @@ export function UploadModal({
           </ul>
         ) : null}
 
-        <Field label="Or import from a URL" hint="The crawler respects robots.txt and stores the fetched snapshot.">
+        <Field label="或從網址匯入" hint="爬取時會遵守 robots.txt，並保存抓取當下的快照。">
           <div className="flex items-center gap-2">
             <Link2 size={15} strokeWidth={1.8} aria-hidden className="shrink-0 text-text-tertiary" />
             <Input
@@ -110,46 +110,46 @@ export function UploadModal({
         </Field>
 
         <div className="space-y-3 border-t border-border-soft pt-4">
-          <p className="meta-label">Processing options</p>
+          <p className="meta-label">處理選項</p>
           <Switch
             checked={options.autoParse}
             onCheckedChange={(checked: boolean) => setOptions({ ...options, autoParse: checked })}
-            label="Auto parse"
+            label="自動解析"
           />
           <Switch
             checked={options.ocr}
             onCheckedChange={(checked: boolean) => setOptions({ ...options, ocr: checked })}
-            label="OCR scanned pages"
+            label="對掃描頁面執行 OCR"
           />
           <Switch
             checked={options.semanticChunking}
             onCheckedChange={(checked: boolean) => setOptions({ ...options, semanticChunking: checked })}
-            label="Semantic chunking"
+            label="語意切片"
           />
           <Switch
             checked={options.generateMetadata}
             onCheckedChange={(checked: boolean) => setOptions({ ...options, generateMetadata: checked })}
-            label="Generate metadata"
+            label="產生中繼資料"
           />
           <Switch
             checked={options.generateQuestions}
             onCheckedChange={(checked: boolean) => setOptions({ ...options, generateQuestions: checked })}
-            label="Generate questions (review required before publish)"
+            label="產生問題（發布前須經人工審核）"
           />
         </div>
 
-        <Field label="Chunking strategy">
+        <Field label="切片策略">
           <Select
             value={strategy}
             onValueChange={setStrategy}
             options={[
-              { value: 'auto', label: 'Auto — detect per document' },
-              { value: 'semantic', label: 'Semantic' },
-              { value: 'heading', label: 'By heading' },
-              { value: 'paragraph', label: 'By paragraph' },
-              { value: 'fixed_token', label: 'Fixed token window' },
-              { value: 'table_aware', label: 'Table aware' },
-              { value: 'faq_aware', label: 'FAQ aware' },
+              { value: 'auto', label: '自動 —— 依每份文件判斷' },
+              { value: 'semantic', label: '依語意' },
+              { value: 'heading', label: '依標題' },
+              { value: 'paragraph', label: '依段落' },
+              { value: 'fixed_token', label: '固定 token 區間' },
+              { value: 'table_aware', label: '表格感知' },
+              { value: 'faq_aware', label: 'FAQ 感知' },
             ]}
           />
         </Field>

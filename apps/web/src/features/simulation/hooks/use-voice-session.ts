@@ -34,6 +34,17 @@ import {
   type SpeechGender,
 } from '../lib/system-speech';
 
+/**
+ * Barge-in while the customer is audible.
+ *
+ * `levelRef` is `rms * 6` clamped to 1. Laptop speaker bleed measured well
+ * under a third of that scale on this machine, and someone actually speaking
+ * into the built-in microphone sits far above it, so the level is what
+ * separates the two; the sustain window then rejects a cough or a chair.
+ */
+const BARGE_IN_LEVEL = 0.3;
+const BARGE_IN_SUSTAIN_MS = 350;
+
 const PROCESSOR_NAME = 'ai-coach-level-vad';
 
 /**
@@ -121,6 +132,13 @@ export interface UseVoiceSessionOptions {
    * itself reacts in tens of milliseconds, which is right for the level meter
    * and barge-in but wrong for segmentation — at that granularity every
    * breath became its own message.
+   *
+   * 900 ms was still too eager in practice. A salesperson mid-sentence pauses
+   * to pick the next number — 「這次的費率……大概是多少來著」 — and at 900 ms that
+   * pause posted the half sentence and started transcribing the rest as a new
+   * one. 1.4 s is the shortest value that survived reading a rate explanation
+   * aloud without being cut, and it is still well inside the beat where a
+   * listener would start to wonder whether you had finished.
    */
   utteranceEndSilenceMs?: number;
   /**
@@ -219,7 +237,7 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     personaSpeaking,
     pushToTalk = false,
     silenceTimeoutMs = 8000,
-    utteranceEndSilenceMs = 900,
+    utteranceEndSilenceMs = 1400,
     personaGender = null,
     personaAge = null,
     locale = 'zh-TW',
@@ -281,6 +299,9 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
   const callbacks = useRef(options);
   callbacks.current = options;
 
+  // When a loud-enough voice first appeared over the top of the customer's own
+  // audio. Null whenever the room is merely bleeding the speakers back in.
+  const bargeInSinceRef = useRef<number | null>(null);
   const levelRef = useRef(0);
   const noiseRef = useRef(0);
   const speakingSinceRef = useRef<number | null>(null);
@@ -463,7 +484,7 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
           deviceId: d.deviceId,
           kind: d.kind === 'audiooutput' ? ('audiooutput' as const) : ('audioinput' as const),
           // Labels are empty until permission is granted — keep it human anyway.
-          label: d.label || `${d.kind === 'audiooutput' ? 'Output' : 'Microphone'} ${index + 1}`,
+          label: d.label || `${d.kind === 'audiooutput' ? '輸出裝置' : '麥克風'} ${index + 1}`,
         }));
       setDevices(audio);
     } catch {
@@ -589,13 +610,31 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
         // when `ttsPlayingRef` has already gone false, so only the first few
         // tens of milliseconds of the interruption are lost.
         if (ttsPlayingRef.current) {
-          if (personaSpeakingRef.current || ttsPlayingRef.current) {
-            cancelTts();
-            actions.registerBargeIn();
-            callbacks.current.onBargeIn?.();
+          // The microphone is hearing the speakers, and the customer's own
+          // voice coming back in is "voice" as far as the VAD is concerned —
+          // so *any* energy here used to count as an interruption and the
+          // customer was cut off about a second into her own sentence
+          // (「直接講，」 and then silence). Holding the space bar is still an
+          // instant interruption because it is unambiguous; without it, the
+          // input has to be clearly louder than the bleed and stay that way
+          // for a moment before we accept that a person is talking over her.
+          const deliberate = pushToTalkRef.current && heldRef.current;
+          const loud = levelRef.current >= BARGE_IN_LEVEL;
+          if (!deliberate && !loud) {
+            bargeInSinceRef.current = null;
+            return;
           }
+          if (!deliberate) {
+            if (bargeInSinceRef.current === null) bargeInSinceRef.current = Date.now();
+            if (Date.now() - bargeInSinceRef.current < BARGE_IN_SUSTAIN_MS) return;
+          }
+          bargeInSinceRef.current = null;
+          cancelTts();
+          actions.registerBargeIn();
+          callbacks.current.onBargeIn?.();
           return;
         }
+        bargeInSinceRef.current = null;
         // Voice resumed inside the pause window: same utterance, keep recording.
         if (endpointTimerRef.current !== null) {
           window.clearTimeout(endpointTimerRef.current);
@@ -628,14 +667,14 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
     if (graphRef.current || starting) return;
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
       setPermission('unsupported');
-      setError('This browser cannot capture audio. Use the text composer instead.');
+      setError('這個瀏覽器無法擷取音訊，請改用文字輸入。');
       actions.setVoice({ permission: 'unsupported', lastError: 'getUserMedia unavailable' });
       return;
     }
     const AudioContextCtor = resolveAudioContext();
     if (!AudioContextCtor) {
       setPermission('unsupported');
-      setError('Web Audio is unavailable in this browser.');
+      setError('這個瀏覽器不支援 Web Audio。');
       return;
     }
 
@@ -778,10 +817,10 @@ export function useVoiceSession(options: UseVoiceSessionOptions): VoiceSessionAp
         err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
       setPermission(denied ? 'denied' : 'prompt');
       const message = denied
-        ? 'Microphone permission is required for a voice session.'
+        ? '語音練習需要麥克風權限。'
         : err instanceof Error
           ? err.message
-          : 'Could not open the microphone.';
+          : '無法開啟麥克風。';
       setError(message);
       actions.setVoice({ permission: denied ? 'denied' : 'prompt', lastError: message });
     } finally {

@@ -37,9 +37,9 @@ export function DocumentPipeline({
   return (
     <div className={cn('space-y-3', className)}>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-body-sm font-medium">Document processing</p>
+        <p className="text-body-sm font-medium">文件處理</p>
         <p className="text-body-sm tabular-nums text-text-secondary">
-          {failed ? 'Failed' : `${doneCount} / ${DOCUMENT_PIPELINE_STEPS.length}`}
+          {failed ? '處理失敗' : `${doneCount} / ${DOCUMENT_PIPELINE_STEPS.length}`}
         </p>
       </div>
 
@@ -49,7 +49,7 @@ export function DocumentPipeline({
         aria-valuenow={progress}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label="Document processing progress"
+        aria-label="文件處理進度"
       >
         <div
           className="h-full rounded-pill transition-[width] duration-500 ease-out-soft"
@@ -98,7 +98,7 @@ export function DocumentPipeline({
 
       {failed && failureReason ? (
         <p className="rounded-card-sm border border-border-soft bg-glass-card px-3 py-2 text-body-sm text-text-secondary">
-          <span className="meta-label ink-danger mr-2">Why it failed</span>
+          <span className="meta-label ink-danger mr-2">失敗原因</span>
           {failureReason}
         </p>
       ) : null}

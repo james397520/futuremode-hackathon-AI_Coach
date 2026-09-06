@@ -166,7 +166,7 @@ export function ToastItem({ record, onDismiss }: ToastItemProps): React.ReactEle
       </div>
 
       <ToastPrimitive.Close
-        aria-label="Dismiss notification"
+        aria-label="關閉通知"
         className={cn(
           'absolute right-2.5 top-2.5 inline-flex size-8 items-center justify-center rounded-button',
           'text-text-tertiary transition-colors duration-[var(--dur-hover)]',

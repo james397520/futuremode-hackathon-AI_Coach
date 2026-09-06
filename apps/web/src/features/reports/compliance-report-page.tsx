@@ -12,7 +12,8 @@ import { MOCK_SESSIONS } from '@/lib/fixtures/sessions';
 import { scenarioById } from '@/lib/fixtures/scenarios';
 import { userById } from '@/lib/fixtures/identity';
 import { useCan } from '@/lib/auth-context';
-import { formatRelative, titleize } from '@/lib/utils';
+import { COMPLIANCE_TYPE_LABEL, REVIEWER_STATUS_LABEL } from '@/lib/enum-labels';
+import { formatRelative } from '@/lib/utils';
 import { ReportTabs } from './report-tabs';
 
 /** §32 Compliance Report. Glass, not a black-and-red security console (§41). */
@@ -50,16 +51,16 @@ export function ComplianceReportPage() {
   return (
     <div className="space-y-5 pb-4">
       <PageHeader
-        breadcrumbs={[{ label: 'Reports' }, { label: 'Compliance' }]}
-        title="Compliance report"
-        description="Every finding carries the exact statement, the policy rule it breaches and a suggested correction."
+        breadcrumbs={[{ label: '報表' }, { label: '合規' }]}
+        title="合規報表"
+        description="每一項發現都附上原始話術、違反的政策條款，以及建議的修正說法。"
         meta={
           <>
             <Pill tone={critical > 0 ? 'danger' : 'success'} size="sm">
-              {critical} critical
+              {critical} 項重大
             </Pill>
             <Pill tone={open > 0 ? 'warning' : 'success'} size="sm">
-              {open} open
+              {open} 項待處理
             </Pill>
           </>
         }
@@ -67,7 +68,7 @@ export function ComplianceReportPage() {
           canExport ? (
             <Button variant="secondary" size="sm">
               <Download size={15} strokeWidth={1.8} aria-hidden />
-              Export for audit
+              匯出稽核用檔案
             </Button>
           ) : null
         }
@@ -76,20 +77,20 @@ export function ComplianceReportPage() {
       <ReportTabs current="compliance" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile surface="card" label="Safe session rate" value={`${safeRate}%`} hint="no high or critical finding" />
-        <StatTile surface="card" label="Total findings" value={String(MOCK_FINDINGS.length)} hint="last 30 days" />
-        <StatTile surface="card" label="Open" value={String(open)} hint="awaiting reviewer action" />
-        <StatTile surface="card" label="Critical" value={String(critical)} hint="fails the session outright" />
+        <StatTile surface="card" label="安全練習比例" value={`${safeRate}%`} hint="沒有高風險或重大發現" />
+        <StatTile surface="card" label="發現總數" value={String(MOCK_FINDINGS.length)} hint="近 30 天" />
+        <StatTile surface="card" label="待處理" value={String(open)} hint="等待審核者處理" />
+        <StatTile surface="card" label="重大" value={String(critical)} hint="該場練習直接不通過" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
         <GlassCard className="p-5">
-          <h2 className="text-card-title">By finding type</h2>
+          <h2 className="text-card-title">依發現類型</h2>
           <ul className="mt-3 space-y-2.5">
             {byType.map(([type, count]) => (
               <li key={type}>
                 <div className="flex items-center justify-between gap-3 text-body-sm">
-                  <span>{titleize(type)}</span>
+                  <span>{COMPLIANCE_TYPE_LABEL[type] ?? type}</span>
                   <span className="tabular-nums text-text-tertiary">{count}</span>
                 </div>
                 <div className="mt-1 h-1.5 overflow-hidden rounded-pill bg-border-soft">
@@ -112,13 +113,13 @@ export function ComplianceReportPage() {
               <Select
                 value={severity}
                 onValueChange={setSeverity}
-                ariaLabel="Severity"
+                ariaLabel="嚴重程度"
                 options={[
-                  { value: 'all', label: 'All severities' },
-                  { value: 'low', label: 'Low' },
-                  { value: 'medium', label: 'Medium' },
-                  { value: 'high', label: 'High' },
-                  { value: 'critical', label: 'Critical' },
+                  { value: 'all', label: '全部嚴重程度' },
+                  { value: 'low', label: '低風險' },
+                  { value: 'medium', label: '中風險' },
+                  { value: 'high', label: '高風險' },
+                  { value: 'critical', label: '重大風險' },
                 ]}
               />
             </div>
@@ -126,17 +127,17 @@ export function ComplianceReportPage() {
               <Select
                 value={status}
                 onValueChange={setStatus}
-                ariaLabel="Reviewer status"
+                ariaLabel="審核狀態"
                 options={[
-                  { value: 'all', label: 'All statuses' },
-                  { value: 'open', label: 'Open' },
-                  { value: 'acknowledged', label: 'Acknowledged' },
-                  { value: 'resolved', label: 'Resolved' },
-                  { value: 'dismissed', label: 'Dismissed' },
+                  { value: 'all', label: '全部狀態' },
+                  { value: 'open', label: '待處理' },
+                  { value: 'acknowledged', label: '已確認' },
+                  { value: 'resolved', label: '已解決' },
+                  { value: 'dismissed', label: '已排除' },
                 ]}
               />
             </div>
-            <p className="ml-auto text-body-sm text-text-tertiary">{findings.length} finding(s)</p>
+            <p className="ml-auto text-body-sm text-text-tertiary">{findings.length} 項發現</p>
           </GlassCard>
 
           <ul className="space-y-3">
@@ -151,7 +152,7 @@ export function ComplianceReportPage() {
                         <div className="mb-2 flex flex-wrap items-center gap-1.5">
                           <Pill tone="neutral" size="sm">
                             <ShieldAlert size={11} strokeWidth={2} aria-hidden />
-                            {titleize(finding.type)}
+                            {COMPLIANCE_TYPE_LABEL[finding.type] ?? finding.type}
                           </Pill>
                           <RiskPill risk={finding.severity} />
                           <Pill
@@ -164,7 +165,7 @@ export function ComplianceReportPage() {
                             }
                             size="sm"
                           >
-                            {titleize(finding.reviewer_status)}
+                            {REVIEWER_STATUS_LABEL[finding.reviewer_status] ?? finding.reviewer_status}
                           </Pill>
                           {finding.policy_rule ? (
                             <span className="text-tiny text-text-tertiary">{finding.policy_rule}</span>
@@ -175,7 +176,7 @@ export function ComplianceReportPage() {
                         <p className="mt-2 text-body-sm text-text-secondary">{finding.explanation}</p>
                         {finding.suggested_correction ? (
                           <p className="mt-1.5 text-body-sm">
-                            <span className="meta-label mr-2 text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]">Correction</span>
+                            <span className="meta-label mr-2 text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]">建議修正</span>
                             <span className="text-text-secondary">{finding.suggested_correction}</span>
                           </p>
                         ) : null}
@@ -188,7 +189,7 @@ export function ComplianceReportPage() {
                       </div>
 
                       <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/simulations/${finding.session_id}/review`}>Open session</Link>
+                        <Link href={`/simulations/${finding.session_id}/review`}>開啟該場練習</Link>
                       </Button>
                     </div>
                   </GlassCard>
@@ -199,9 +200,9 @@ export function ComplianceReportPage() {
 
           {findings.length === 0 ? (
             <GlassCard className="dot-matrix p-8 text-center">
-              <p className="text-body font-medium">No finding matches these filters</p>
+              <p className="text-body font-medium">沒有符合這些條件的發現</p>
               <p className="mt-1 text-body-sm text-text-secondary">
-                That is the intended state — widen the filters to confirm.
+                這正是我們期望的狀態 — 可放寬條件再確認一次。
               </p>
             </GlassCard>
           ) : null}

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { PersonaBuilderPage } from '@/features/personas';
 
-export const metadata: Metadata = { title: 'Persona builder' };
+export const metadata: Metadata = { title: '模擬人物編輯器' };
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

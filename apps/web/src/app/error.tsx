@@ -31,14 +31,13 @@ export default function GlobalError({
         >
           <AlertTriangle size={22} strokeWidth={1.7} />
         </span>
-        <h1 className="text-section">Something went wrong on this page</h1>
+        <h1 className="text-section">這個頁面發生了一些問題</h1>
         <p className="mt-2 text-body text-text-secondary">
-          Your work has been kept. Sessions in progress keep running on the server, so retrying this
-          view will not lose a transcript or a score.
+          你的進度都已保留。進行中的練習仍在伺服器上執行，重新載入這個畫面不會遺失逐字稿或分數。
         </p>
         {error.digest ? (
           <p className="mt-3 text-tiny text-text-tertiary">
-            Reference for support: <code className="tabular-nums">{error.digest}</code>
+            請將這組代碼提供給客服：<code className="tabular-nums">{error.digest}</code>
           </p>
         ) : null}
         <div className="mt-6 flex gap-2">
@@ -48,13 +47,13 @@ export default function GlobalError({
             className="flex items-center gap-2 rounded-button bg-glass-card px-4 py-2 text-body-sm font-medium [box-shadow:var(--shadow-inset-hi)] hover:-translate-y-px"
           >
             <RotateCcw size={15} strokeWidth={1.8} aria-hidden />
-            Try again
+            重試
           </button>
           <a
             href="/dashboard"
             className="rounded-button px-4 py-2 text-body-sm text-text-secondary hover:text-text-primary"
           >
-            Back to dashboard
+            回到首頁
           </a>
         </div>
       </main>

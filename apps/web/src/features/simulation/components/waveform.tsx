@@ -154,7 +154,7 @@ export function Waveform({ analyser, active = true, bars = 48, className, ariaLa
       ref={canvasRef}
       className={cn('h-full w-full', className)}
       role="img"
-      aria-label={ariaLabel ?? 'Microphone input level'}
+      aria-label={ariaLabel ?? '麥克風輸入音量'}
     />
   );
 }

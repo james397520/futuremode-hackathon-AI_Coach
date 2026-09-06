@@ -210,7 +210,7 @@ export function TranscriptFeed({
         ref={containerRef}
         className="sim-scroll h-full overflow-y-auto px-1.5 pb-2"
         role="log"
-        aria-label="Session transcript"
+        aria-label="練習逐字稿"
       >
         {items.length === 0 ? (
           <div className="dot-matrix mx-1.5 mt-2 rounded-card border border-border-soft p-6">

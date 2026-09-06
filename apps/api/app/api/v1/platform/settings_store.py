@@ -153,7 +153,7 @@ class PlatformSettingsService:
             target = (integration.config or {}).get("url")
             if not target:
                 return await self._record_test(
-                    integration, False, None, "No 'url' configured for this connector."
+                    integration, False, None, "這個連接器沒有設定 url。"
                 )
 
         try:
@@ -162,10 +162,10 @@ class PlatformSettingsService:
             # Any HTTP answer proves reachability; auth-level failures are reported.
             ok = response.status_code < 500
             if not ok:
-                message = f"Endpoint answered HTTP {response.status_code}."
+                message = f"端點回應 HTTP {response.status_code}。"
         except (httpx.HTTPError, OSError):
             ok = False
-            message = "Endpoint is unreachable from the API."
+            message = "API 無法連線到這個端點。"
         latency_ms = (time.perf_counter() - started) * 1000
         return await self._record_test(integration, ok, latency_ms, message)
 
@@ -275,16 +275,16 @@ class PlatformSettingsService:
         reason: str | None = None
         backend = ComputeBackend.SERVER
         if policy.webgpu == "off":
-            reason = "Local acceleration is disabled by workspace policy (§61)."
+            reason = "工作區政策已停用本機加速（§61）。"
         elif capability is None:
-            reason = "No capability report; defaulting to server inference."
+            reason = "沒有裝置能力回報，改用伺服器推論。"
         elif capability.webgpu and policy.webgpu in ("auto", "on"):
             backend = ComputeBackend.WEBGPU
         elif capability.wasm_simd:
             backend = ComputeBackend.WASM
-            reason = "WebGPU unavailable; using WASM. Your session continues normally (§94)."
+            reason = "WebGPU 無法使用，改用 WASM；練習不受影響（§94）。"
         else:
-            reason = "This device cannot run local models; using server acceleration."
+            reason = "這台裝置無法執行本機模型，改用伺服器加速。"
 
         local_tasks: list[str] = []
         if backend is not ComputeBackend.SERVER and policy.allow_local_model_cache:

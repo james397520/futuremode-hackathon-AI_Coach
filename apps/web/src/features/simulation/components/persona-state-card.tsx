@@ -14,13 +14,7 @@
 import type { PersonaSimulationState } from '@ai-coach/shared';
 
 import { humaniseSlug } from '../lib/format';
-import {
-  COMPLIANCE_RISK_LABEL,
-  COMPLIANCE_RISK_TONE,
-  EMOTION_LABEL,
-  EMOTION_TONE,
-  PHASE_LABEL,
-} from '../lib/labels';
+import { COMPLIANCE_RISK_LABEL, COMPLIANCE_RISK_TONE, EMOTION_LABEL, EMOTION_TONE, INTENT_LABEL, PHASE_LABEL } from '../lib/labels';
 import { insetSurface, toneText } from '../lib/tone';
 import { CardTitle, KeyValue, Meter, TonePill } from './atoms';
 import { AlertIcon, CheckIcon, ShieldIcon, SparkleIcon } from './icons';
@@ -74,7 +68,7 @@ export function PersonaStateCard({ state, updating = false, className }: Persona
           {PHASE_LABEL[state.scenario_phase] ?? state.scenario_phase}
         </TonePill>
         <TonePill tone="blue" fill={13} title="上一輪偵測到的意圖">
-          {humaniseSlug(state.intent)}
+          {INTENT_LABEL[state.intent] ?? humaniseSlug(state.intent)}
         </TonePill>
       </div>
 

@@ -70,6 +70,13 @@ export interface AvatarStageProps {
   personaGender?: AvatarBodyGender;
   /** Persona age — picks the young / middle / senior body (`avatar-body.ts`). */
   personaAge?: number | null;
+  /**
+   * Fired when the persona is actually visible — the 3D body finished loading,
+   * or it failed and the portrait took over. The voice pipeline holds the
+   * opening line until then: a customer who talks to an empty frame for two
+   * seconds reads as a bug even though nothing is wrong.
+   */
+  onPersonaVisible?: () => void;
   /** Scenario portrait, used when the runtime has none of its own. */
   portraitUrl?: string;
   /** The live persona state — the single source of expression truth (§8/§13). */
@@ -122,6 +129,7 @@ export function AvatarStage({
   personaName,
   personaGender = 'female',
   personaAge = null,
+  onPersonaVisible,
   portraitUrl,
   personaState = null,
   speaking,
@@ -205,8 +213,12 @@ export function AvatarStage({
   const streaming = status === 'ready' && (transport === 'ws-frames' || transport === 'webrtc');
   // What is actually on screen: the canvas only wins when the VRM is not up.
   const live = streaming && !vrmOnScreen;
+  const onPersonaVisibleRef = useRef(onPersonaVisible);
+  onPersonaVisibleRef.current = onPersonaVisible;
   const onVrmStatus = useCallback((next: VrmStageStatus, reason?: string) => {
     setVrmStatus(next);
+    // `failed` counts: the portrait is on screen and the persona is visible.
+    if (next === 'ready' || next === 'failed') onPersonaVisibleRef.current?.();
     if (next === 'failed' && reason) {
       // Not an avatar-runtime failure, so not `fail()`: the ladder is untouched.
       console.warn('[avatar] 3D persona unavailable, using portrait:', reason);
@@ -230,13 +242,13 @@ export function AvatarStage({
 
   const canvasLabel = useMemo(() => {
     const activity = speaking
-      ? 'speaking'
+      ? '說話中'
       : thinking
-        ? 'thinking'
+        ? '思考中'
         : listening
-          ? 'listening'
-          : 'waiting';
-    return `${personaName}, simulated customer. Currently ${activity}. Expression: ${EXPRESSION_LABEL[expression.name]}.`;
+          ? '聆聽中'
+          : '等待中';
+    return `${personaName}，模擬客戶。目前${activity}。表情：${EXPRESSION_LABEL[expression.name]}。`;
   }, [personaName, speaking, thinking, listening, expression.name]);
 
   const body = (

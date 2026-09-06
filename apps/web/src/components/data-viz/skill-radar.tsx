@@ -75,7 +75,7 @@ export function SkillRadar({
         width="100%"
         style={{ maxWidth: boxWidth }}
         role="img"
-        aria-label={`Skill radar across ${count} dimensions for ${series.map((s) => s.label).join(' and ')}`}
+        aria-label={`${count} 項技能雷達圖，比較 ${series.map((s) => s.label).join('與')}`}
       >
         {rings.map((ring) => (
           <polygon

@@ -16,6 +16,7 @@ import { MOCK_COACH_INSIGHTS, sessionById } from '@/lib/fixtures/sessions';
 import { documentById } from '@/lib/fixtures/knowledge';
 import { questionById } from '@/lib/fixtures/questions';
 import { scenarioById } from '@/lib/fixtures/scenarios';
+import { DIFFICULTY_LABEL } from '@/features/simulation/lib/labels';
 import { formatDuration, titleize } from '@/lib/utils';
 
 /**
@@ -45,19 +46,19 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
     <div className="space-y-5 pb-4">
       <PageHeader
         breadcrumbs={[
-          { label: 'Simulations', href: '/simulations' },
+          { label: '模擬練習', href: '/simulations' },
           { label: scenario?.name ?? sessionId },
-          { label: 'Complete' },
+          { label: '完成' },
         ]}
-        title="Session complete"
+        title="練習完成"
         description={scenario?.name}
         meta={
           <>
             <Pill tone={evaluation.passed ? 'success' : 'danger'} size="sm">
-              {evaluation.passed ? 'Passed' : 'Not passed'}
+              {evaluation.passed ? '通過' : '未通過'}
             </Pill>
             <RiskPill risk={evaluation.compliance_status} />
-            {session ? <Pill tone="neutral" size="sm">{session.turn_count} turns</Pill> : null}
+            {session ? <Pill tone="neutral" size="sm">{session.turn_count} 回合</Pill> : null}
             {durationSeconds > 0 ? (
               <Pill tone="neutral" size="sm">{formatDuration(durationSeconds)}</Pill>
             ) : null}
@@ -67,14 +68,14 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
           <>
             <Button variant="secondary" size="sm" asChild>
               <Link href={`/simulations/${sessionId}/review`}>
-                Full report
+                完整報告
                 <ArrowRight size={15} strokeWidth={1.8} aria-hidden />
               </Link>
             </Button>
             <Button variant="ghost" size="sm" asChild>
               <Link href={`/simulations/${DEMO_RECOMMENDATION.retry_scenario_id ?? ''}/setup`}>
                 <RotateCcw size={15} strokeWidth={1.8} aria-hidden />
-                Retry
+                再練一次
               </Link>
             </Button>
           </>
@@ -87,24 +88,23 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
           <div>
             <span className="gradient-pill inline-flex items-center gap-1.5 px-3 py-1 text-tiny font-medium">
               <Sparkles size={12} strokeWidth={2} aria-hidden />
-              Report ready
+              報告已產生
             </span>
             <p className="mt-4 flex items-baseline gap-2">
               <span className="text-display tabular-nums">{evaluation.overall_score}</span>
               <span className="text-body text-text-tertiary">/ 100</span>
             </p>
             <p className="mt-1 text-body-sm text-text-secondary">
-              Threshold {RUBRIC_LIFE_CORE.pass_threshold} · goal{' '}
-              {evaluation.goal_achieved ? 'achieved' : 'not achieved'}
+              及格門檻 {RUBRIC_LIFE_CORE.pass_threshold} 分 · 目標{evaluation.goal_achieved ? '達成' : '未達成'}
             </p>
 
             <dl className="mt-5 space-y-3">
               <div>
-                <dt className="meta-label text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]">What worked</dt>
+                <dt className="meta-label text-[color:color-mix(in_srgb,var(--success)_40%,var(--text-primary))]">做得好的地方</dt>
                 <dd className="mt-1 text-body-sm text-text-secondary">{evaluation.key_strength}</dd>
               </div>
               <div>
-                <dt className="meta-label text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]">The one thing to change</dt>
+                <dt className="meta-label text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]">最該改的一件事</dt>
                 <dd className="mt-1 text-body-sm text-text-secondary">{evaluation.main_improvement}</dd>
               </div>
             </dl>
@@ -112,7 +112,7 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
 
           <div className="grid gap-5 sm:grid-cols-2">
             <section>
-              <p className="meta-label">Strongest dimensions</p>
+              <p className="meta-label">最強的維度</p>
               <div className="mt-3 space-y-3">
                 {topSkills.map((skill) => (
                   <ScoreBar
@@ -125,7 +125,7 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
               </div>
             </section>
             <section>
-              <p className="meta-label">Needs work</p>
+              <p className="meta-label">需要加強</p>
               <div className="mt-3 space-y-3">
                 {weakSkills.map((skill) => (
                   <ScoreBar
@@ -144,7 +144,7 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <GlassCard className="p-5">
-          <h2 className="text-card-title">Post-session coaching</h2>
+          <h2 className="text-card-title">課後教練回饋</h2>
           <ul className="mt-3 space-y-2.5">
             {MOCK_COACH_INSIGHTS.filter((insight) => insight.kind === 'post_session').map((insight) => (
               <li key={insight.id} className="border border-border-soft bg-glass-card rounded-card-sm p-4">
@@ -157,9 +157,9 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
 
         {/* §33 adaptive next step */}
         <GlassCard className="p-5">
-          <h2 className="text-card-title">Recommended next</h2>
+          <h2 className="text-card-title">建議下一步</h2>
           <p className="mt-1 text-body-sm text-text-secondary">
-            Chosen from your weakest dimensions: {DEMO_RECOMMENDATION.weak_skills.map((s) => SKILL_LABEL[s]).join(', ')}.
+            依你最弱的維度挑選：{DEMO_RECOMMENDATION.weak_skills.map((s) => SKILL_LABEL[s]).join('、')}。
           </p>
 
           <ul className="mt-4 space-y-2.5">
@@ -170,11 +170,11 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
                     {scenarioById(DEMO_RECOMMENDATION.next_scenario_id)?.name ?? DEMO_RECOMMENDATION.next_scenario_id}
                   </p>
                   <p className="text-tiny text-text-tertiary">
-                    Suggested difficulty: {titleize(DEMO_RECOMMENDATION.suggested_difficulty)}
+                    建議難度：{DIFFICULTY_LABEL[DEMO_RECOMMENDATION.suggested_difficulty as keyof typeof DIFFICULTY_LABEL] ?? titleize(DEMO_RECOMMENDATION.suggested_difficulty)}
                   </p>
                 </div>
                 <Button variant="primary" size="sm" asChild>
-                  <Link href={`/simulations/${DEMO_RECOMMENDATION.next_scenario_id}/setup`}>Open</Link>
+                  <Link href={`/simulations/${DEMO_RECOMMENDATION.next_scenario_id}/setup`}>開始</Link>
                 </Button>
               </li>
             ) : null}
@@ -195,7 +195,7 @@ export function SessionCompletePage({ sessionId }: { sessionId: string }) {
 
             {DEMO_RECOMMENDATION.question_set_ids.length > 0 ? (
               <li className="border border-border-soft bg-glass-card rounded-card-sm p-4">
-                <p className="text-body-sm font-medium">Practice questions</p>
+                <p className="text-body-sm font-medium">練習題</p>
                 <ul className="mt-1.5 space-y-1 text-body-sm text-text-secondary">
                   {DEMO_RECOMMENDATION.question_set_ids.map((questionId) => (
                     <li key={questionId}>

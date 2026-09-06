@@ -268,7 +268,7 @@ class ReportService(BaseService):
         }
         return Report(
             type=ReportType.TEAM,
-            title="Team Report",
+            title="團隊報表",
             summary=summary,
             data={"skill_matrix": skill_matrix, "weakness_heatmap": weakness},
             export=TabularExport(
@@ -317,7 +317,7 @@ class ReportService(BaseService):
             )
         return Report(
             type=ReportType.SCENARIO,
-            title="Scenario Report",
+            title="情境報表",
             summary={"scenarios": len(rows), "attempts": len(sessions)},
             data={},
             export=TabularExport(
@@ -353,7 +353,7 @@ class ReportService(BaseService):
         ]
         return Report(
             type=ReportType.SKILL,
-            title="Skill Report",
+            title="技能報表",
             summary={
                 "dimensions": len(rows),
                 "weakest": min(rows, key=lambda r: r[1])[0] if rows else None,
@@ -418,7 +418,7 @@ class ReportService(BaseService):
         }
         return Report(
             type=ReportType.COMPLIANCE,
-            title="Compliance Report",
+            title="合規報表",
             summary=summary,
             data={},
             export=TabularExport(
@@ -451,11 +451,11 @@ class ReportService(BaseService):
         rows = [[key, count] for key, count in sorted(gaps.items(), key=lambda p: -p[1])]
         return Report(
             type=ReportType.KNOWLEDGE_GAP,
-            title="Knowledge Gap Report",
+            title="知識落差報表",
             summary={"gap_dimensions": len(rows), "sessions": len(sessions)},
             data={"never_observed": no_evidence},
             export=TabularExport(
-                title="Knowledge Gaps", columns=["dimension", "affected_sessions"], rows=rows
+                title="知識落差", columns=["dimension", "affected_sessions"], rows=rows
             ),
         )
 
@@ -493,7 +493,7 @@ class ReportService(BaseService):
             )
         return Report(
             type=ReportType.TRAINING_COMPLETION,
-            title="Training Completion Report",
+            title="培訓完成率報表",
             summary={"assignments": len(rows)},
             data={},
             export=TabularExport(
@@ -530,7 +530,7 @@ class ReportService(BaseService):
             )
         return Report(
             type=ReportType.READINESS,
-            title="Readiness Report",
+            title="就緒度報表",
             summary={
                 "assessed": len(rows),
                 "ready": sum(1 for row in rows if row[4]),

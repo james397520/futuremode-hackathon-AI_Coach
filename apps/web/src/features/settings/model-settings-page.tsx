@@ -20,13 +20,13 @@ export function ModelSettingsPage() {
 
   return (
     <SettingsShell
-      title="Models"
-      description="Providers and parameters for every model the platform calls. Changes apply to new sessions only — running sessions keep their pinned configuration."
-      meta={<Pill tone="neutral" size="sm">Workspace scope</Pill>}
+      title="模型"
+      description="平台呼叫的每一個模型，其服務供應商與參數。變更只會套用到新的練習；進行中的練習沿用當時鎖定的設定。"
+      meta={<Pill tone="neutral" size="sm">工作區範圍</Pill>}
       actions={
         <Button variant="primary" size="sm" disabled={!canManage}>
           <Save size={15} strokeWidth={1.8} aria-hidden />
-          Save changes
+          儲存變更
         </Button>
       }
     >
@@ -39,7 +39,7 @@ export function ModelSettingsPage() {
               aria-hidden
               className="mt-0.5 shrink-0 text-[color:color-mix(in_srgb,var(--warning)_40%,var(--text-primary))]"
             />
-            You can view this configuration but not change it. Model changes are recorded in the audit log.
+            你可以檢視這份設定，但無法變更。模型設定的異動都會寫入稽核紀錄。
           </p>
         </GlassCard>
       ) : null}
@@ -80,11 +80,10 @@ export function ModelSettingsPage() {
       ))}
 
       <GlassCard className="p-5">
-        <h2 className="text-card-title">Where the keys live</h2>
+        <h2 className="text-card-title">金鑰存放在哪裡</h2>
         <p className="mt-1 max-w-3xl text-body-sm text-text-secondary">
-          Provider credentials are held in the server-side secrets manager and referenced by name here. No
-          key is rendered on this page, stored in the browser, or included in the client bundle. Rotating a
-          key is done in Integrations, not here.
+          服務供應商的憑證存放在伺服器端的密鑰管理服務，這裡只以名稱引用。任何金鑰都不會顯示在本頁、不會存在瀏覽器裡，
+          也不會被打包進前端程式。金鑰輪替請到「整合」頁進行，不在這裡操作。
         </p>
       </GlassCard>
     </SettingsShell>

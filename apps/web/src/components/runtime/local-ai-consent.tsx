@@ -36,20 +36,19 @@ export function LocalAiConsent() {
         </span>
         <div className="space-y-2">
           <h2 id="local-ai-consent-title" className="text-card-title">
-            Local AI acceleration
+            本機 AI 加速
           </h2>
           <p className="text-body-sm text-text-secondary">
-            Some supported AI tasks can run locally on this device. Enterprise data policies
-            still apply, and nothing sensitive is cached by default.
+            部分支援的 AI 工作可以直接在這台裝置上執行。企業資料政策仍然適用，預設也不會快取任何敏感內容。
           </p>
         </div>
       </div>
       <div className="mt-4 flex justify-end gap-2">
         <Button variant="ghost" size="sm" onClick={() => setConsent('declined')}>
-          Not now
+          暫時不要
         </Button>
         <Button variant="primary" size="sm" onClick={() => setConsent('granted')}>
-          Enable
+          啟用
         </Button>
       </div>
     </GlassCard>

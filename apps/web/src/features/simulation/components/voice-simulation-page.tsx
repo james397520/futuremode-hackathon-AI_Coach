@@ -18,6 +18,7 @@
  * speaking, cancels TTS locally, and this page tells the server the floor moved.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { endpoints } from '@/lib/api-client';
 
@@ -71,6 +72,9 @@ import { TrainingGrid } from './training-grid';
 import { AffectNudge } from './affect-nudge';
 import { SelfView } from './self-view';
 import { Waveform } from './waveform';
+
+/** How long the opening line waits for the 3D body before playing anyway. */
+const PERSONA_VISIBLE_TIMEOUT_MS = 6000;
 
 export interface VoiceSimulationPageProps {
   sessionId: string;
@@ -130,6 +134,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
   const sttEngineRef = useRef(sttEngine);
   sttEngineRef.current = sttEngine;
 
+  const router = useRouter();
   const voice = useVoiceSession({
     enabled: true,
     sessionId,
@@ -187,6 +192,52 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
   });
   voiceRef.current = voice;
 
+  // One line, one utterance.
+  //
+  // A persona turn arrives as `agent.response.final` *and*, in voice mode, as
+  // `speech.final` — both carry the same turn, so the opening line was spoken
+  // twice, and with the local engine a third time when the fallback chain also
+  // produced a clip. Keying on the turn id is what makes it once.
+  //
+  // The first line also waits for the persona to be on screen. `speak` runs the
+  // moment the socket says ready, which is before the 25 MB body has loaded, so
+  // the customer was talking to an empty frame. The wait is capped: if the
+  // avatar never reports (portrait-only, WebGL off), the line still plays.
+  const spokenTurnsRef = useRef<Set<string>>(new Set());
+  const personaVisibleRef = useRef(false);
+  const pendingSpeechRef = useRef<{ text: string; url: string | null } | null>(null);
+
+  const flushPendingSpeech = useCallback(() => {
+    const pending = pendingSpeechRef.current;
+    pendingSpeechRef.current = null;
+    if (pending) void voiceRef.current?.speakTurn(pending.text, pending.url);
+  }, []);
+
+  const onPersonaVisible = useCallback(() => {
+    if (personaVisibleRef.current) return;
+    personaVisibleRef.current = true;
+    flushPendingSpeech();
+  }, [flushPendingSpeech]);
+
+  const speakOnce = useCallback(
+    (key: string, text: string, url: string | null) => {
+      if (spokenTurnsRef.current.has(key)) return;
+      spokenTurnsRef.current.add(key);
+      if (!personaVisibleRef.current) {
+        pendingSpeechRef.current = { text, url };
+        window.setTimeout(() => {
+          if (!personaVisibleRef.current) {
+            personaVisibleRef.current = true;
+            flushPendingSpeech();
+          }
+        }, PERSONA_VISIBLE_TIMEOUT_MS);
+        return;
+      }
+      void voiceRef.current?.speakTurn(text, url);
+    },
+    [flushPendingSpeech],
+  );
+
   const socket = useSessionSocket({
     sessionId,
     mode,
@@ -201,14 +252,14 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
           // synthesised audio, so with no key, no network, or the transport
           // still unbuilt the customer was simply mute. `speakTurn` prefers the
           // server clip and falls back to the on-device voice.
-          void voiceRef.current?.speakTurn(turn.text, turn.audio_url ?? null);
+          speakOnce(turn.id || turn.text, turn.text, turn.audio_url ?? null);
         }
       }
     },
     onRuntimeFallback: (to, reason) => {
       pushNotice(
         `runtime-${to}`,
-        `Voice pipeline moved to ${to === 'wasm' ? 'WASM' : 'server'} mode — ${reason}. The call continues.`,
+        `語音流程已切換為${to === 'wasm' ? ' WASM ' : '伺服器'}模式——${reason}。通話照常進行。`,
       );
     },
     onCompleted: () => {
@@ -287,13 +338,38 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
 
   // ---- Handlers ------------------------------------------------------------
 
+  // Restart has to reset the *server* session, not just this page. Clearing the
+  // store and remounting the socket left the transcript, the turn count and the
+  // persona state on the API, so the next connect replayed all of it and the
+  // whole conversation reappeared a second later — the button looked broken
+  // precisely because it did something.
+  //
+  // A training product already has the right word for this: another attempt.
+  // Creating a fresh session of the same scenario is the only reset that is
+  // actually clean, and it keeps the finished attempt intact for review.
   const handleRestart = useCallback(() => {
     voice.cancelTts();
     actions.resetForRestart();
     setNotices([]);
     setInterrupted(false);
     setEpoch((n) => n + 1);
-  }, [actions, voice]);
+    const scenarioId = bootstrap?.scenario?.id;
+    if (!scenarioId) return;
+    void endpoints
+      .createSession({
+        scenario_id: scenarioId,
+        mode: bootstrap.mode,
+        voice_enabled: true,
+        score_live_enabled: bootstrap.scoreLiveEnabled ?? true,
+      })
+      .then((created) => {
+        router.push(`/simulations/${created.session.session_id}/voice`);
+      })
+      .catch(() => {
+        // The local reset above already happened; say nothing rather than
+        // stranding the user on a half-reset page with an error toast.
+      });
+  }, [actions, bootstrap, router, voice]);
 
   const handleEnd = useCallback(() => {
     voice.cancelTts();
@@ -333,9 +409,9 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
       <>
         <SimulationStyles />
         <GlassCard className="sim-card-enter m-auto max-w-lg p-6 text-center">
-          <h2 className="text-section text-text-primary">This voice session could not be loaded</h2>
+          <h2 className="text-section text-text-primary">無法載入這場語音練習</h2>
           <p className="mt-2 text-body text-text-secondary">
-            {bootstrapError ?? 'The session may have ended or you may not have access to it.'}
+            {bootstrapError ?? '這場練習可能已經結束，或者你沒有存取權限。'}
           </p>
           <button
             type="button"
@@ -347,14 +423,19 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
             }}
           >
             <RestartIcon size={16} />
-            Try again
+            重新載入
           </button>
         </GlassCard>
       </>
     );
   }
 
-  const personaSpeaking = status === 'persona_speaking';
+  // The mouth has to move while the audio is *actually playing*, not while the
+  // socket says the persona is speaking. `persona_speaking` is set by the text
+  // stream (`agent.response.partial`) and clears when the text ends, which is
+  // before the clip starts and long before it finishes — so the lipsync ran
+  // against silence and the avatar sat still through the whole reply.
+  const personaSpeaking = status === 'persona_speaking' || voice.ttsPlaying;
   const personaListening = voiceStatus === 'listening' || voiceStatus === 'transcribing';
 
   return (
@@ -392,7 +473,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
             <button
               type="button"
               onClick={actions.dismissError}
-              aria-label="Dismiss"
+              aria-label="關閉提示"
               className="sim-focusable shrink-0 text-text-tertiary hover:text-text-secondary"
             >
               <CloseIcon size={15} />
@@ -451,7 +532,15 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                 <AffectNudge
                   reading={camera.reading}
                   cameraLive={camera.live}
-                  traineesTurn={status === 'listening' || status === 'idle' || status === 'ready'}
+                  noFace={camera.noFace}
+                  // Anything except a session that is not running. Gating this
+                  // on the trainee's *turn* meant a frown during the customer's
+                  // answer — the most natural moment to look stuck — was
+                  // ignored, and the card then appeared long after the
+                  // expression had passed. Kept identical to the text page's
+                  // copy in `conversation-panel.tsx`; the two drifted, and this
+                  // one is the page the demo actually runs on.
+                  traineesTurn={status !== 'connecting' && status !== 'error'}
                   onAskHint={isTraining ? () => socket.requestHint() : undefined}
                 />
 
@@ -504,6 +593,7 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                   personaName={bootstrap.persona.name}
                   personaGender={bootstrap.persona.gender}
                   personaAge={bootstrap.persona.age}
+                  onPersonaVisible={onPersonaVisible}
                   subtitle={bootstrap.persona.subtitle ?? bootstrap.persona.occupation}
                   avatarUrl={bootstrap.persona.avatarUrl}
                   personaState={personaState}
@@ -529,8 +619,22 @@ export function VoiceSimulationPage({ sessionId }: VoiceSimulationPageProps) {
                     persona's face. */}
                 {/* Same two-column, chest-height glass stack as PersonaColumn's
                     stage-fill layout — keep the two in step. */}
-                <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3 pb-14">
-                  <div className="sim-scroll sim-stage-overlay pointer-events-auto grid max-h-[36%] w-full grid-cols-1 content-start items-stretch gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                <div className="sim-stage-overlay-host pointer-events-none absolute inset-0 z-10 flex items-end p-3 pb-11">
+                  <div className={cn(
+                      'sim-stage-overlay pointer-events-auto grid w-full items-stretch gap-2',
+                      // Two columns of equal height whose tops line up, each
+                      // scrolling inside its own rounded box. `sm:grid-rows-1`
+                      // is what makes that work: Tailwind emits
+                      // `minmax(0, 1fr)`, so the row is the container's height
+                      // rather than the content's, and `min-h-0` on the cards
+                      // lets them shrink into it. Without it the row sized to
+                      // the tallest card (522px inside a 275px box) and the
+                      // container simply cut it off — the meters were sliced
+                      // through the middle and nothing scrolled.
+                      'max-h-[38%] grid-cols-1 overflow-y-auto',
+                      'sm:grid-cols-2 sm:grid-rows-1 sm:overflow-hidden',
+                      '[&>*]:min-h-0 [&>*]:overflow-y-auto',
+                    )}>
                     <PersonaStateCard
                       state={personaState}
                       updating={status === 'processing' || personaSpeaking}

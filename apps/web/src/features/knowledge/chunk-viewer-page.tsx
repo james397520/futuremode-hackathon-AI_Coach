@@ -37,13 +37,13 @@ export function ChunkViewerPage({ kbId }: { kbId: string }) {
     <div className="space-y-5 pb-4">
       <PageHeader
         breadcrumbs={[
-          { label: 'Knowledge Base', href: '/knowledge' },
+          { label: '知識庫', href: '/knowledge' },
           { label: kb?.name ?? kbId, href: `/knowledge/${kbId}` },
-          { label: 'Chunks' },
+          { label: '切片' },
         ]}
-        title="Chunk viewer"
-        description="Inspect exactly what retrieval can see. Editing a chunk re-embeds it and is recorded in the audit log."
-        meta={<Pill tone="neutral" size="sm">{MOCK_CHUNKS.length} chunks loaded</Pill>}
+        title="切片檢視"
+        description="看清楚檢索實際讀得到的內容。編輯切片會重新建立嵌入，並記錄在稽核日誌中。"
+        meta={<Pill tone="neutral" size="sm">已載入 {MOCK_CHUNKS.length} 個切片</Pill>}
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
@@ -51,8 +51,8 @@ export function ChunkViewerPage({ kbId }: { kbId: string }) {
           <Input
             type="search"
             value={query}
-            placeholder="Filter by text, id, section or tag…"
-            aria-label="Filter chunks"
+            placeholder="以內容、id、章節或標籤篩選…"
+            aria-label="篩選切片"
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)}
           />
 
@@ -83,14 +83,14 @@ export function ChunkViewerPage({ kbId }: { kbId: string }) {
                     </p>
                     <p className="mt-1 line-clamp-2 text-body-sm text-text-secondary">{chunk.text}</p>
                     {chunk.excluded_from_retrieval ? (
-                      <Pill tone="warning" size="sm" className="mt-1.5">Excluded</Pill>
+                      <Pill tone="warning" size="sm" className="mt-1.5">已排除</Pill>
                     ) : null}
                   </button>
                 </li>
               );
             })}
             {chunks.length === 0 ? (
-              <li className="px-3 py-6 text-center text-body-sm text-text-tertiary">No chunk matches.</li>
+              <li className="px-3 py-6 text-center text-body-sm text-text-tertiary">沒有符合的切片。</li>
             ) : null}
           </ul>
         </GlassCard>
@@ -102,21 +102,21 @@ export function ChunkViewerPage({ kbId }: { kbId: string }) {
                 <h2 className="text-card-title">{selected.id}</h2>
                 <p className="mt-0.5 text-body-sm text-text-tertiary">
                   {documentById(selected.document_id)?.filename ?? selected.document_id} · v
-                  {selected.document_version} · index {selected.index}
+                  {selected.document_version} · 序號 {selected.index}
                 </p>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {selected.page !== undefined ? <Pill tone="neutral" size="sm">page {selected.page}</Pill> : null}
+                {selected.page !== undefined ? <Pill tone="neutral" size="sm">第 {selected.page} 頁</Pill> : null}
                 <Pill tone="neutral" size="sm">{selected.token_count} tokens</Pill>
                 <Pill tone={selected.excluded_from_retrieval ? 'warning' : 'success'} size="sm">
-                  {selected.excluded_from_retrieval ? 'Excluded from retrieval' : 'In retrieval'}
+                  {selected.excluded_from_retrieval ? '已排除於檢索之外' : '納入檢索'}
                 </Pill>
               </div>
             </div>
 
             {selected.section ? (
               <p className="mt-3 text-body-sm">
-                <span className="meta-label mr-2">Heading</span>
+                <span className="meta-label mr-2">章節標題</span>
                 {selected.section}
               </p>
             ) : null}
@@ -127,7 +127,7 @@ export function ChunkViewerPage({ kbId }: { kbId: string }) {
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
-                <p className="meta-label">Metadata</p>
+                <p className="meta-label">中繼資料</p>
                 <dl className="mt-2 space-y-1 text-body-sm">
                   {Object.entries(selected.metadata).map(([key, value]) => (
                     <div key={key} className="flex items-center justify-between gap-3">
@@ -136,23 +136,23 @@ export function ChunkViewerPage({ kbId }: { kbId: string }) {
                     </div>
                   ))}
                   {Object.keys(selected.metadata).length === 0 ? (
-                    <div className="text-text-tertiary">No metadata generated.</div>
+                    <div className="text-text-tertiary">沒有產生中繼資料。</div>
                   ) : null}
                 </dl>
               </div>
               <div>
-                <p className="meta-label">Tags</p>
+                <p className="meta-label">標籤</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {selected.tags.map((tag) => (
                     <Pill key={tag} tone="neutral" size="sm">{tag}</Pill>
                   ))}
                   {selected.tags.length === 0 ? (
-                    <span className="text-body-sm text-text-tertiary">Untagged</span>
+                    <span className="text-body-sm text-text-tertiary">尚未加上標籤</span>
                   ) : null}
                 </div>
                 {selected.parent_chunk_id ? (
                   <p className="mt-3 text-body-sm">
-                    <span className="meta-label mr-2">Parent</span>
+                    <span className="meta-label mr-2">上層切片</span>
                     <button
                       type="button"
                       onClick={() => setSelectedId(selected.parent_chunk_id!)}
@@ -169,40 +169,40 @@ export function ChunkViewerPage({ kbId }: { kbId: string }) {
               <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border-soft pt-4">
                 <Button variant="secondary" size="sm">
                   <PencilLine size={15} strokeWidth={1.8} aria-hidden />
-                  Edit
+                  編輯
                 </Button>
                 <Button variant="ghost" size="sm">
                   <Scissors size={15} strokeWidth={1.8} aria-hidden />
-                  Split
+                  拆分
                 </Button>
                 <Button variant="ghost" size="sm">
                   <Merge size={15} strokeWidth={1.8} aria-hidden />
-                  Merge
+                  合併
                 </Button>
                 <Button variant="ghost" size="sm">
                   <RefreshCw size={15} strokeWidth={1.8} aria-hidden />
-                  Re-embed
+                  重新嵌入
                 </Button>
                 <Button variant="ghost" size="sm">
                   <EyeOff size={15} strokeWidth={1.8} aria-hidden />
-                  {selected.excluded_from_retrieval ? 'Include' : 'Exclude'}
+                  {selected.excluded_from_retrieval ? '納入檢索' : '排除檢索'}
                 </Button>
               </div>
             ) : (
               <p className="mt-5 border-t border-border-soft pt-4 text-body-sm text-text-tertiary">
-                Your role can read chunks but not edit them.
+                你的角色可以檢視切片，但無法編輯。
               </p>
             )}
 
             <p className="mt-4 text-tiny text-text-tertiary">
-              Need to see how this chunk actually scores?{' '}
+              想知道這個切片實際的分數表現？{' '}
               <Link
                 href={`/knowledge/${kbId}/playground`}
                 className="text-[color:color-mix(in_srgb,var(--accent-indigo)_70%,var(--text-primary))] hover:underline"
               >
-                Try it in the retrieval playground
+                到檢索測試場試試看
               </Link>
-              .
+              。
             </p>
           </GlassCard>
         ) : null}

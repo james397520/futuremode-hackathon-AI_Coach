@@ -3,7 +3,8 @@
 import { Download } from 'lucide-react';
 import { Button, GlassCard, Pill, ProgressBar, StatTile } from '@/components/ui';
 import { BILLING_PERIOD, INVOICES, QUOTA_ROWS } from '@/lib/fixtures/settings';
-import { formatCount, formatDate, titleize } from '@/lib/utils';
+import { INVOICE_STATUS_LABEL } from '@/lib/enum-labels';
+import { formatCount, formatDate } from '@/lib/utils';
 import { SettingsShell } from './settings-shell';
 
 /** §46 Part I Billing / Quota. */
@@ -13,38 +14,37 @@ export function BillingSettingsPage() {
 
   return (
     <SettingsShell
-      title="Billing & usage"
-      description={`Billing period ${formatDate(BILLING_PERIOD.start)} – ${formatDate(BILLING_PERIOD.end)}.`}
+      title="帳單與用量"
+      description={`帳單期間 ${formatDate(BILLING_PERIOD.start)} – ${formatDate(BILLING_PERIOD.end)}。`}
       meta={<Pill tone="neutral" size="sm">{BILLING_PERIOD.plan}</Pill>}
       actions={
         <Button variant="secondary" size="sm">
           <Download size={15} strokeWidth={1.8} aria-hidden />
-          Download usage report
+          下載用量報表
         </Button>
       }
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
           surface="card"
-          label="Seats in use"
+          label="已使用席次"
           value={seats ? `${seats.used} / ${seats.limit}` : '—'}
-          hint="active learners this period"
+          hint="本期活躍的學員"
         />
         <StatTile
           surface="card"
-          label="Simulation minutes"
+          label="模擬分鐘數"
           value={simMinutes ? formatCount(simMinutes.used) : '—'}
-          hint={simMinutes ? `of ${formatCount(simMinutes.limit)}` : undefined}
+          hint={simMinutes ? `上限 ${formatCount(simMinutes.limit)}` : undefined}
         />
-        <StatTile surface="card" label="Voice minutes" value={formatCount(QUOTA_ROWS.find((row) => row.id === 'voice_minutes')?.used ?? 0)} hint="included in the plan" />
-        <StatTile surface="card" label="Next invoice" value={INVOICES[0]?.amount ?? '—'} hint={INVOICES[0] ? titleize(INVOICES[0].status) : undefined} />
+        <StatTile surface="card" label="語音分鐘數" value={formatCount(QUOTA_ROWS.find((row) => row.id === 'voice_minutes')?.used ?? 0)} hint="方案已包含" />
+        <StatTile surface="card" label="下一期帳單" value={INVOICES[0]?.amount ?? '—'} hint={INVOICES[0] ? (INVOICE_STATUS_LABEL[INVOICES[0].status] ?? INVOICES[0].status) : undefined} />
       </div>
 
       <GlassCard className="p-5">
-        <h2 className="text-card-title">Quota</h2>
+        <h2 className="text-card-title">用量額度</h2>
         <p className="mt-1 text-body-sm text-text-secondary">
-          Sessions are never cut off mid-conversation. When a quota is reached, new sessions are blocked and
-          the workspace administrator is notified.
+          練習絕不會在對話進行到一半時被切斷。額度用滿時，系統會擋下新的練習，並通知工作區管理者。
         </p>
         <ul className="mt-4 space-y-4">
           {QUOTA_ROWS.map((row) => {
@@ -61,7 +61,7 @@ export function BillingSettingsPage() {
                 <ProgressBar
                   value={percent}
                   tone={percent >= 90 ? 'danger' : percent >= 75 ? 'warning' : 'ai'}
-                  aria-label={`${row.label}: ${percent}% of quota used`}
+                  aria-label={`${row.label}：已使用額度 ${percent}%`}
                 />
               </li>
             );
@@ -70,12 +70,12 @@ export function BillingSettingsPage() {
       </GlassCard>
 
       <GlassCard className="p-5">
-        <h2 className="text-card-title">Invoices</h2>
+        <h2 className="text-card-title">發票</h2>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full text-body-sm">
             <thead>
               <tr className="border-b border-border-soft text-left">
-                {['Period', 'Issued', 'Amount', 'Status', ''].map((heading) => (
+                {['期間', '開立日期', '金額', '狀態', ''].map((heading) => (
                   <th
                     key={heading}
                     scope="col"
@@ -97,7 +97,7 @@ export function BillingSettingsPage() {
                       tone={invoice.status === 'paid' ? 'success' : invoice.status === 'due' ? 'warning' : 'danger'}
                       size="sm"
                     >
-                      {titleize(invoice.status)}
+                      {INVOICE_STATUS_LABEL[invoice.status] ?? invoice.status}
                     </Pill>
                   </td>
                   <td className="px-2 py-3 text-right">

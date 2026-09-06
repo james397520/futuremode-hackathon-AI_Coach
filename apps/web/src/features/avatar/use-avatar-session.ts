@@ -108,7 +108,7 @@ export function useAvatarSession(options: UseAvatarSessionOptions): AvatarSessio
           s.setCheck('avatar_cache', 'ok');
           s.setCheck('expression_bank', 'ok');
           s.setCheck('musetalk_warmup', 'ok');
-          s.setCheck('webrtc', 'ok', 'WebSocket frames (Phase 1)');
+          s.setCheck('webrtc', 'ok', 'WebSocket 影格（第一階段）');
           break;
         case 'avatar.loading':
           if (s.status !== 'degraded') s.setStatus('loading');
@@ -142,7 +142,7 @@ export function useAvatarSession(options: UseAvatarSessionOptions): AvatarSessio
           s.degrade(event.component ?? 'runtime', event.reason);
           break;
         case 'avatar.error':
-          s.fail({ code: event.code ?? 'MODEL_LOAD_FAILED', message: event.message ?? 'Avatar runtime error' });
+          s.fail({ code: event.code ?? 'MODEL_LOAD_FAILED', message: event.message ?? '虛擬人執行環境發生錯誤' });
           break;
         default:
           break;
@@ -174,7 +174,7 @@ export function useAvatarSession(options: UseAvatarSessionOptions): AvatarSessio
 
       if (!AVATAR_ENABLED) {
         s.setStatus('unavailable');
-        s.setCheck('backend', 'skipped', 'Avatar runtime disabled by configuration');
+        s.setCheck('backend', 'skipped', '設定中已停用虛擬人執行環境');
         return;
       }
 
@@ -185,7 +185,7 @@ export function useAvatarSession(options: UseAvatarSessionOptions): AvatarSessio
       if (!alive()) return;
       if (!health.ok) {
         // The overwhelmingly common case: no engines installed. Quiet, not an error.
-        s.setCheck('backend', 'skipped', 'No local avatar runtime detected');
+        s.setCheck('backend', 'skipped', '偵測不到本機虛擬人執行環境');
         s.setStatus('unavailable');
         return;
       }
@@ -239,7 +239,7 @@ export function useAvatarSession(options: UseAvatarSessionOptions): AvatarSessio
           if (socketStatus === 'failed') {
             current.fail({
               code: 'SOCKET_FAILED',
-              message: meta?.reason ?? 'Avatar stream disconnected',
+              message: meta?.reason ?? '虛擬人串流已中斷',
             });
           }
         },
