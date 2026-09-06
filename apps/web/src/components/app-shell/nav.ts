@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   ListChecks,
   PlayCircle,
-  Clapperboard,
   Plug,
   Settings,
   ShieldCheck,
@@ -47,14 +46,6 @@ export const NAV_ITEMS: NavItem[] = [
     icon: PlayCircle,
     permission: 'simulation.start',
     description: '情境庫、進行中的練習與成果回顧',
-  },
-  {
-    id: 'demo',
-    label: '情境示範',
-    href: '/demo',
-    icon: Clapperboard,
-    permission: 'simulation.start',
-    description: '一鍵播放的完整示範情境',
   },
   {
     id: 'training',
