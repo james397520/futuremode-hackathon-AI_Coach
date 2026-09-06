@@ -344,8 +344,13 @@ python -m http.server 8765 --directory docs
 ## 作品展示
 
 - 線上網站：<https://james397520.github.io/futuremode-hackathon-AI_Coach/>
-- 平台封面影片（14 秒）：[`docs/media/cover.mp4`](docs/media/cover.mp4)，於[專案網站首頁](https://james397520.github.io/futuremode-hackathon-AI_Coach/#top)自動播放
-- Demo 影片：[在專案網站上播放](https://james397520.github.io/futuremode-hackathon-AI_Coach/#top)（39 秒、720p、有聲），或直接下載 [`docs/media/demo.mp4`](docs/media/demo.mp4)；本檔最上方的動圖為其片段預覽
+- Demo 影片（39 秒、有聲）：[在專案網站上播放](https://james397520.github.io/futuremode-hackathon-AI_Coach/#top)，或下載 [`docs/media/demo.mp4`](docs/media/demo.mp4)；本檔最上方的動圖為其片段預覽
+- 平台封面影片（14 秒、無聲）：[在專案網站上循環播放](https://james397520.github.io/futuremode-hackathon-AI_Coach/#demo)，或下載 [`docs/media/cover.mp4`](docs/media/cover.mp4)
+- 合規審查影片（92 秒、有聲）：[在專案網站上播放](https://james397520.github.io/futuremode-hackathon-AI_Coach/#flow)，或下載 [`docs/media/compliance.mp4`](docs/media/compliance.mp4)
+
+**平台封面**
+
+[![SkillCoach 平台封面：Practice every conversation before it counts.](docs/media/cover-preview.gif)](https://james397520.github.io/futuremode-hackathon-AI_Coach/#demo)
 
 ## 第三方服務、資料與素材
 
