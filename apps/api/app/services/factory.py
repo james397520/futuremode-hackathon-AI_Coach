@@ -26,6 +26,7 @@ from app.agents.evaluator_agent import EvaluatorAgent
 from app.agents.intent import IntentPipeline, SafetyPort
 from app.agents.knowledge_agent import KnowledgeAgent
 from app.agents.llm_client import (
+    GmiCloudClient,
     LlmPort,
     MiniMaxClient,
     ModelPurpose,
@@ -59,11 +60,13 @@ def build_llm(ctx: Any) -> LlmPort:
         providers["openai"] = OpenAiClient.from_settings()
     if getattr(settings, "minimax_api_key", None):
         providers["minimax"] = MiniMaxClient.from_settings()
+    if getattr(settings, "gmi_api_key", None):
+        providers["gmi"] = GmiCloudClient.from_settings()
     if getattr(settings, "private_llm_base_url", None):
         providers["private"] = PrivateLlmClient.from_settings()
     if not providers:
         raise RuntimeError(
-            "no LLM provider configured: set MINIMAX_API_KEY, OPENAI_API_KEY, "
+            "no LLM provider configured: set MINIMAX_API_KEY, GMI_API_KEY, OPENAI_API_KEY, "
             "or PRIVATE_LLM_BASE_URL "
             "(spec §44 Model Settings)"
         )
@@ -73,7 +76,16 @@ def build_llm(ctx: Any) -> LlmPort:
     primary = "private" if configured == "aup" else configured
     if primary not in providers:
         primary = next(iter(providers))
-    fallbacks = tuple(name for name in providers if name != primary)
+    # When MiniMax is primary, GMI is the first fallback because it serves the
+    # same model family through an independent endpoint and credential. Any other
+    # configured providers remain later fallbacks.
+    ordered_fallbacks: list[str] = []
+    if primary == "minimax" and "gmi" in providers:
+        ordered_fallbacks.append("gmi")
+    ordered_fallbacks.extend(
+        name for name in providers if name != primary and name not in ordered_fallbacks
+    )
+    fallbacks = tuple(ordered_fallbacks)
     routes = {
         purpose: ModelRoute(purpose=purpose, primary=primary, fallbacks=fallbacks)
         for purpose in ModelPurpose

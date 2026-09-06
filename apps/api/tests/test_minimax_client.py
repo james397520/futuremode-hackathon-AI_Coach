@@ -1,4 +1,4 @@
-"""MiniMax adapter contract: Messages API translation and streamed text deltas."""
+"""MiniMax direct and GMI Cloud adapter contracts."""
 
 from __future__ import annotations
 
@@ -6,7 +6,13 @@ import json
 
 import httpx
 
-from app.agents.llm_client import LlmMessage, LlmRole, MiniMaxClient, ModelPurpose
+from app.agents.llm_client import (
+    GmiCloudClient,
+    LlmMessage,
+    LlmRole,
+    MiniMaxClient,
+    ModelPurpose,
+)
 
 
 async def test_minimax_complete_uses_anthropic_messages_contract() -> None:
@@ -94,3 +100,54 @@ async def test_minimax_stream_yields_only_text_deltas() -> None:
         ]
 
     assert chunks == ["你", "好"]
+
+
+async def test_gmi_cloud_complete_uses_openai_contract_and_reports_gmi() -> None:
+    seen: dict[str, object] = {}
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        seen["url"] = str(request.url)
+        seen["headers"] = dict(request.headers)
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(
+            200,
+            json={
+                "id": "chatcmpl_gmi_123",
+                "model": "MiniMaxAI/MiniMax-M3",
+                "choices": [
+                    {"message": {"role": "assistant", "content": "你好"}, "finish_reason": "stop"}
+                ],
+                "usage": {"prompt_tokens": 12, "completion_tokens": 3},
+            },
+        )
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(
+        base_url="https://api.gmi-serving.com/v1", transport=transport
+    ) as http:
+        client = GmiCloudClient(
+            base_url="https://api.gmi-serving.com/v1",
+            api_key="gmi-test-key",
+            default_model="MiniMaxAI/MiniMax-M3",
+            organization_id="org_test",
+            client=http,
+        )
+        result = await client.complete(
+            [LlmMessage(LlmRole.USER, "你好")],
+            purpose=ModelPurpose.PERSONA,
+            schema={"type": "object", "properties": {"answer": {"type": "string"}}},
+            max_tokens=500,
+        )
+
+    assert seen["url"] == "https://api.gmi-serving.com/v1/chat/completions"
+    headers = seen["headers"]
+    assert isinstance(headers, dict)
+    assert headers["authorization"] == "Bearer gmi-test-key"
+    assert headers["x-organization-id"] == "org_test"
+    body = seen["body"]
+    assert isinstance(body, dict)
+    assert body["model"] == "MiniMaxAI/MiniMax-M3"
+    assert body["max_tokens"] == 16384
+    assert body["response_format"] == {"type": "json_object"}
+    assert result.provider == "gmi"
+    assert result.text == "你好"

@@ -69,18 +69,24 @@
 │  多 Agent：合規預檢 → 情境導演 → 知識檢索 → 客戶（串流）→ 合規後檢 → 教練 → 評分            │
 │  意圖判定（釐清／收斂）· 臉部與文字情緒融合 · 版本釘選 session · RBAC · 稽核 · 限流           │
 │  語音邊界：STT（mac 本機 → 雲端備援）· TTS（本地模型 → 雲端 → 交給瀏覽器系統語音）            │
-└───┬──────────────┬──────────────┬──────────────┬──────────────────┬─────────────────────────┘
-    │              │              │              │                  │
-    ▼              ▼              ▼              ▼                  ▼
- PostgreSQL 16   Redis 7      向量庫           物件儲存        MiniMax LLM（Anthropic 相容端點）
- 主資料庫        限流/佇列     memory(本機)     S3 相容        ElevenLabs（雲端 STT Scribe / TTS）
-                              Qdrant(正式)    （本機可關）
+└───┬──────────────┬──────────────┬──────────────┬──────────────────┬──────────────────┬─────────────────┘
+    │              │              │              │                  │                  │
+    ▼              ▼              ▼              ▼                  ▼                  ▼
+ PostgreSQL 16   Redis 7      向量庫           物件儲存        MiniMax 官方 API     GMI Cloud API
+ 主資料庫        限流/佇列     memory(本機)     S3 相容        Anthropic 相容       OpenAI 相容
+                              Qdrant(正式)    （本機可關）      （LLM primary）       （LLM first fallback）
+                                                        ElevenLabs（雲端 STT Scribe / TTS）
     ▲ 本機 loopback 側掛服務（任一個掛掉都不會中止訓練 session）
     ├── services/local-tts   :8795  本地繁中 TTS 模型（Breeze2-VITS 預設，Kokoro 備援；onnxruntime CPU）
     ├── tools/mac-stt        :8790  macOS 原生語音辨識（Speech.framework，離線；僅 macOS）
     ├── services/avatar-runtime :8765  虛擬人 runtime（可選）
     └── services/inference   :8770  私有 embedding / rerank（可選，需自備權重）
 ```
+
+MiniMax 官方 API 與 GMI Cloud API 都是 FastAPI 對話編排層直接呼叫的同層級外部
+LLM provider。差別只在路由優先序：`LLM_PROVIDER=minimax` 時以 MiniMax 官方為
+primary；若同時設定 `GMI_API_KEY`，GMI Cloud 是 first fallback。兩者各自持有
+獨立 base URL、API key、模型 ID 與 provider 稽核標籤。
 
 ### 連接埠一覽
 
@@ -105,7 +111,7 @@
 | --- | --- |
 | 前端 | Next.js 15（App Router）、React 18、TypeScript 5、Tailwind 3、Zustand、TanStack Query、framer-motion、three.js 0.185 + @pixiv/three-vrm 3.5、@mediapipe/tasks-vision |
 | 後端 | Python 3.12、FastAPI、Pydantic 2、SQLAlchemy 2（async）+ asyncpg、Alembic、Celery（Redis broker）、structlog、OpenTelemetry |
-| AI | MiniMax（`MiniMax-M3`，Anthropic 相容端點）作為所有對話 Agent 的 LLM；ElevenLabs Scribe（雲端 STT）與 ElevenLabs TTS（`eleven_flash_v2_5`）；本地 TTS：MediaTek Breeze2-VITS-onnx、hexgrad Kokoro-82M-v1.1-zh（onnxruntime）；macOS Speech.framework（本機 STT）；MediaPipe Face Landmarker（瀏覽器情緒辨識） |
+| AI | 同層級外部 LLM provider：MiniMax 官方 API（`MiniMax-M3`，Anthropic 相容）與 GMI Cloud API（`MiniMaxAI/MiniMax-M3`，OpenAI 相容）；預設路由為 MiniMax primary、GMI first fallback。另有 ElevenLabs Scribe（雲端 STT）與 ElevenLabs TTS（`eleven_flash_v2_5`）；本地 TTS：MediaTek Breeze2-VITS-onnx、hexgrad Kokoro-82M-v1.1-zh（onnxruntime）；macOS Speech.framework（本機 STT）；MediaPipe Face Landmarker（瀏覽器情緒辨識） |
 | 資料 | PostgreSQL 16、Redis 7、Qdrant（正式向量庫）、S3 相容物件儲存 |
 | 工具鏈 | pnpm 9.12 workspace、uv（Python 環境）、ruff、mypy、pytest、vitest、shellcheck、GitHub Actions |
 | 部署 | 原生程序；macOS 以 launchd 常駐、Linux 以 systemd + nginx；**不使用 Docker** |
@@ -207,6 +213,7 @@ scripts/dev/install-mac-stt-service.sh --status    # mac-stt：state running
 | 項目 | 用途 | 必要性 |
 | --- | --- | --- |
 | MiniMax API key | 所有對話 Agent 的 LLM（`LLM_PROVIDER=minimax`） | **必要** |
+| GMI Cloud API key | MiniMax 官方 API 逾時、限流或連線失敗時的第一備援 | 建議 |
 | ElevenLabs API key | 雲端語音辨識（Scribe）與雲端語音合成；也是本地語音失效時的備援 | 建議。沒有時 STT 只剩 macOS 本機、TTS 只剩本地模型與系統語音 |
 | OpenAI API key | 替代的 LLM / STT / TTS 供應商 | 可選 |
 | Qdrant | 正式環境的向量庫 | 正式環境必要；本機用 `VECTOR_BACKEND=memory` |
@@ -248,6 +255,8 @@ OBJECT_STORAGE_ENABLED=false
 LLM_PROVIDER=minimax
 MINIMAX_API_KEY=你的金鑰
 MINIMAX_MODEL=MiniMax-M3
+GMI_API_KEY=你的_GMI_金鑰       # 可選；有設定才啟用備援
+GMI_MODEL=MiniMaxAI/MiniMax-M3
 
 STT_PROVIDER=mac                 # 本機辨識優先，失敗自動退到雲端
 TTS_PROVIDER=local               # 本地模型優先，失敗自動退到 ElevenLabs
@@ -523,6 +532,8 @@ S3_BUCKET=ai-coach-prod
 LLM_PROVIDER=minimax
 MINIMAX_API_KEY=...
 MINIMAX_MODEL=MiniMax-M3
+GMI_API_KEY=...
+GMI_MODEL=MiniMaxAI/MiniMax-M3
 STT_PROVIDER=elevenlabs
 TTS_PROVIDER=local
 LOCAL_TTS_URL=http://127.0.0.1:8795
@@ -602,10 +613,14 @@ journalctl -u ai-coach-api -f
 
 | 變數 | 預設 | 說明 |
 | --- | --- | --- |
-| `LLM_PROVIDER` | `openai`（`.env.example` 為 `minimax`） | `openai` / `azure_openai` / `aup` / `minimax` / `none` |
+| `LLM_PROVIDER` | `openai`（`.env.example` 為 `minimax`） | `openai` / `azure_openai` / `aup` / `minimax` / `gmi` / `none` |
 | `MINIMAX_API_KEY` | 空 | 必填 |
 | `MINIMAX_BASE_URL` | `https://api.minimax.io/anthropic/v1` | Anthropic 相容端點 |
 | `MINIMAX_MODEL` | `MiniMax-M3` | 實測延遲：M3 3.3 s、M2.1 4.6 s、M2.5-highspeed 11.6 s、M2.7-highspeed 35.3 s |
+| `GMI_API_KEY` | 空 | 設定後，`LLM_PROVIDER=minimax` 時成為第一備援 |
+| `GMI_BASE_URL` | `https://api.gmi-serving.com/v1` | GMI Cloud OpenAI 相容端點 |
+| `GMI_MODEL` | `MiniMaxAI/MiniMax-M3` | 請以 `GET /v1/models` 確認帳號可用的模型 ID |
+| `GMI_ORGANIZATION_ID` | 空 | 多組織帳號才需設定；送出 `X-Organization-ID` |
 | `OPENAI_API_KEY` / `LLM_MODEL` | 空 / `gpt-4o` | 使用 OpenAI 時 |
 | `LLM_TIMEOUT_SECONDS` | `30` | |
 | `EMBEDDING_MODEL` / `EMBEDDING_DIMENSION` | 見 config | 兩者必須一起改，改了要重建索引 |
@@ -975,7 +990,8 @@ CI（`.github/workflows/ci.yml`）四個 job：web（typecheck、lint、build）
 
 ## 安全與隱私
 
-- **金鑰邊界**：MiniMax、ElevenLabs、OpenAI、資料庫、Qdrant、S3 的憑證只在 API／worker 行程；`/integrations` 只接受 `secret_ref`，不接受原始憑證。非 local/test 環境若 `JWT_SECRET` 為預設值、CORS 為空或 `*`、啟用供應商卻缺金鑰，行程拒絕啟動。
+- **金鑰邊界**：MiniMax、GMI Cloud、ElevenLabs、OpenAI、資料庫、Qdrant、S3 的憑證只在 API／worker 行程；`/integrations` 只接受 `secret_ref`，不接受原始憑證。非 local/test 環境若 `JWT_SECRET` 為預設值、CORS 為空或 `*`、啟用供應商卻缺金鑰，行程拒絕啟動。
+- **供應商可追溯**：MiniMax 官方為 primary；GMI Cloud 只在可安全重試的失敗且串流尚未送出內容時接手。稽核紀錄保存實際回應的 `provider` 與 `fell_back`，不會把官方流量標成 GMI。
 - **認證**：HS256 access token 於 `HttpOnly SameSite=Lax` cookie；refresh token 於獨立 `SameSite=Strict` cookie；雙提交 CSRF token 與 session `jti` HMAC 綁定；服務端可用 bearer。
 - **RBAC 與租戶隔離**：五種角色權限矩陣單一來源（`app/core/deps.py`）；任何缺少 `tenant_id + workspace_id` 條件的 SELECT/UPDATE/DELETE 在 ORM 層直接拒絕並以 404 回應；Qdrant 過濾強制帶租戶。
 - **語音與影像**：麥克風音訊只送自家 API；本機模式（mac-stt、local-tts）音訊與文字都不離開機器；鏡頭影格永遠不離開瀏覽器。
