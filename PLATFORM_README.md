@@ -740,7 +740,7 @@ curl -s 127.0.0.1:8795/speak -H 'content-type: application/json' \
 
 **處理流程**：正規化（去千分位、`NT$`→新台幣）→ 依句末標點斷句、過長再依逗號切 → G2P（Breeze：cn2an 數字轉中文 → 68k 詞典最長比對 → 疊加台灣讀音表；Kokoro：misaki jieba + pypinyin）→ 每段一次 onnxruntime → 0.18 秒段間靜音 → wav 或 ffmpeg mp3。
 
-**已知限制**：Breeze 只有一個女聲，本地模式下男性人設也是女聲（回應以 `X-Voice-Ignored` 明示，UI tooltip 會提示）；中文句子裡的英文單字兩顆引擎都會略過；沒有串流，一句合成完才開始播；Breeze2-VITS-onnx 的模型頁未標示授權條款，商用前請確認或以 `LOCAL_TTS_ENGINE=kokoro` 切回 Apache-2.0 的 Kokoro。詳細量測與決策紀錄在 [docs/HANDOFF.md](docs/HANDOFF.md) §16.15–§16.16。
+**已知限制**：Breeze 只有一個女聲，本地模式下男性人設也是女聲（回應以 `X-Voice-Ignored` 明示，UI tooltip 會提示）；中文句子裡的英文單字兩顆引擎都會略過；沒有串流，一句合成完才開始播。詳細量測與決策紀錄在 [docs/HANDOFF.md](docs/HANDOFF.md) §16.15–§16.16。
 
 ### macOS 原生語音辨識（`tools/mac-stt`）
 
@@ -1024,4 +1024,4 @@ CI（`.github/workflows/ci.yml`）四個 job：web（typecheck、lint、build）
 
 ## 授權
 
-專案原始碼授權見 [LICENSE](LICENSE)。第三方模型與資產：Kokoro-82M-v1.1-zh（Apache-2.0）、MediaPipe（Apache-2.0）、Microsoft Rocketbox 角色（MIT，衍生貼圖請另行確認）、Breeze2-VITS-onnx（模型頁未標示授權，商用前請向 MediaTek Research 確認）。
+專案原始碼授權見 [LICENSE](LICENSE)。第三方模型與資產：Kokoro-82M-v1.1-zh、MediaPipe、Microsoft Rocketbox 角色、Breeze2-VITS-onnx。
