@@ -27,9 +27,6 @@ coverage/
 /image.png
 /ChatGPT Image *.png
 
-# 封存/: loose drop-test models the viewer README does not reference (31MB).
-# The two VRM avatars under 封存/public/models ARE tracked — they are the assets.
-/封存/*.glb
 
 # Built by tools/mac-stt/build.sh (scripts/dev/install-mac-stt-service.sh runs it when missing)
 tools/mac-stt/bin/
