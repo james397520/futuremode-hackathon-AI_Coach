@@ -240,6 +240,7 @@
   /* avatar gallery */
   .shots{display:grid;gap:32px;margin-top:48px}
   .shot img{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:var(--r)}
+  .shot img.on-light{background:#fff;padding:8px;box-sizing:border-box}
   .shot p{color:var(--fg-2);font-size:14px;margin-top:14px;max-width:760px}
   .shot h3{font-size:19px;margin-bottom:14px}
   .todo{outline:1px dashed #444;outline-offset:2px;border-radius:4px}
@@ -719,6 +720,32 @@
       <div class="dim"><b>70</b><span>風險揭露</span></div>
     </div>
     <p class="lead" style="margin-top:24px">最終報告每個維度都附理由與改善建議，例如需求探索 40 分的理由是「未主動詢問投資目標、持有期間、風險承受能力或緊急資金需求」——分數指得出是哪一句沒做到，不是一個沒有來源的數字。</p>
+
+    <div class="subsec">
+      <div class="eyebrow">Progress</div>
+      <h3>分數累積成學員進度</h3>
+      <p class="lead">單場對練的評分不只停在報告，會累積成學員的長期進度。</p>
+      <div class="shot" style="margin-top:40px">
+        <img class="on-light" src="img/progress.jpg" alt="學員進度儀表板：技能總分、十項維度、分數與合規趨勢、情境歷程與下一步建議" loading="lazy">
+      </div>
+      <div class="grid three" style="margin-top:40px">
+        <div class="card">
+          <span class="en">Ten dimensions</span>
+          <h3>十項維度各有及格線</h3>
+          <p>及格線 80，每一分都能追到逐字稿佐證，並與團隊平均對照指出最擅長與待加強的維度。</p>
+        </div>
+        <div class="card">
+          <span class="en">Gate</span>
+          <h3>合規是關卡型維度</h3>
+          <p>出現重大發現即不通過，不會被其他維度的高分平均掉——上圖那場 68 分的練習就是因為 2 個合規旗標而未通過。</p>
+        </div>
+        <div class="card">
+          <span class="en">Next step</span>
+          <h3>下一步不是只給總分</h3>
+          <p>依最弱維度推薦要重練的情境與該補的知識庫段落，讓學員知道下一場該練什麼。</p>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
