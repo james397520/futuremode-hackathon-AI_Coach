@@ -87,6 +87,8 @@ export interface ConversationPanelProps {
 
   /** Hide the pause/restart/captions/transcript/… quick-actions row (default shown). */
   showQuickActions?: boolean;
+  /** Hide the coach/compliance strip pinned above the composer (default shown). */
+  showInlineEvents?: boolean;
 
   className?: string;
 }
@@ -271,6 +273,7 @@ export function ConversationPanel(props: ConversationPanelProps) {
     onReportIssue,
     onOpenAudioDevice,
     showQuickActions = true,
+    showInlineEvents = true,
     className,
   } = props;
 
@@ -299,12 +302,14 @@ export function ConversationPanel(props: ConversationPanelProps) {
       />
 
       <div className="mt-3 border-t pt-3" style={{ borderColor: tint('neutral', 14) }}>
-        <CoachInlineEvents
-          mode={mode}
-          coachInsights={coachInsights}
-          complianceFindings={complianceFindings}
-          startedAtMs={startedAtMs}
-        />
+        {showInlineEvents ? (
+          <CoachInlineEvents
+            mode={mode}
+            coachInsights={coachInsights}
+            complianceFindings={complianceFindings}
+            startedAtMs={startedAtMs}
+          />
+        ) : null}
 
         <div className="flex items-center justify-between gap-3 px-1.5 pb-2">
           <AgentActivity agent={activeAgent} atMs={agentActivityAtMs} status={status} />

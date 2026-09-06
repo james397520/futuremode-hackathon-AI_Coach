@@ -99,6 +99,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   const startedRef = useRef(false); // the auto-run has begun (once per mount)
   const rootRef = useRef<HTMLDivElement>(null); // scopes DOM control of the real composer
   const resumeRef = useRef(0); // beat index to resume at after the trainee line is sent
+  const traineeOrdinalRef = useRef(0); // 1-based count of trainee turns, for 第 N 回合 on findings
   const pstateRef = useRef<PersonaSimulationState>(baseState(script)); // mirror for merge
   const runRef = useRef(0); // bumped on begin/restart/unmount; stale continuations check it
 
@@ -254,6 +255,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
   const addTrainee = useCallback(
     (text: string) => {
       const ts = nextTs();
+      traineeOrdinalRef.current += 1;
       setTurns((p) => [...p, { id: `t${ts}`, session_id: SESSION, speaker: 'trainee', text, timestamp_ms: ts }]);
     },
     [nextTs],
@@ -434,7 +436,10 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
       setActiveAgent('compliance');
       setAgentAtMs(Date.now());
       after(TYPING_MS, () => {
-        setFindings((p) => [...p, { ...beat.finding, timestamp_ms: nextTs() }]);
+        setFindings((p) => [
+          ...p,
+          { ...beat.finding, timestamp_ms: nextTs(), transcript_turn_id: String(traineeOrdinalRef.current) },
+        ]);
         evolve({
             emotion: 'skeptical',
             resistance: clamp(pstateRef.current.resistance + 8),
@@ -586,6 +591,7 @@ export function DemoPlayerPage({ script }: { script: DemoScript }) {
               onReportIssue={noop}
               onOpenAudioDevice={noop}
               showQuickActions={false}
+              showInlineEvents={false}
             />
           }
           right={
