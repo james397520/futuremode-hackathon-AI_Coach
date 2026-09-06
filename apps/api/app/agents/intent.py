@@ -227,6 +227,74 @@ _AMBIGUOUS_CANDIDATES: dict[str, tuple[str, ...]] = {
     "en-US": ("price / premium", "coverage", "expected return", "risk & exclusions"),
 }
 
+# ---------------------------------------------------------------------------
+# §8.1 contextual candidate inference
+#
+# "這個划算嗎？" names nothing. The generic four above are a floor, not an
+# answer: what makes the clarifying question useful is naming *the thing that
+# was actually on the table one turn ago*. So before falling back, look
+# backwards through the transcript for the last concrete subject either side
+# mentioned, and offer that subject's facets instead — "定期壽險的保費" rather
+# than "價格 / 保費". The scan is deterministic (no model call) so the demo
+# behaviour is reproducible, and it reads the transcript only to *route*: the
+# trainee's words are never rewritten.
+# ---------------------------------------------------------------------------
+
+#: Concrete subjects a vague evaluative question can attach to, most specific
+#: first — the first match in a turn wins, so 定期壽險 beats a bare 保險.
+_SUBJECT_ANCHORS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("定期壽險", ("定期壽險", "定期險", "term life")),
+    ("終身壽險", ("終身壽險", "終身險", "whole life")),
+    ("實支實付醫療", ("實支實付", "醫療險", "住院醫療")),
+    ("重大傷病險", ("重大傷病", "重疾", "重大疾病")),
+    ("意外險", ("意外險", "傷害險")),
+    ("團體保險", ("團保", "團體保險", "公司保險")),
+    ("失能扶助險", ("失能", "殘扶險", "長照險")),
+    ("儲蓄型保單", ("儲蓄險", "還本", "投資型")),
+    ("這張保單", ("這張保單", "這個保單", "現有保單", "這份保單")),
+    ("這個方案", ("這個方案", "這個規劃", "這個組合")),
+)
+
+#: The facets of any one product a "is it worth it" question could be aiming at.
+_SUBJECT_FACETS: dict[str, tuple[str, ...]] = {
+    "zh-TW": ("的保費", "的保障範圍", "的理賠條件"),
+    "zh-CN": ("的保费", "的保障范围", "的理赔条件"),
+    "en-US": (" premium", " coverage", " claim conditions"),
+}
+
+
+def _subject_in(text: str) -> str | None:
+    """The most specific product subject named in one line, if any."""
+    folded = fold(text)
+    for label, needles in _SUBJECT_ANCHORS:
+        if any(fold(n) in folded for n in needles):
+            return label
+    return None
+
+
+def infer_candidates(request: IntentRequest) -> tuple[str, ...]:
+    """Candidate meanings for a referent-free line, inferred from context.
+
+    Looks at the current line first, then backwards through the recent turns,
+    then at the scenario's own talking points. Falls back to the generic facets
+    when the conversation has not put anything concrete on the table yet.
+    """
+    locale = request.locale if request.locale in _SUBJECT_FACETS else "zh-TW"
+    subject = _subject_in(request.text)
+    if subject is None:
+        for _speaker, text in reversed(request.recent_turns):
+            subject = _subject_in(text)
+            if subject is not None:
+                break
+    if subject is None:
+        for topic in request.allowed_scope:
+            subject = _subject_in(topic)
+            if subject is not None:
+                break
+    if subject is None:
+        return _AMBIGUOUS_CANDIDATES.get(locale, _AMBIGUOUS_CANDIDATES["zh-TW"])
+    return tuple(f"{subject}{facet}" for facet in _SUBJECT_FACETS[locale])
+
 _CLARIFY_TEMPLATES: dict[str, str] = {
     "zh-TW": "你剛剛說的「{text}」，是想問哪一部分呢？{options}",
     "zh-CN": "你刚刚说的「{text}」，是想问哪一部分呢？{options}",
@@ -321,9 +389,7 @@ class RuleIntentClassifier:
             return decision
 
         if any(p.search(folded) for p in _AMBIGUOUS_PATTERNS):
-            options = _AMBIGUOUS_CANDIDATES.get(
-                request.locale, _AMBIGUOUS_CANDIDATES["zh-TW"]
-            )
+            options = infer_candidates(request)
             decision.label = IntentLabel.AMBIGUOUS
             decision.action = InputAction.CLARIFY
             decision.confidence = 0.75

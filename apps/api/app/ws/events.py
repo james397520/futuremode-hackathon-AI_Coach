@@ -57,6 +57,7 @@ class EventType:
     TRAINEE_AFFECT_UPDATED = "trainee.affect.updated"
     COACH_INSIGHT = "coach.insight"
     KNOWLEDGE_CITATION = "knowledge.citation"
+    PERSONA_CLARIFY_OPTIONS = "persona.clarify.options"
     SCORE_UPDATED = "score.updated"
     COMPLIANCE_WARNING = "compliance.warning"
     RUNTIME_FALLBACK = "runtime.fallback"
@@ -385,6 +386,26 @@ class EventEmitter:
                 "type": EventType.KNOWLEDGE_CITATION,
                 "turn_id": turn_id,
                 "citations": [_jsonable(c) for c in citations],
+            }
+        )
+
+    async def persona_clarify_options(
+        self, turn_id: str, question: str, options: Iterable[str]
+    ) -> dict[str, Any]:
+        """§8.1 — the concrete meanings a referent-free line could have had.
+
+        The persona asks its clarifying question in character; this event carries
+        the same candidates as data so the client can offer them as one-tap
+        replies. Inferred from the transcript by `intent.infer_candidates`, never
+        by the persona model, so what the trainee sees and what the server
+        reasoned about cannot drift apart.
+        """
+        return await self.emit(
+            {
+                "type": EventType.PERSONA_CLARIFY_OPTIONS,
+                "turn_id": turn_id,
+                "question": question,
+                "options": [str(o) for o in options],
             }
         )
 

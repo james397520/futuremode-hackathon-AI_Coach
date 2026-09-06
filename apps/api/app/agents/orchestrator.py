@@ -305,6 +305,16 @@ class ConversationOrchestrator:
             state_delta=decision.state_delta,
         )
         await self.emitter.agent_response_final(persona_turn)
+        # §8.1 — when the trainee's line named nothing, the persona has just
+        # asked which part was meant. Send the same candidates the intent step
+        # inferred from the transcript, so the answer is one tap away instead of
+        # a second round of guessing.
+        if intent_decision.candidate_intents:
+            await self.emitter.persona_clarify_options(
+                persona_turn_id,
+                intent_decision.clarifying_question or "",
+                intent_decision.candidate_intents,
+            )
         # One state update per turn, after the persona has spoken, carrying the
         # hidden-need reveal when the reply triggered it.
         await self.emitter.persona_state_updated(state)
